@@ -1,0 +1,173 @@
+---
+# Alloy needs permission to discover and read pod logs via the Kubernetes API.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: network-lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy-network-lab
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy-network-lab
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: network-lab
+roleRef:
+  kind: ClusterRole
+  name: alloy-network-lab
+  apiGroup: rbac.authorization.k8s.io
+---
+# Grafana Alloy Deployment
+# Reads config from alloy-config ConfigMap.
+# Credentials from grafana-cloud-credentials Secret.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  namespace: network-lab
+  labels:
+    app: alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      serviceAccountName: alloy
+      containers:
+        - name: alloy
+          image: grafana/alloy:latest
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy
+            - --stability.level=experimental   # required for loki.enrich
+          env:
+            - name: GC_OTLP_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_ENDPOINT
+            - name: GC_OTLP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_USERNAME
+            - name: GC_PROM_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_PROM_ENDPOINT
+            - name: GC_PROM_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_PROM_USERNAME
+            - name: GC_LOKI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_LOKI_ENDPOINT
+            - name: GC_LOKI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_LOKI_USERNAME
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: API_TOKEN
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: ui
+              containerPort: 12345
+              protocol: TCP
+            - name: syslog-udp
+              containerPort: 6514
+              protocol: UDP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+            - name: storage
+              mountPath: /var/lib/alloy
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: storage
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+  namespace: network-lab
+  labels:
+    app: alloy
+spec:
+  selector:
+    app: alloy
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+    - name: ui
+      port: 12345
+      protocol: TCP
+      targetPort: 12345
+    - name: syslog-udp
+      port: 6514
+      protocol: UDP
+      targetPort: 6514
+---
+# NodePort service for syslog: SR Linux pods can reach their own node's IP
+# (pod-to-pod cross-node traffic is blocked in this EKS cluster) but can
+# reach the node IP itself. NodePort 30614 means kube-proxy on each node
+# forwards SR Linux syslog to Alloy regardless of which node it runs on.
+# UDP is used because rsyslog's legacy @@ TCP syntax uses newline-delimiter
+# framing which is incompatible with Alloy's octet-counting TCP parser.
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy-syslog
+  namespace: network-lab
+  labels:
+    app: alloy
+spec:
+  type: NodePort
+  selector:
+    app: alloy
+  ports:
+    - name: syslog-udp
+      port: 6514
+      protocol: UDP
+      targetPort: 6514
+      nodePort: 30614

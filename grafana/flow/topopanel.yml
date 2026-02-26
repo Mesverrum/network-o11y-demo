@@ -1,0 +1,169 @@
+# FlowPlugin panel configuration for the SR Linux Clos fabric topology.
+# SVG cell IDs map to Prometheus metric legend labels.
+#
+# Data series from Grafana (set in the dashboard panel targets):
+#   carrier:{{source}}:{{interface_name}}  → carrier transition rate (link flap indicator)
+#   {{source}}:{{interface_name}}:in       → inbound bps
+#   {{source}}:{{interface_name}}:out      → outbound bps
+
+cellIdPreamble: "cell-"
+
+anchors:
+  thresholds-link: &thresholds-link
+    - color: "#4a9eff"   # blue  — idle / no traffic
+      level: 0
+    - color: "#00b894"   # green — light traffic
+      level: 1000
+    - color: "#fdcb6e"   # yellow — moderate
+      level: 500000
+    - color: "#e17055"   # orange — heavy
+      level: 5000000
+    - color: "#d63031"   # red — very heavy
+      level: 50000000
+
+  thresholds-flap: &thresholds-flap
+    - color: "#00b894"   # green — stable (no carrier transitions)
+      level: 0
+    - color: "#fdcb6e"   # yellow — minor flap
+      level: 0.001
+    - color: "#d63031"   # red — flapping
+      level: 0.01
+
+  label-bps: &label-bps
+    separator: replace
+    units: bps
+    decimalPoints: 1
+    valueMappings:
+      - valueMax: 999
+        text: ""
+
+cells:
+  # ── spine1 node ─────────────────────────────────────────────────────────────
+  spine1:
+    dataRef: "carrier:spine1:ethernet-1/1"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  # ── spine2 node ─────────────────────────────────────────────────────────────
+  spine2:
+    dataRef: "carrier:spine2:ethernet-1/1"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  # ── leaf nodes ──────────────────────────────────────────────────────────────
+  leaf1:
+    dataRef: "carrier:leaf1:ethernet-1/1"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  leaf2:
+    dataRef: "carrier:leaf2:ethernet-1/1"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  leaf3:
+    dataRef: "carrier:leaf3:ethernet-1/1"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  # ── spine1 → leaf links (outbound bps + stroke color) ───────────────────────
+  "spine1:ethernet-1/1:leaf1:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/1:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine1:ethernet-1/1:leaf1:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/1:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "spine1:ethernet-1/2:leaf2:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/2:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine1:ethernet-1/2:leaf2:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/2:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "spine1:ethernet-1/3:leaf3:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/3:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine1:ethernet-1/3:leaf3:ethernet-1/49":
+    dataRef: "spine1:ethernet-1/3:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  # ── spine2 → leaf links ──────────────────────────────────────────────────────
+  "spine2:ethernet-1/1:leaf1:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/1:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine2:ethernet-1/1:leaf1:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/1:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "spine2:ethernet-1/2:leaf2:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/2:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine2:ethernet-1/2:leaf2:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/2:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "spine2:ethernet-1/3:leaf3:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/3:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:spine2:ethernet-1/3:leaf3:ethernet-1/50":
+    dataRef: "spine2:ethernet-1/3:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  # ── leaf → client links ──────────────────────────────────────────────────────
+  "leaf1:ethernet-1/1:client1:eth1":
+    dataRef: "leaf1:ethernet-1/1:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:leaf1:ethernet-1/1:client1:eth1":
+    dataRef: "leaf1:ethernet-1/1:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "leaf2:ethernet-1/1:client2:eth1":
+    dataRef: "leaf2:ethernet-1/1:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:leaf2:ethernet-1/1:client2:eth1":
+    dataRef: "leaf2:ethernet-1/1:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link
+
+  "leaf3:ethernet-1/1:client3:eth1":
+    dataRef: "leaf3:ethernet-1/1:out"
+    fillColor:
+      thresholds: *thresholds-flap
+
+  "link_id:leaf3:ethernet-1/1:client3:eth1":
+    dataRef: "leaf3:ethernet-1/1:out"
+    label: *label-bps
+    strokeColor:
+      thresholds: *thresholds-link

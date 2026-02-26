@@ -1,0 +1,222 @@
+---
+# netbox-sd — NetBox → Prometheus HTTP Service Discovery adapter.
+#
+# A lightweight HTTP server that queries the NetBox REST API and returns
+# device metadata in Prometheus HTTP SD format:
+#   https://prometheus.io/docs/prometheus/latest/http_sd/
+#
+# Grafana Alloy's discovery.http component polls this endpoint and applies
+# the returned labels to SNMP and gNMI metrics, enabling "inventory-driven
+# enrichment" — labels like device_role, site, platform, and tenant come
+# from NetBox as the authoritative source of truth.
+#
+# Endpoint: http://netbox-sd.network-tools.svc.cluster.local:8181/targets
+# Refresh:  every 5 minutes (Alloy polls on its own schedule)
+#
+# The NETBOX_TOKEN is read from the netbox-credentials Secret.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-sd-script
+  namespace: network-tools
+data:
+  server.py: |
+    #!/usr/bin/env python3
+    """
+    Prometheus HTTP SD adapter for NetBox.
+
+    Returns all NetBox devices as Prometheus targets with enrichment labels:
+      - device_role  (spine / leaf / client)
+      - site         (network-lab)
+      - platform     (sr-linux)
+      - tenant       (network-o11y-demo)
+      - rack         (lab-rack-1)
+
+    These labels are applied by Alloy's discovery.http component and
+    attached to SNMP and gNMI metrics via prometheus.relabel rules.
+    """
+    import http.server
+    import json
+    import os
+    import sys
+    import traceback
+    import urllib.request
+    import urllib.error
+
+    NETBOX_URL = os.environ.get("NETBOX_URL", "http://netbox.network-tools.svc.cluster.local").rstrip("/")
+    TOKEN = os.environ["NETBOX_TOKEN"]
+    PORT = int(os.environ.get("PORT", "8181"))
+
+    HEADERS = {
+        "Authorization": f"Token {TOKEN}",
+        "Accept": "application/json",
+    }
+
+
+    def fetch_devices():
+        """Query NetBox for all active devices and return Prometheus SD targets."""
+        url = f"{NETBOX_URL}/api/dcim/devices/?status=active&limit=200"
+        req = urllib.request.Request(url, headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        return data.get("results", [])
+
+
+    def build_targets(devices):
+        """
+        Convert NetBox devices to Prometheus HTTP SD format.
+
+        Each target group has a single target (the device name) and the full
+        set of enrichment labels from NetBox. Alloy uses these labels in
+        prometheus.relabel rules to annotate SNMP and gNMI metrics.
+        """
+        groups = []
+        for device in devices:
+            name = device.get("name", "")
+            if not name:
+                continue
+
+            role = (device.get("role") or {}).get("slug", "")
+            site = (device.get("site") or {}).get("slug", "")
+            platform = (device.get("platform") or {}).get("slug", "")
+            tenant = (device.get("tenant") or {}).get("slug", "")
+            rack = (device.get("rack") or {}).get("name", "")
+            status = (device.get("status") or {}).get("value", "")
+
+            groups.append({
+                "targets": [name],
+                "labels": {
+                    "__meta_netbox_name": name,
+                    "__meta_netbox_status": status,
+                    "device_role": role,
+                    "site": site,
+                    "platform": platform,
+                    **({"tenant": tenant} if tenant else {}),
+                    **({"rack": rack} if rack else {}),
+                },
+            })
+        return groups
+
+
+    class SDHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path not in ("/targets", "/targets/"):
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"not found")
+                return
+
+            try:
+                devices = fetch_devices()
+                targets = build_targets(devices)
+                body = json.dumps(targets, indent=2).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                print(
+                    f"GET /targets → {len(targets)} targets",
+                    flush=True,
+                )
+            except Exception:
+                traceback.print_exc()
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"internal error — check logs")
+
+        def log_message(self, fmt, *args):
+            # Suppress default access log; we print our own above.
+            pass
+
+
+    if __name__ == "__main__":
+        print(f"netbox-sd listening on :{PORT}  →  {NETBOX_URL}", flush=True)
+        server = http.server.HTTPServer(("0.0.0.0", PORT), SDHandler)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("Shutting down.", flush=True)
+            sys.exit(0)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbox-sd
+  namespace: network-tools
+  labels:
+    app: netbox-sd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netbox-sd
+  template:
+    metadata:
+      labels:
+        app: netbox-sd
+    spec:
+      containers:
+        - name: netbox-sd
+          image: python:3.12-slim
+          command: ["python3", "/app/server.py"]
+          env:
+            - name: NETBOX_URL
+              value: "http://netbox.network-tools.svc.cluster.local"
+            - name: NETBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-credentials
+                  key: superuser-api-token
+            - name: PORT
+              value: "8181"
+          ports:
+            - name: http
+              containerPort: 8181
+              protocol: TCP
+          volumeMounts:
+            - name: script
+              mountPath: /app
+          readinessProbe:
+            httpGet:
+              path: /targets
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /targets
+              port: 8181
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: script
+          configMap:
+            name: netbox-sd-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbox-sd
+  namespace: network-tools
+  labels:
+    app: netbox-sd
+spec:
+  selector:
+    app: netbox-sd
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8181
+      protocol: TCP
+      targetPort: 8181

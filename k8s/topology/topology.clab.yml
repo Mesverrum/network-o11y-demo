@@ -1,0 +1,109 @@
+# Nokia SR Linux Clos fabric topology for the network-o11y-demo.
+# Derived from https://github.com/srl-labs/srl-telemetry-lab (BSD-3-Clause).
+#
+# The original observability stack (gnmic, prometheus, grafana, promtail, loki)
+# has been removed — telemetry is handled by ktranslate + Grafana Alloy → Grafana Cloud.
+#
+# Telemetry configured on all SR Linux nodes (spines + leaves):
+#   gNMI  — gRPC server on mgmt NI, port 57400; subscribed by gnmic → Prometheus → Alloy
+#   SNMP  — v2c community "public"; polled by Alloy's built-in SNMP exporter
+#   sFlow — v5 configured (counter samples only; the containerized SR Linux ASIC
+#            simulator does not generate flow-sample records)
+#
+# Network flow data (per-flow src/dst/port/bytes):
+#   Comes from softflowd (NetFlow v9) running on client1/2/3 containers.
+#   softflowd → ktranslate UDP 6343 → OTLP → Alloy → Grafana Cloud
+#   softflowd is managed automatically by the network-reconciler.
+
+name: srl-telemetry
+prefix: ""
+
+topology:
+  defaults:
+    kind: nokia_srlinux
+
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:24.10.1
+      type: ixrd2l
+    linux:
+      image: ghcr.io/srl-labs/network-multitool
+
+  nodes:
+    ### SPINES ###
+    spine1:
+      type: ixrd3l
+      group: spine
+      startup-config: configs/fabric/spine1.cfg
+
+    spine2:
+      type: ixrd3l
+      group: spine
+      startup-config: configs/fabric/spine2.cfg
+
+    ### LEAFS ###
+    leaf1:
+      group: leaf
+      startup-config: configs/fabric/leaf1.cfg
+
+    leaf2:
+      group: leaf
+      startup-config: configs/fabric/leaf2.cfg
+
+    leaf3:
+      group: leaf
+      startup-config: configs/fabric/leaf3.cfg
+
+    ### COLLECTOR ###
+    # A Linux node physically connected to leaf1 in the SR Linux fabric (leaf1:e1-2).
+    # Originally intended as an sFlow relay; retained as a fabric monitoring point.
+    # SR Linux nodes send sFlow counter-sample datagrams here (fabric IP 10.0.3.2/30)
+    # since SR Linux cannot use the mgmt NI for sFlow — but the simulator only produces
+    # counter samples, not flow-sample records. Actual flow data comes from softflowd
+    # running on the client nodes (managed by the network-reconciler).
+    collector:
+      kind: linux
+      group: collector
+      exec:
+        - ip address add 10.0.3.2/30 dev eth1
+        - ip route add 10.0.0.0/8 via 10.0.3.1 dev eth1
+        - ip route add 192.168.0.0/16 via 10.0.3.1 dev eth1
+
+    ### CLIENTS ###
+    client1:
+      kind: linux
+      group: server
+      exec:
+        - ip address add 172.17.0.1/24 dev eth1
+        - ip -6 address add 2002::172:17:0:1/96 dev eth1
+        - iperf3 -s -p 5201 -D > /dev/null 2>&1
+        - iperf3 -s -p 5202 -D > /dev/null 2>&1
+
+    client2:
+      kind: linux
+      group: server
+      exec:
+        - ip address add 172.17.0.2/24 dev eth1
+        - ip -6 address add 2002::172:17:0:2/96 dev eth1
+
+    client3:
+      kind: linux
+      group: server
+      exec:
+        - ip address add 172.17.0.3/24 dev eth1
+        - ip -6 address add 2002::172:17:0:3/96 dev eth1
+
+  links:
+    # Spine-leaf uplinks
+    - endpoints: ["spine1:e1-1", "leaf1:e1-49"]
+    - endpoints: ["spine1:e1-2", "leaf2:e1-49"]
+    - endpoints: ["spine1:e1-3", "leaf3:e1-49"]
+    - endpoints: ["spine2:e1-1", "leaf1:e1-50"]
+    - endpoints: ["spine2:e1-2", "leaf2:e1-50"]
+    - endpoints: ["spine2:e1-3", "leaf3:e1-50"]
+    # Leaf-collector downlink (sFlow + SNMP/gNMI proxy)
+    - endpoints: ["leaf1:e1-2", "collector:eth1"]
+    # Leaf-client downlinks
+    - endpoints: ["leaf1:e1-1", "client1:eth1"]
+    - endpoints: ["leaf2:e1-1", "client2:eth1"]
+    - endpoints: ["leaf3:e1-1", "client3:eth1"]

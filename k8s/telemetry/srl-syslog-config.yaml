@@ -1,0 +1,186 @@
+---
+# One-shot Job that pushes syslog remote-server configuration to all 5 SR Linux
+# nodes and applies the kernel networking fix required for rsyslog to reach the
+# Alloy NodePort service.
+#
+# Why we need this:
+#   1. SR Linux manages its management IP (172.20.20.2) in userspace via the
+#      srbase-mgmt network namespace.  The kernel mgmt0 interface has no IPv4
+#      address by default, so rsyslog gets ENETUNREACH when forwarding logs.
+#      Fix: add a /32 host route with a NON-CONFLICTING source IP (172.20.20.250)
+#      so rsyslog can route outbound, WITHOUT claiming 172.20.20.2 in the kernel.
+#      IMPORTANT: do NOT add 172.20.20.2/24 — that causes the kernel to intercept
+#      gNMI (port 57400) and SNMP (port 161) traffic destined for SR Linux's own
+#      management stack, sending RST and breaking all telemetry collection.
+#
+#   2. Cross-node pod-to-pod routing is blocked in this EKS cluster.  All 5 SR Linux
+#      devices are configured to send syslog to the ALLOY POD'S node IP (not their
+#      own node's IP) via NodePort 30614.  This is critical: kube-proxy can forward
+#      NodePort traffic to a pod on a different node only for inbound traffic from
+#      outside the cluster, but CROSS-NODE syslog UDP forwarding does not work when
+#      the device sends to its OWN node's NodePort.  Targeting Alloy's node ensures
+#      the UDP packet reaches the correct node and kube-proxy forwards it locally.
+#
+#   3. UDP is used instead of TCP.  rsyslog's @@ (TCP) syntax uses newline-delimiter
+#      framing (RFC 6587 §3.4.2), but Alloy's TCP syslog listener expects octet-
+#      counted framing (RFC 6587 §3.4.1).  The @ (UDP) syntax avoids this mismatch.
+#
+#   4. All config runs inside the Clabbernetes pod via `kubectl exec` with env vars.
+#      gnmic is extracted from the SR Linux container to /tmp, then run against
+#      172.20.20.2:57400 (the SR Linux mgmt plane on the Clabbernetes mgmt bridge).
+#
+#   5. The syslog JSON config is written in the Job container via heredoc and copied
+#      to each Clabbernetes pod via `kubectl cp` — avoiding all shell quoting issues.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: srl-syslog-config
+  namespace: network-lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: srl-syslog-config
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: srl-syslog-config
+subjects:
+  - kind: ServiceAccount
+    name: srl-syslog-config
+    namespace: network-lab
+roleRef:
+  kind: ClusterRole
+  name: srl-syslog-config
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: srl-syslog-config
+  namespace: network-lab
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: srl-syslog-config
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              NAMESPACE="network-lab"
+              NODEPORT=30614
+              MGMT_IP="172.20.20.250/32"
+              MGMT_GW="172.20.20.1"
+              SRL_MGMT_ADDR="172.20.20.2"
+
+              # Write the syslog JSON to /tmp in the Job pod.
+              # Heredoc with quoted terminator prevents variable expansion inside JSON.
+              # YAML block scalar strips 14 leading spaces, so JSONEOF is at column 0.
+              cat > /tmp/syslog-value-template.json << 'JSONEOF'
+              {"transport":"udp","remote-port":__NODEPORT__,"subsystem":[{"subsystem-name":"bgp","priority":{"match-above":"informational"}},{"subsystem-name":"lldp","priority":{"match-above":"informational"}},{"subsystem-name":"mgmt","priority":{"match-above":"informational"}},{"subsystem-name":"platform","priority":{"match-above":"informational"}},{"subsystem-name":"netinst","priority":{"match-above":"informational"}},{"subsystem-name":"app","priority":{"match-above":"informational"}},{"subsystem-name":"fib","priority":{"match-above":"informational"}},{"subsystem-name":"lag","priority":{"match-above":"informational"}}]}
+              JSONEOF
+              sed "s/__NODEPORT__/${NODEPORT}/" /tmp/syslog-value-template.json > /tmp/syslog-value.json
+              echo "JSON template ready: $(cat /tmp/syslog-value.json | head -c 80)..."
+
+              # Discover the node on which the Alloy pod is running.
+              # All 5 SR Linux devices will target THIS node's NodePort so that
+              # kube-proxy routes the packet locally (same-node forwarding) instead
+              # of attempting cross-node routing which is blocked in this EKS cluster.
+              ALLOY_POD=$(kubectl get pods -n "$NAMESPACE" -l app=alloy --no-headers | awk '{print $1}' | head -1)
+              ALLOY_NODE=$(kubectl get pod -n "$NAMESPACE" "$ALLOY_POD" -o jsonpath='{.spec.nodeName}')
+              ALLOY_NODE_IP=$(kubectl get node "$ALLOY_NODE" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+              echo "Alloy pod: $ALLOY_POD  node: $ALLOY_NODE  IP: $ALLOY_NODE_IP"
+
+              for DEVICE in spine1 spine2 leaf1 leaf2 leaf3; do
+                echo ""
+                echo "=== ${DEVICE} ==="
+
+                POD=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep "^${DEVICE}-" | awk '{print $1}' | head -1)
+                if [ -z "$POD" ]; then
+                  echo "  WARNING: no pod found for ${DEVICE}, skipping"
+                  continue
+                fi
+
+                echo "  Pod: $POD  syslog-dest: $ALLOY_NODE_IP:$NODEPORT"
+
+                # Copy syslog JSON config to the Clabbernetes pod (no quoting issues)
+                kubectl cp /tmp/syslog-value.json "${NAMESPACE}/${POD}:/tmp/syslog-value.json"
+
+                # Run all steps inside the Clabbernetes pod.
+                # Inner bash receives variables as env vars (not via shell expansion).
+                kubectl exec -n "$NAMESPACE" "$POD" -- env \
+                  ALLOY_NODE_IP="$ALLOY_NODE_IP" \
+                  NODEPORT="$NODEPORT" \
+                  MGMT_IP="$MGMT_IP" \
+                  MGMT_GW="$MGMT_GW" \
+                  SRL_MGMT_ADDR="$SRL_MGMT_ADDR" \
+                  bash -c '
+                    set -e
+                    CTR=$(docker ps -q | head -1)
+                    if [ -z "$CTR" ]; then echo "  ERROR: no Docker container"; exit 1; fi
+                    echo "  SR Linux container: $CTR"
+
+                    # Step 1: Extract gnmic binary from SR Linux container
+                    echo "  Step 1: Extracting gnmic"
+                    docker cp "$CTR":/usr/local/bin/gnmic /tmp/gnmic-srl 2>/dev/null || true
+                    chmod +x /tmp/gnmic-srl
+
+                    # Step 2: Configure syslog via gnmic.
+                    #   Target ALLOY_NODE_IP (Alloy pod node) so NodePort forwards
+                    #   locally — cross-node kube-proxy forwarding is blocked.
+                    GNMI_PORT=$(docker inspect --format \
+                      "{{range \$k, \$v := .NetworkSettings.Ports}}{{if eq \$k \"57400/tcp\"}}{{(index \$v 0).HostPort}}{{end}}{{end}}" \
+                      "$CTR")
+                    echo "  Step 2: Configuring syslog → ${ALLOY_NODE_IP}:${NODEPORT} (gnmic via localhost:${GNMI_PORT})"
+                    /tmp/gnmic-srl \
+                      --address "localhost:${GNMI_PORT}" \
+                      --username admin \
+                      --password NokiaSrl1! \
+                      --skip-verify \
+                      --encoding json_ietf \
+                      set \
+                      --update-path "/system/logging/remote-server[host=${ALLOY_NODE_IP}]" \
+                      --update-file /tmp/syslog-value.json
+
+                    # Step 3: Add kernel IPv4 address to mgmt0 in SR Linux container
+                    echo "  Step 3: Adding kernel IP ${MGMT_IP} to mgmt0"
+                    docker exec "$CTR" ip addr add "$MGMT_IP" dev mgmt0 2>/dev/null \
+                      && echo "  Added IP" || echo "  IP already set"
+
+                    # Step 4: Add kernel default route via management gateway
+                    echo "  Step 4: Adding default route via ${MGMT_GW}"
+                    docker exec "$CTR" ip route add default via "$MGMT_GW" dev mgmt0 onlink 2>/dev/null \
+                      && echo "  Added route" || echo "  Route already set"
+
+                    # Step 5: Restart rsyslog to clear backoff timers and load new config.
+                    # Use SIGKILL + remove pid file to avoid "pid file already exists" error.
+                    echo "  Step 5: Restarting rsyslog"
+                    docker exec "$CTR" bash -c '
+                      pkill -9 rsyslog 2>/dev/null || true
+                      sleep 2
+                      rm -f /var/run/srlinux/rsyslogd.pid
+                      rsyslogd -i /var/run/srlinux/rsyslogd.pid -f /etc/rsyslog.conf
+                    '
+                    sleep 1
+                    NEW_PID=$(docker exec "$CTR" cat /var/run/srlinux/rsyslogd.pid 2>/dev/null || echo "unknown")
+                    echo "  rsyslog restarted (PID: $NEW_PID)"
+                    echo "  Done."
+                  '
+              done
+
+              echo ""
+              echo "All devices configured successfully."

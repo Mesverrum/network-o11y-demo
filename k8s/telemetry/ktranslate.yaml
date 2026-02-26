@@ -1,0 +1,83 @@
+---
+# ktranslate — receives NetFlow v9 from client Linux nodes (via softflowd),
+# converts to OTLP, and sends to Alloy for Grafana Cloud flow visualization.
+#
+# Flow sources:
+#   client1/2/3 → softflowd → NetFlow v9 UDP 6343 → ktranslate → OTLP gRPC → Alloy
+#
+# Note: SR Linux in containerized mode (simulator) only produces sFlow counter-sample
+# datagrams (device statistics), not flow-sample records. Flow data therefore comes
+# from softflowd running on the Linux client nodes instead.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ktranslate
+  namespace: network-lab
+  labels:
+    app: ktranslate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ktranslate
+  template:
+    metadata:
+      labels:
+        app: ktranslate
+    spec:
+      containers:
+        - name: ktranslate
+          image: quay.io/kentik/ktranslate:v2
+          args:
+            - "--format=otel"
+            - "--otel.protocol=grpc"
+            # Alloy's OTLP gRPC endpoint (same namespace)
+            - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
+            # NetFlow v9 reception from softflowd on client nodes — port 6343
+            - "--nf.source=netflow9"
+            - "--nf.port=6343"
+            - "--sinks=otel"
+            - "--rollup_interval=60"
+            - "--tee_logs=true"
+            - "--service_name=srl-fabric"
+            - "--max_flows_per_message=100"
+            # Roll up bytes per flow with key dimensions for Grafana dashboards
+            - "--rollups=s_sum,bytes_by_flow,in_bytes+out_bytes,src_addr,dst_addr,l4_src_port,l4_dst_port,protocol,device_name"
+            - "--rollup_top_k=20"
+            - "--rollup_keep_undefined=true"
+          ports:
+            - name: netflow
+              containerPort: 6343
+              protocol: UDP
+            - name: otlp-health
+              containerPort: 8082
+              protocol: TCP
+          securityContext:
+            capabilities:
+              add: ["NET_RAW"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+---
+# ClusterIP Service — softflowd on client nodes sends NetFlow v9 here
+apiVersion: v1
+kind: Service
+metadata:
+  name: ktranslate
+  namespace: network-lab
+  labels:
+    app: ktranslate
+spec:
+  selector:
+    app: ktranslate
+  ports:
+    - name: netflow
+      port: 6343
+      protocol: UDP
+      targetPort: 6343

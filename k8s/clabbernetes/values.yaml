@@ -1,0 +1,13 @@
+# Clabbernetes Helm values for the network-o11y-demo
+# Installed with:
+#   helm upgrade --install --create-namespace --namespace c9s \
+#     clabernetes oci://ghcr.io/srl-labs/clabernetes/clabernetes \
+#     -f k8s/clabbernetes/values.yaml
+
+manager:
+  replicaCount: 3
+
+# Disable the LoadBalancer expose — all access via SSH port-forward only
+globalDeployment:
+  expose:
+    disableExpose: true

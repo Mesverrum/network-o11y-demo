@@ -1,0 +1,383 @@
+---
+# NetBox pre-population Job.
+#
+# Runs once after NetBox is deployed to seed it with the SR Linux Clos fabric
+# topology:
+#   - Site, tenant, rack
+#   - Manufacturer (Nokia), platform (SR Linux)
+#   - Device types: 7220 IXR-D3L (spine), 7220 IXR-D2L (leaf), multitool (client)
+#   - Device roles: spine, leaf, client
+#   - Devices: spine1, spine2, leaf1, leaf2, leaf3, client1, client2, client3
+#   - Interfaces (fabric links + management) and IP addresses
+#   - Prefixes for the underlay P2P and overlay client subnets
+#
+# The NETBOX_API_TOKEN is read from the netbox-credentials Secret (same token
+# used by the netbox-sd service and documented in netbox-secret.yaml.example).
+#
+# Run:
+#   kubectl apply -f k8s/netbox/populate-job.yaml
+#   kubectl -n network-tools wait --for=condition=complete job/netbox-populate --timeout=300s
+#   kubectl -n network-tools logs job/netbox-populate
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netbox-populate
+  namespace: network-tools
+  labels:
+    app: netbox-populate
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: netbox-populate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: populate
+          image: python:3.12-slim
+          command:
+            - python3
+            - /scripts/populate.py
+          env:
+            - name: NETBOX_URL
+              value: "http://netbox.network-tools.svc.cluster.local"
+            - name: NETBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-credentials
+                  key: superuser-api-token
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: scripts
+          configMap:
+            name: netbox-populate-script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-populate-script
+  namespace: network-tools
+data:
+  populate.py: |
+    #!/usr/bin/env python3
+    """
+    Populate NetBox with the SR Linux Clos fabric topology.
+
+    All objects are created idempotently — running this script multiple times
+    is safe; existing objects are reused rather than duplicated.
+    """
+    import os
+    import sys
+    import time
+    import json
+    import urllib.request
+    import urllib.error
+
+    NETBOX_URL = os.environ["NETBOX_URL"].rstrip("/")
+    TOKEN = os.environ["NETBOX_TOKEN"]
+
+    HEADERS = {
+        "Authorization": f"Token {TOKEN}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+
+    # ─── HTTP helpers ──────────────────────────────────────────────────────────
+
+    def _request(method, path, data=None):
+        url = f"{NETBOX_URL}/api/{path}"
+        body = json.dumps(data).encode() if data is not None else None
+        req = urllib.request.Request(url, data=body, headers=HEADERS, method=method)
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            raise RuntimeError(f"HTTP {e.code} {method} {url}: {body}") from e
+
+
+    def get_list(path, **params):
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        return _request("GET", f"{path}?{qs}&limit=200")["results"]
+
+
+    def get_or_create(path, lookup_field, data):
+        """Return existing object or create a new one."""
+        results = get_list(path, **{lookup_field: data[lookup_field]})
+        if results:
+            return results[0]
+        return _request("POST", path, data)
+
+
+    # ─── Readiness check ───────────────────────────────────────────────────────
+
+    def wait_for_netbox(retries=30, delay=10):
+        print(f"Waiting for NetBox at {NETBOX_URL} ...", flush=True)
+        for attempt in range(retries):
+            try:
+                req = urllib.request.Request(
+                    f"{NETBOX_URL}/api/",
+                    headers={"Authorization": f"Token {TOKEN}", "Accept": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    if r.status == 200:
+                        print("NetBox is ready.", flush=True)
+                        return
+            except Exception as exc:
+                print(f"  attempt {attempt + 1}/{retries}: {exc}", flush=True)
+            time.sleep(delay)
+        print("ERROR: NetBox did not become ready in time.", file=sys.stderr)
+        sys.exit(1)
+
+
+    # ─── Topology data ─────────────────────────────────────────────────────────
+
+    SITE_NAME = "Network Lab"
+    TENANT_NAME = "Network O11y Demo"
+    MANUFACTURER_NAME = "Nokia"
+    PLATFORM_NAME = "SR Linux"
+
+    DEVICE_ROLES = [
+        {"name": "Spine", "slug": "spine", "color": "2196f3", "vm_role": False},
+        {"name": "Leaf",  "slug": "leaf",  "color": "4caf50", "vm_role": False},
+        {"name": "Client","slug": "client","color": "9e9e9e", "vm_role": False},
+    ]
+
+    # Device type slug → (model, u_height, part_number)
+    DEVICE_TYPES = [
+        {"model": "7220 IXR-D3L", "slug": "7220-ixr-d3l", "u_height": 1},
+        {"model": "7220 IXR-D2L", "slug": "7220-ixr-d2l", "u_height": 1},
+        {"model": "network-multitool", "slug": "network-multitool", "u_height": 1},
+    ]
+
+    # Devices: (name, role_slug, device_type_slug, position_in_rack)
+    DEVICES = [
+        {"name": "spine1", "role": "spine", "type": "7220-ixr-d3l", "rack_unit": 1},
+        {"name": "spine2", "role": "spine", "type": "7220-ixr-d3l", "rack_unit": 2},
+        {"name": "leaf1",  "role": "leaf",  "type": "7220-ixr-d2l", "rack_unit": 3},
+        {"name": "leaf2",  "role": "leaf",  "type": "7220-ixr-d2l", "rack_unit": 4},
+        {"name": "leaf3",  "role": "leaf",  "type": "7220-ixr-d2l", "rack_unit": 5},
+        {"name": "client1","role": "client","type": "network-multitool", "rack_unit": 6},
+        {"name": "client2","role": "client","type": "network-multitool", "rack_unit": 7},
+        {"name": "client3","role": "client","type": "network-multitool", "rack_unit": 8},
+    ]
+
+    # Interfaces per device: (device_name, iface_name, type, description)
+    # SR Linux uses e1-N notation; clients use eth0/eth1.
+    INTERFACES = [
+        # Spines — uplinks to leaves
+        ("spine1", "mgmt0",  "1000base-t",   "Management"),
+        ("spine1", "e1-1",   "10gbase-x-sfpp","To leaf1"),
+        ("spine1", "e1-2",   "10gbase-x-sfpp","To leaf2"),
+        ("spine1", "e1-3",   "10gbase-x-sfpp","To leaf3"),
+        ("spine2", "mgmt0",  "1000base-t",   "Management"),
+        ("spine2", "e1-1",   "10gbase-x-sfpp","To leaf1"),
+        ("spine2", "e1-2",   "10gbase-x-sfpp","To leaf2"),
+        ("spine2", "e1-3",   "10gbase-x-sfpp","To leaf3"),
+        # Leaves — uplinks to spines + downlinks to clients
+        ("leaf1",  "mgmt0",  "1000base-t",   "Management"),
+        ("leaf1",  "e1-1",   "10gbase-x-sfpp","To spine1"),
+        ("leaf1",  "e1-2",   "10gbase-x-sfpp","To spine2"),
+        ("leaf1",  "e1-3",   "10gbase-x-sfpp","To client1"),
+        ("leaf2",  "mgmt0",  "1000base-t",   "Management"),
+        ("leaf2",  "e1-1",   "10gbase-x-sfpp","To spine1"),
+        ("leaf2",  "e1-2",   "10gbase-x-sfpp","To spine2"),
+        ("leaf2",  "e1-3",   "10gbase-x-sfpp","To client2"),
+        ("leaf3",  "mgmt0",  "1000base-t",   "Management"),
+        ("leaf3",  "e1-1",   "10gbase-x-sfpp","To spine1"),
+        ("leaf3",  "e1-2",   "10gbase-x-sfpp","To spine2"),
+        ("leaf3",  "e1-3",   "10gbase-x-sfpp","To client3"),
+        # Clients — fabric + management
+        ("client1","eth0",   "1000base-t",   "Management"),
+        ("client1","eth1",   "1000base-t",   "To leaf1"),
+        ("client2","eth0",   "1000base-t",   "Management"),
+        ("client2","eth1",   "1000base-t",   "To leaf2"),
+        ("client3","eth0",   "1000base-t",   "Management"),
+        ("client3","eth1",   "1000base-t",   "To leaf3"),
+    ]
+
+    # Prefixes to document
+    PREFIXES = [
+        # eBGP underlay P2P links (/31s from 192.168.1.0/24)
+        {"prefix": "192.168.1.0/24",  "description": "eBGP underlay P2P pool", "role": ""},
+        # EVPN overlay client subnet
+        {"prefix": "172.17.0.0/24",   "description": "EVPN overlay — client L2VPN (VNI 1)", "role": ""},
+        # Client IPs
+        {"prefix": "172.17.0.1/24",   "description": "client1 eth1", "role": ""},
+        {"prefix": "172.17.0.2/24",   "description": "client2 eth1", "role": ""},
+        {"prefix": "172.17.0.3/24",   "description": "client3 eth1", "role": ""},
+    ]
+
+
+    # ─── Main ─────────────────────────────────────────────────────────────────
+
+    def main():
+        wait_for_netbox()
+
+        print("\n=== Creating site ===", flush=True)
+        site = get_or_create("dcim/sites/", "slug", {
+            "name": SITE_NAME,
+            "slug": "network-lab",
+            "status": "active",
+            "description": "Simulated Nokia SR Linux Clos fabric on EKS",
+        })
+        site_id = site["id"]
+        print(f"  Site: {site['name']} (id={site_id})", flush=True)
+
+        print("\n=== Creating tenant ===", flush=True)
+        tenant = get_or_create("tenancy/tenants/", "slug", {
+            "name": TENANT_NAME,
+            "slug": "network-o11y-demo",
+        })
+        tenant_id = tenant["id"]
+        print(f"  Tenant: {tenant['name']} (id={tenant_id})", flush=True)
+
+        print("\n=== Creating rack ===", flush=True)
+        rack = get_or_create("dcim/racks/", "name", {
+            "name": "Lab Rack 1",
+            "slug": "lab-rack-1",
+            "site": site_id,
+            "tenant": tenant_id,
+            "status": "active",
+            "u_height": 12,
+        })
+        rack_id = rack["id"]
+        print(f"  Rack: {rack['name']} (id={rack_id})", flush=True)
+
+        print("\n=== Creating manufacturer ===", flush=True)
+        manufacturer = get_or_create("dcim/manufacturers/", "slug", {
+            "name": MANUFACTURER_NAME,
+            "slug": "nokia",
+        })
+        mfr_id = manufacturer["id"]
+        print(f"  Manufacturer: {manufacturer['name']} (id={mfr_id})", flush=True)
+
+        print("\n=== Creating platform ===", flush=True)
+        platform = get_or_create("dcim/platforms/", "slug", {
+            "name": PLATFORM_NAME,
+            "slug": "sr-linux",
+            "manufacturer": mfr_id,
+        })
+        platform_id = platform["id"]
+        print(f"  Platform: {platform['name']} (id={platform_id})", flush=True)
+
+        print("\n=== Creating device types ===", flush=True)
+        dtype_ids = {}
+        for dt in DEVICE_TYPES:
+            obj = get_or_create("dcim/device-types/", "slug", {
+                "model": dt["model"],
+                "slug": dt["slug"],
+                "manufacturer": mfr_id,
+                "u_height": dt["u_height"],
+            })
+            dtype_ids[dt["slug"]] = obj["id"]
+            print(f"  DeviceType: {obj['model']} (id={obj['id']})", flush=True)
+
+        print("\n=== Creating device roles ===", flush=True)
+        role_ids = {}
+        for role in DEVICE_ROLES:
+            obj = get_or_create("dcim/device-roles/", "slug", role)
+            role_ids[role["slug"]] = obj["id"]
+            print(f"  Role: {obj['name']} (id={obj['id']})", flush=True)
+
+        print("\n=== Creating devices ===", flush=True)
+        device_ids = {}
+        for dev in DEVICES:
+            # Clients don't have an SR Linux platform
+            plat = platform_id if dev["role"] != "client" else None
+            obj = get_or_create("dcim/devices/", "name", {
+                "name": dev["name"],
+                "device_type": dtype_ids[dev["type"]],
+                "role": role_ids[dev["role"]],
+                "site": site_id,
+                "tenant": tenant_id,
+                "rack": rack_id,
+                "position": dev["rack_unit"],
+                "face": "front",
+                "status": "active",
+                **({"platform": plat} if plat else {}),
+            })
+            device_ids[dev["name"]] = obj["id"]
+            print(f"  Device: {obj['name']} (id={obj['id']})", flush=True)
+
+        print("\n=== Creating interfaces ===", flush=True)
+        iface_ids = {}
+        for dev_name, iface_name, iface_type, description in INTERFACES:
+            dev_id = device_ids[dev_name]
+            existing = get_list(
+                "dcim/interfaces/",
+                device_id=dev_id,
+                name=iface_name,
+            )
+            if existing:
+                obj = existing[0]
+            else:
+                obj = _request("POST", "dcim/interfaces/", {
+                    "device": dev_id,
+                    "name": iface_name,
+                    "type": iface_type,
+                    "description": description,
+                })
+            iface_ids[(dev_name, iface_name)] = obj["id"]
+            print(f"  Interface: {dev_name}/{iface_name} (id={obj['id']})", flush=True)
+
+        print("\n=== Creating IP addresses for clients ===", flush=True)
+        client_ips = {
+            "client1": ("172.17.0.1/24", "eth1"),
+            "client2": ("172.17.0.2/24", "eth1"),
+            "client3": ("172.17.0.3/24", "eth1"),
+        }
+        for client, (ip, iface_name) in client_ips.items():
+            existing = get_list("ipam/ip-addresses/", address=ip)
+            if existing:
+                ip_obj = existing[0]
+            else:
+                ip_obj = _request("POST", "ipam/ip-addresses/", {
+                    "address": ip,
+                    "status": "active",
+                    "assigned_object_type": "dcim.interface",
+                    "assigned_object_id": iface_ids[(client, iface_name)],
+                    "description": f"{client} fabric IP",
+                })
+            print(f"  IP: {ip} → {client}/{iface_name} (id={ip_obj['id']})", flush=True)
+
+            # Set as primary IP on device
+            _request("PATCH", f"dcim/devices/{device_ids[client]}/", {
+                "primary_ip4": ip_obj["id"],
+            })
+
+        print("\n=== Creating prefixes ===", flush=True)
+        for pf in PREFIXES:
+            existing = get_list("ipam/prefixes/", prefix=pf["prefix"])
+            if existing:
+                obj = existing[0]
+            else:
+                obj = _request("POST", "ipam/prefixes/", {
+                    "prefix": pf["prefix"],
+                    "site": site_id,
+                    "tenant": tenant_id,
+                    "status": "active",
+                    "description": pf["description"],
+                })
+            print(f"  Prefix: {obj['prefix']} (id={obj['id']})", flush=True)
+
+        print("\n=== Done! ===", flush=True)
+        print(f"  Populated {len(DEVICES)} devices across {len(DEVICE_ROLES)} roles.", flush=True)
+        print(f"  NetBox UI: http://localhost:8080 (via SSH tunnel)", flush=True)
+
+
+    if __name__ == "__main__":
+        main()

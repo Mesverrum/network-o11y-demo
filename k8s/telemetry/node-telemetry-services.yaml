@@ -1,0 +1,103 @@
+---
+# Per-node ClusterIP Services for SNMP (UDP 161) and gNMI (TCP 57400).
+#
+# These services route to the Clabbernetes launcher pod for each SR Linux node.
+# Inside each launcher pod, deploy-telemetry.sh adds iptables DNAT rules that
+# forward port 161 and 57400 from the launcher pod's eth0 to the SR Linux
+# Docker container at its docker-bridge IP (172.17.0.x).
+#
+# The reconciler (k8s/network-reconciler.yaml) re-applies the iptables rules
+# on pod restart, keeping access stable without manual intervention.
+#
+# Naming: <node>-telemetry to avoid colliding with Clabbernetes' own services.
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spine1-telemetry
+  namespace: network-lab
+spec:
+  selector:
+    clabernetes/topologyNode: spine1
+  ports:
+    - name: snmp
+      port: 161
+      protocol: UDP
+      targetPort: 161
+    - name: gnmi
+      port: 57400
+      protocol: TCP
+      targetPort: 57400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spine2-telemetry
+  namespace: network-lab
+spec:
+  selector:
+    clabernetes/topologyNode: spine2
+  ports:
+    - name: snmp
+      port: 161
+      protocol: UDP
+      targetPort: 161
+    - name: gnmi
+      port: 57400
+      protocol: TCP
+      targetPort: 57400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaf1-telemetry
+  namespace: network-lab
+spec:
+  selector:
+    clabernetes/topologyNode: leaf1
+  ports:
+    - name: snmp
+      port: 161
+      protocol: UDP
+      targetPort: 161
+    - name: gnmi
+      port: 57400
+      protocol: TCP
+      targetPort: 57400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaf2-telemetry
+  namespace: network-lab
+spec:
+  selector:
+    clabernetes/topologyNode: leaf2
+  ports:
+    - name: snmp
+      port: 161
+      protocol: UDP
+      targetPort: 161
+    - name: gnmi
+      port: 57400
+      protocol: TCP
+      targetPort: 57400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaf3-telemetry
+  namespace: network-lab
+spec:
+  selector:
+    clabernetes/topologyNode: leaf3
+  ports:
+    - name: snmp
+      port: 161
+      protocol: UDP
+      targetPort: 161
+    - name: gnmi
+      port: 57400
+      protocol: TCP
+      targetPort: 57400

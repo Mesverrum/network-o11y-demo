@@ -1,0 +1,354 @@
+---
+# Network Reconciler — automatically re-applies ARP, MTU, VxLAN FDB, and
+# telemetry port-forwarding fixes whenever Clabbernetes launcher pods restart.
+#
+# Why this is needed:
+#   - Kernel ARP settings (`ip link set arp off`) are lost on pod restart.
+#   - VxLAN FDB catch-all entries (00:00:00:00:00:00 → ClusterIP) are lost on restart.
+#     These ensure outbound VxLAN traffic is routed correctly despite kube-proxy SNAT.
+#   - Client MTU (1400 bytes inside Docker container) is reset on restart.
+#   - iptables DNAT rules (SNMP UDP 161, gNMI TCP 57400) are lost on restart.
+#     These expose SR Linux telemetry ports to Alloy and gnmic via the
+#     node-telemetry-services.yaml ClusterIP Services.
+#
+# How it works:
+#   Polls topology pods every 30 seconds, fingerprints each by UID. When a UID
+#   changes (restart), re-applies all fixes for that pod. FDB entries are also
+#   verified on every loop iteration.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-reconciler
+  namespace: network-lab
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: network-reconciler
+  namespace: network-lab
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: network-reconciler
+  namespace: network-lab
+subjects:
+  - kind: ServiceAccount
+    name: network-reconciler
+    namespace: network-lab
+roleRef:
+  kind: Role
+  name: network-reconciler
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-reconciler-script
+  namespace: network-lab
+data:
+  reconcile.sh: |
+    #!/usr/bin/env sh
+    # Reconciliation loop — POSIX sh compatible (runs in alpine/k8s image).
+
+    NAMESPACE="network-lab"
+    POLL_INTERVAL=30
+    UID_DIR="/tmp/node_uids"
+    mkdir -p "$UID_DIR"
+
+    log() { echo "[$(date -u +%H:%M:%S)] $*"; }
+
+    # Read/write per-node last-seen UID using temp files (POSIX alternative to declare -A)
+    get_uid() { cat "$UID_DIR/$1" 2>/dev/null || echo ""; }
+    set_uid() { echo "$2" > "$UID_DIR/$1"; }
+
+    # Apply ARP suppression and VxLAN remote=0.0.0.0 to a launcher pod.
+    # Captures original remotes to seed FDB catch-alls on first run.
+    # ensure_all_fdbs() handles the idempotent top-up after remotes are cleared.
+    fix_launcher() {
+      pod="$1"
+      kubectl exec -n "$NAMESPACE" "$pod" -- sh -c '
+        for iface in $(ip link show | grep "^[0-9]" | awk "{print \$2}" \
+            | tr -d ":" | sed "s/@.*//" \
+            | grep -E "^(vx-|$(hostname)-e|$(hostname)-eth)"); do
+          ip link set dev "$iface" arp off 2>/dev/null || true
+        done
+        for iface in $(ip link show | grep "^[0-9]" | awk "{print \$2}" \
+            | tr -d ":" | sed "s/@.*//" | grep "^vx-"); do
+          orig=$(ip -d link show dev "$iface" 2>/dev/null | grep -o "remote [0-9.]*" | awk "{print \$2}")
+          ip link set dev "$iface" type vxlan remote 0.0.0.0 2>/dev/null || true
+          [ -n "$orig" ] && [ "$orig" != "0.0.0.0" ] && \
+            bridge fdb append 00:00:00:00:00:00 dev "$iface" dst "$orig" 2>/dev/null || true
+        done
+      ' 2>/dev/null
+    }
+
+    # Idempotent: ensure catch-all FDB entry exists for a VxLAN interface.
+    ensure_fdb() {
+      pod="$1"; iface="$2"; dst="$3"
+      [ -z "$dst" ] && return
+      kubectl exec -n "$NAMESPACE" "$pod" -- sh -c \
+        "bridge fdb show dev ${iface} 2>/dev/null | grep -q '00:00:00:00:00:00' || \
+         bridge fdb append 00:00:00:00:00:00 dev ${iface} dst ${dst} 2>/dev/null || true" \
+        2>/dev/null || true
+    }
+
+    # Look up ClusterIP for a -vx service
+    vx_ip() {
+      kubectl get svc -n "$NAMESPACE" "${1}-vx" \
+        -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo ""
+    }
+
+    # Verify and top-up FDB entries for every topology link.
+    # Called every poll cycle so entries are restored even without a pod restart.
+    ensure_all_fdbs() {
+      spine1_vx=$(vx_ip spine1); spine2_vx=$(vx_ip spine2)
+      leaf1_vx=$(vx_ip leaf1);   leaf2_vx=$(vx_ip leaf2);   leaf3_vx=$(vx_ip leaf3)
+      client1_vx=$(vx_ip client1); client2_vx=$(vx_ip client2); client3_vx=$(vx_ip client3)
+      collector_vx=$(vx_ip collector)
+
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=spine1" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && {
+        ensure_fdb "$p" vx-spine1-e1-1 "$leaf1_vx"
+        ensure_fdb "$p" vx-spine1-e1-2 "$leaf2_vx"
+        ensure_fdb "$p" vx-spine1-e1-3 "$leaf3_vx"
+      }
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=spine2" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && {
+        ensure_fdb "$p" vx-spine2-e1-1 "$leaf1_vx"
+        ensure_fdb "$p" vx-spine2-e1-2 "$leaf2_vx"
+        ensure_fdb "$p" vx-spine2-e1-3 "$leaf3_vx"
+      }
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=leaf1" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && {
+        ensure_fdb "$p" vx-leaf1-e1-49  "$spine1_vx"
+        ensure_fdb "$p" vx-leaf1-e1-50  "$spine2_vx"
+        ensure_fdb "$p" vx-leaf1-e1-1   "$client1_vx"
+        ensure_fdb "$p" vx-leaf1-e1-2   "$collector_vx"
+      }
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=leaf2" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && {
+        ensure_fdb "$p" vx-leaf2-e1-49  "$spine1_vx"
+        ensure_fdb "$p" vx-leaf2-e1-50  "$spine2_vx"
+        ensure_fdb "$p" vx-leaf2-e1-1   "$client2_vx"
+      }
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=leaf3" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && {
+        ensure_fdb "$p" vx-leaf3-e1-49  "$spine1_vx"
+        ensure_fdb "$p" vx-leaf3-e1-50  "$spine2_vx"
+        ensure_fdb "$p" vx-leaf3-e1-1   "$client3_vx"
+      }
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=client1" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && \
+        ensure_fdb "$p" vx-client1-eth1  "$leaf1_vx"
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=client2" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && \
+        ensure_fdb "$p" vx-client2-eth1  "$leaf2_vx"
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=client3" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && \
+        ensure_fdb "$p" vx-client3-eth1  "$leaf3_vx"
+      p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=collector" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && [ -n "$p" ] && \
+        ensure_fdb "$p" vx-collector-eth1 "$leaf1_vx"
+    }
+
+    # Clamp eth1 MTU inside a client Docker container
+    fix_client_mtu() {
+      pod="$1"; node="$2"
+      kubectl exec -n "$NAMESPACE" "$pod" -- \
+        docker --host unix:///run/docker.sock exec "$node" \
+        ip link set dev eth1 mtu 1400 2>/dev/null || true
+    }
+
+    # Start softflowd in a client container to generate sFlow v5 from observed traffic.
+    # softflowd watches eth1 (the fabric interface) and exports flow records directly to
+    # ktranslate, complementing the SR Linux counter-sample sFlow with per-flow data.
+    # Docker's embedded DNS can't resolve Kubernetes service names, so we pass the
+    # ktranslate ClusterIP explicitly.
+    fix_client_sflow() {
+      pod="$1"; node="$2"
+      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate \
+                -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
+      [ -z "$kt_ip" ] && return
+      # -v 9 = NetFlow v9; without -d, softflowd daemonizes automatically.
+      kubectl exec -n "$NAMESPACE" "$pod" -- \
+        docker --host unix:///run/docker.sock exec "$node" \
+        sh -c "which softflowd > /dev/null 2>&1 || apk add --no-cache softflowd > /dev/null 2>&1; \
+               pkill softflowd 2>/dev/null; sleep 1; \
+               softflowd -i eth1 -n ${kt_ip}:6343 -v 9 -P udp" \
+        2>/dev/null || true
+    }
+
+    # Ensure softflowd is running in each client container every poll cycle.
+    ensure_softflowd() {
+      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate \
+                -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
+      [ -z "$kt_ip" ] && return
+      for node in client1 client2 client3; do
+        p=$(kubectl get pod -n "$NAMESPACE" -l "clabernetes/topologyNode=${node}" \
+              -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+        [ -z "$p" ] && continue
+        kubectl exec -n "$NAMESPACE" "$p" -- \
+          docker --host unix:///run/docker.sock exec "$node" \
+          sh -c "pgrep softflowd > /dev/null 2>&1 || { \
+            which softflowd > /dev/null 2>&1 || apk add --no-cache softflowd > /dev/null 2>&1; \
+            softflowd -i eth1 -n ${kt_ip}:6343 -v 9 -P udp; }" \
+          2>/dev/null || true
+      done
+    }
+
+    # Add iptables DNAT rules so Alloy/gnmic can reach SR Linux SNMP + gNMI
+    expose_telemetry_ports() {
+      pod="$1"; node="$2"
+      kubectl exec -n "$NAMESPACE" "$pod" -- sh -c "
+        SRL_IP=\$(docker --host unix:///run/docker.sock inspect ${node} \
+          --format '{{(index .NetworkSettings.Networks \"clab\").IPAddress}}' 2>/dev/null)
+        [ -z \"\$SRL_IP\" ] && exit 0
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+        iptables -t nat -N TELEMETRY_DNAT 2>/dev/null || true
+        iptables -t nat -F TELEMETRY_DNAT
+        iptables -t nat -C PREROUTING -j TELEMETRY_DNAT 2>/dev/null || \
+          iptables -t nat -A PREROUTING -j TELEMETRY_DNAT
+        iptables -t nat -A TELEMETRY_DNAT -p udp --dport 161 -j DNAT --to-destination \${SRL_IP}:161
+        iptables -t nat -A TELEMETRY_DNAT -p tcp --dport 57400 -j DNAT --to-destination \${SRL_IP}:57400
+        iptables -C FORWARD -d \"\${SRL_IP}\" -j ACCEPT 2>/dev/null || \
+          iptables -A FORWARD -d \"\${SRL_IP}\" -j ACCEPT
+      " 2>/dev/null || true
+    }
+
+    # Configure SNMP v2c and sFlow on an SR Linux node via sr_cli.
+    # SR Linux startup config fails on community-entry due to a uniqueness constraint
+    # with the factory-default community, so we apply telemetry config live.
+    configure_srl_telemetry() {
+      pod="$1"; node="$2"; system_ip="$3"
+      dexec="docker --host unix:///run/docker.sock exec -i $node"
+      printf '%s\n' \
+        "set / system snmp network-instance mgmt admin-state enable" \
+        "set / system snmp access-group ag1 admin-state enable" \
+        "set / system snmp access-group ag1 security-level no-auth-no-priv" \
+        "set / system sflow admin-state enable" \
+        "set / system sflow sample-rate 10000" \
+        "set / system sflow collector 1 collector-address 10.0.3.2" \
+        "set / system sflow collector 1 network-instance default" \
+        "set / system sflow collector 1 source-address ${system_ip}" \
+        "set / system sflow collector 1 port 6343" \
+        "commit now" | \
+      kubectl exec -i -n "$NAMESPACE" "$pod" -- $dexec sr_cli -e 2>/dev/null || true
+      # Community entry (may already exist from factory default — AlreadyExists is OK)
+      printf '%s\n' \
+        "set / system snmp access-group ag1 community-entry ce1 community public" \
+        "commit now" | \
+      kubectl exec -i -n "$NAMESPACE" "$pod" -- $dexec sr_cli -e 2>/dev/null || true
+    }
+
+    # Per-node system IPs for sFlow source-address (POSIX case statement)
+    node_system_ip() {
+      case "$1" in
+        spine1) echo 10.0.2.1 ;;
+        spine2) echo 10.0.2.2 ;;
+        leaf1)  echo 10.0.1.1 ;;
+        leaf2)  echo 10.0.1.2 ;;
+        leaf3)  echo 10.0.1.3 ;;
+      esac
+    }
+
+    log "Network reconciler starting. Poll interval: ${POLL_INTERVAL}s"
+
+    while true; do
+      for node in spine1 spine2 leaf1 leaf2 leaf3 client1 client2 client3 collector; do
+        info=$(kubectl get pod -n "$NAMESPACE" \
+          -l "clabernetes/topologyNode=${node}" \
+          -o jsonpath='{.items[0].metadata.name},{.items[0].metadata.uid},{.items[0].status.phase}' \
+          2>/dev/null || true)
+        [ -z "$info" ] && continue
+
+        pod=$(echo "$info" | cut -d, -f1)
+        uid=$(echo "$info" | cut -d, -f2)
+        phase=$(echo "$info" | cut -d, -f3)
+
+        [ "$phase" != "Running" ] && continue
+        [ -z "$uid" ] && continue
+
+        if [ "$(get_uid "$node")" != "$uid" ]; then
+          log "Pod restart detected: $node ($pod) — applying fixes"
+          fix_launcher "$pod" && log "  ARP+VxLAN: OK"
+          case "$node" in
+            client1|client2|client3)
+              fix_client_mtu "$pod" "$node" && log "  MTU 1400: OK"
+              fix_client_sflow "$pod" "$node" && log "  softflowd: OK"
+              ;;
+            collector)
+              fix_client_mtu "$pod" "$node" 2>/dev/null || true
+              ;;
+            spine1|spine2|leaf1|leaf2|leaf3)
+              expose_telemetry_ports "$pod" "$node" && log "  SNMP+gNMI DNAT: OK"
+              sys_ip=$(node_system_ip "$node")
+              configure_srl_telemetry "$pod" "$node" "$sys_ip" && log "  SNMP+sFlow config: OK"
+              ;;
+          esac
+          set_uid "$node" "$uid"
+        fi
+      done
+
+      # Ensure FDB catch-all entries exist for all links every cycle
+      ensure_all_fdbs
+      # Ensure softflowd is running in all client containers
+      ensure_softflowd
+
+      sleep "$POLL_INTERVAL"
+    done
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-reconciler
+  namespace: network-lab
+  labels:
+    app: network-reconciler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-reconciler
+  template:
+    metadata:
+      labels:
+        app: network-reconciler
+    spec:
+      serviceAccountName: network-reconciler
+      # Run on any node; no special affinity needed
+      containers:
+        - name: reconciler
+          image: alpine/k8s:1.31.0
+          command: ["/bin/sh", "/scripts/reconcile.sh"]
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: script
+          configMap:
+            name: network-reconciler-script
+            defaultMode: 0755
+      restartPolicy: Always

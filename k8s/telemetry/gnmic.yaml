@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmic
+  namespace: network-lab
+  labels:
+    app: gnmic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnmic
+  template:
+    metadata:
+      labels:
+        app: gnmic
+    spec:
+      containers:
+        - name: gnmic
+          image: ghcr.io/openconfig/gnmic:latest
+          args:
+            - subscribe
+            - --config
+            - /etc/gnmic/gnmic.yaml
+          ports:
+            - name: prometheus
+              containerPort: 9273
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gnmic
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: gnmic-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gnmic
+  namespace: network-lab
+  labels:
+    app: gnmic
+spec:
+  selector:
+    app: gnmic
+  ports:
+    - name: prometheus
+      port: 9273
+      protocol: TCP
+      targetPort: 9273

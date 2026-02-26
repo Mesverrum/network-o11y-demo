@@ -1,0 +1,39 @@
+# AWS credentials — never commit
+aws.credentials
+*.pem
+*.pem.pub
+
+# Local environment overrides
+.env
+.env.out
+values.local.yaml
+
+# Terraform state and working files
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfvars
+*.tfplan
+tfplan
+
+# Generated SSH keys
+network-o11y-demo.pem
+
+# Grafana Cloud credentials (copy from .example, fill in, never commit)
+k8s/telemetry/grafana-cloud-secret.yaml
+
+# NetBox credentials (copy from .example, fill in, never commit)
+k8s/netbox/netbox-secret.yaml
+
+# Grafana Cloud API token and instance details — never commit
+grafana-cloud-api.token
+instance.details
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+.DS_Store?

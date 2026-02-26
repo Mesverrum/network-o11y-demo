@@ -1,0 +1,132 @@
+# Helm values for the netbox-community/netbox chart.
+#
+# Chart:   oci://ghcr.io/netbox-community/netbox-chart/netbox
+# Version: 7.4.15  (NetBox v4.5.3)
+#
+# All sensitive credentials (superuser password, API token, secret_key,
+# PostgreSQL password) are read from the "netbox-credentials" Kubernetes
+# Secret — see netbox-secret.yaml.example for the required keys.
+#
+# Deploy with:
+#   helm install netbox oci://ghcr.io/netbox-community/netbox-chart/netbox \
+#     --namespace network-tools --create-namespace \
+#     --version 7.4.15 \
+#     -f k8s/netbox/values.yaml
+
+# ─── NetBox image ────────────────────────────────────────────────────────────
+
+image:
+  tag: "v4.5.3"
+  pullPolicy: IfNotPresent
+
+# ─── Superuser ───────────────────────────────────────────────────────────────
+
+superuser:
+  name: admin
+  email: admin@network-o11y-demo.local
+  # password and apiToken are read from the existingSecret below.
+  existingSecret: "netbox-credentials"
+
+# ─── Application secret key ──────────────────────────────────────────────────
+
+# Read from the "netbox-credentials" Secret (key: secret-key).
+existingSecret: "netbox-credentials"
+
+# ─── NetBox settings ─────────────────────────────────────────────────────────
+
+allowedHosts:
+  - "*"
+
+# Require login to view any data — appropriate for a demo accessed via tunnel.
+loginRequired: true
+
+# Disable automatic version-check pings (no external network needed).
+releaseCheck:
+  url: ""
+
+timeZone: UTC
+defaultLanguage: en-us
+
+# ─── Service — ClusterIP only (accessed via SSH port-forward) ────────────────
+
+service:
+  type: ClusterIP
+  port: 80
+
+# ─── No Ingress — access is via kubectl port-forward through the bastion ─────
+
+ingress:
+  enabled: false
+
+# ─── Persistence ─────────────────────────────────────────────────────────────
+
+persistence:
+  enabled: true
+  # Default storage class (gp2 on EKS) — override if needed.
+  storageClass: ""
+  size: 2Gi
+  accessMode: ReadWriteOnce
+
+# ─── Resources ───────────────────────────────────────────────────────────────
+
+# Use explicit resources instead of the default preset.
+resourcesPreset: "none"
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# ─── PostgreSQL (embedded via bitnami subchart) ───────────────────────────────
+
+postgresql:
+  enabled: true
+  auth:
+    username: netbox
+    database: netbox
+    # PostgreSQL password is read from the "netbox-credentials" Secret.
+    existingSecret: "netbox-credentials"
+    secretKeys:
+      adminPasswordKey: postgresql-password
+      userPasswordKey: postgresql-password
+
+# ─── Valkey / Redis (embedded via bitnami subchart) ──────────────────────────
+
+valkey:
+  enabled: true
+  sentinel:
+    enabled: false
+
+# ─── Housekeeping cron job ───────────────────────────────────────────────────
+
+housekeeping:
+  enabled: true
+  schedule: "0 0 * * *"
+
+# ─── Replica count ───────────────────────────────────────────────────────────
+
+replicaCount: 1
+
+# ─── Probes — give NetBox extra time to start on first run ───────────────────
+
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 60   # up to 10 minutes for first-run migrations
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

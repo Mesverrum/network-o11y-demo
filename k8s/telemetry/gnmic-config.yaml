@@ -1,0 +1,66 @@
+---
+# gnmic configuration — gNMI streaming from all 5 SR Linux nodes.
+#
+# gnmic subscribes to interface counters and BGP state, outputs Prometheus
+# metrics on :9273. Alloy scrapes this endpoint.
+#
+# Targets use the *-telemetry ClusterIP Services from node-telemetry-services.yaml,
+# which iptables-DNAT from the launcher pod to the SR Linux gNMI server (port 57400).
+# TLS: skip-verify because SR Linux uses the ContainerLab-generated self-signed cert.
+# Auth: admin / NokiaSrl1! (ContainerLab default for SR Linux).
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gnmic-config
+  namespace: network-lab
+data:
+  gnmic.yaml: |
+    username: admin
+    password: NokiaSrl1!
+    skip-verify: true
+    encoding: json_ietf
+    timeout: 10s
+    retry-timer: 5s
+
+    targets:
+      spine1-telemetry.network-lab.svc.cluster.local:57400:
+        name: spine1
+      spine2-telemetry.network-lab.svc.cluster.local:57400:
+        name: spine2
+      leaf1-telemetry.network-lab.svc.cluster.local:57400:
+        name: leaf1
+      leaf2-telemetry.network-lab.svc.cluster.local:57400:
+        name: leaf2
+      leaf3-telemetry.network-lab.svc.cluster.local:57400:
+        name: leaf3
+
+    subscriptions:
+      interface_stats:
+        paths:
+          - /interface[name=*]/statistics
+          - /interface[name=*]/oper-state
+          - /interface[name=*]/admin-state
+        stream-mode: sample
+        sample-interval: 30s
+
+      bgp_neighbors:
+        paths:
+          - /network-instance[name=default]/protocols/bgp/neighbor
+        stream-mode: sample
+        sample-interval: 30s
+
+      system_resources:
+        paths:
+          - /platform/control/cpu
+          - /platform/control/memory
+        stream-mode: sample
+        sample-interval: 30s
+
+    outputs:
+      prometheus:
+        type: prometheus
+        listen: ":9273"
+        path: /metrics
+        metric-prefix: gnmi
+        append-subscription-name: true
