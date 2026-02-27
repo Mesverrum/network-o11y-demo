@@ -84,6 +84,7 @@ data:
     import json
     import urllib.request
     import urllib.error
+    import urllib.parse
 
     NETBOX_URL = os.environ["NETBOX_URL"].rstrip("/")
     TOKEN = os.environ["NETBOX_TOKEN"]
@@ -110,8 +111,9 @@ data:
 
 
     def get_list(path, **params):
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
-        return _request("GET", f"{path}?{qs}&limit=200")["results"]
+        params["limit"] = 200
+        qs = urllib.parse.urlencode(params)
+        return _request("GET", f"{path}?{qs}")["results"]
 
 
     def get_or_create(path, lookup_field, data):
@@ -209,16 +211,13 @@ data:
         ("client3","eth1",   "1000base-t",   "To leaf3"),
     ]
 
-    # Prefixes to document
+    # Prefixes to document (network addresses only; client IPs are tracked
+    # as IP address objects on their respective interfaces above)
     PREFIXES = [
-        # eBGP underlay P2P links (/31s from 192.168.1.0/24)
-        {"prefix": "192.168.1.0/24",  "description": "eBGP underlay P2P pool", "role": ""},
+        # eBGP underlay P2P pool (/31s from this block)
+        {"prefix": "192.168.1.0/24", "description": "eBGP underlay P2P pool"},
         # EVPN overlay client subnet
-        {"prefix": "172.17.0.0/24",   "description": "EVPN overlay — client L2VPN (VNI 1)", "role": ""},
-        # Client IPs
-        {"prefix": "172.17.0.1/24",   "description": "client1 eth1", "role": ""},
-        {"prefix": "172.17.0.2/24",   "description": "client2 eth1", "role": ""},
-        {"prefix": "172.17.0.3/24",   "description": "client3 eth1", "role": ""},
+        {"prefix": "172.17.0.0/24",  "description": "EVPN overlay — client L2VPN (VNI 1)"},
     ]
 
 

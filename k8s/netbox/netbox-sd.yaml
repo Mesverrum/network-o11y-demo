@@ -124,7 +124,7 @@ data:
                 traceback.print_exc()
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"internal error — check logs")
+                self.wfile.write(b"internal error - check logs")
 
         def log_message(self, fmt, *args):
             # Suppress default access log; we print our own above.

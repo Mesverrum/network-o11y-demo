@@ -37,6 +37,14 @@ existingSecret: "netbox-credentials"
 allowedHosts:
   - "*"
 
+# API token pepper — required by NetBox v4.5.3+ to hash/verify API tokens.
+# Must be a non-empty dict; id 0 is the active pepper.
+# Change this if you regenerate credentials (old tokens become invalid).
+extraConfig:
+  - values:
+      API_TOKEN_PEPPERS:
+        0: "network-o11y-demo-pepper-2026"
+
 # Require login to view any data — appropriate for a demo accessed via tunnel.
 loginRequired: true
 
@@ -115,14 +123,15 @@ startupProbe:
   enabled: true
   initialDelaySeconds: 10
   periodSeconds: 10
+  timeoutSeconds: 10     # granian first request can take 6+ seconds
   failureThreshold: 60   # up to 10 minutes for first-run migrations
 
 livenessProbe:
-  enabled: true
-  initialDelaySeconds: 0
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
+  # Disabled: chart v7.4.15 probes port 8081 (uWSGI supervisor) but NetBox
+  # v4.5.3 uses granian which has no supervisor status port. With liveness
+  # enabled the pod is killed every ~30s after startup. Readiness probe on
+  # port 8080 is sufficient for a demo environment.
+  enabled: false
 
 readinessProbe:
   enabled: true
