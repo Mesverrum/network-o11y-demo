@@ -7,7 +7,7 @@ A self-contained, reproducible demo environment that showcases Grafana's network
 ## Goals
 
 - Demonstrate multi-protocol network telemetry collection (SNMP, gNMI, sFlow, syslog) from simulated network devices.
-- Show how ktranslate and Grafana Alloy form a production-grade network telemetry pipeline.
+- Show how ktranslate, gnmic, and Grafana Alloy form a production-grade network telemetry pipeline.
 - Illustrate device inventory enrichment using NetBox as a source of truth.
 - Deliver pre-built Grafana Cloud dashboards covering topology, interface health, traffic flows, and device inventory.
 - Be fully reproducible — deployable from scratch with a small set of commands.
@@ -31,24 +31,24 @@ A self-contained, reproducible demo environment that showcases Grafana's network
   │   kubectl pre-configured │
   └──────────────┬───────────┘
                  │ Private VPC networking
-┌────────────────▼───────────────────────────────────────────┐
-│                 AWS VPC (eu-west-1, private subnets)       │
-│                                                            │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  EKS Cluster (private API endpoint only)             │  │
-│  │                                                      │  │
-│  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │  Clabbernetes (namespace: c9s)                 │  │  │
-│  │  │  Nokia SR Linux Clos Fabric (namespace: network-lab) │ │
-│  │  │                                                │  │  │
-│  │  │   Spine1 ──── Spine2                           │  │  │
-│  │  │   / | \      / | \                             │  │  │
-│  │  │  L1  L2  L3─L1  L2  L3   (eBGP underlay)      │  │  │
-│  │  │  |   |   |               (iBGP/EVPN overlay)   │  │  │
-│  │  │  C1  C2  C3   (Linux client pods)              │  │  │
-│  │  └────────────────────────────────────────────────┘  │  │
-│  └──────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────┘
+┌────────────────▼─────────────────────────────────────────────────┐
+│                 AWS VPC (eu-west-1, private subnets)             │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  EKS Cluster (private API endpoint only)                   │  │
+│  │                                                            │  │
+│  │  ┌──────────────────────────────────────────────────────┐  │  │
+│  │  │  Clabbernetes (namespace: c9s)                       │  │  │
+│  │  │  Nokia SR Linux Clos Fabric (namespace: network-lab) │  │  │
+│  │  │                                                      │  │  │
+│  │  │   Spine1 ──── Spine2                                 │  │  │
+│  │  │   / | \      / | \                                   │  │  │
+│  │  │  L1  L2  L3─L1  L2  L3   (eBGP underlay)             │  │  │
+│  │  │  |   |   |               (iBGP/EVPN overlay)         │  │  │
+│  │  │  C1  C2  C3   (Linux client pods)                    │  │  │
+│  │  └──────────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -110,11 +110,11 @@ Syslog is forwarded from SR Linux over UDP to Alloy's NodePort (30614) on the no
 | Grafana Alloy | ✅ Deployed | SNMP polling + OTLP receive + syslog → Grafana Cloud |
 | gnmic | ✅ Deployed | gNMI streaming → Prometheus → Alloy |
 | SR Linux syslog | ✅ Configured | RFC5424 UDP → Alloy → Loki; `hostname`, `app_name`, `severity` labels |
-| Grafana Cloud pipeline | ✅ Configured | Requires credentials Secret |
-| NetBox | ✅ Implemented | Fabric inventory; requires `deploy-netbox.sh` |
-| netbox-sd | ✅ Implemented | Prometheus HTTP SD adapter for Alloy enrichment |
-| NetBox populate job | ✅ Implemented | Seeds all devices, interfaces, IPs on first run |
-| NetBox metric enrichment | ✅ Implemented | `device_role`, `site`, `platform`, `tenant` labels on all SNMP + gNMI metrics |
+| Grafana Cloud pipeline | ✅ Configured | Credentials via `grafana-cloud-secret.yaml` |
+| NetBox | ✅ Deployed | Fabric inventory populated; UI via `scripts/access.sh` |
+| netbox-sd | ✅ Deployed | Prometheus HTTP SD adapter; serving 8 device targets |
+| NetBox populate job | ✅ Completed | Seeded all devices, interfaces, IPs, prefixes |
+| NetBox metric enrichment | ✅ Configured | `device_role`, `site`, `platform`, `tenant` labels on all SNMP + gNMI metrics |
 
 ---
 
@@ -221,15 +221,23 @@ The reconciler polls every 30 seconds, detects pod UID changes, and re-applies f
 
 ### 7. Deploy NetBox (optional)
 
+> **EKS prerequisite:** NetBox requires persistent storage. On a fresh EKS cluster, install the AWS EBS CSI driver add-on first (or ensure the `gp2` StorageClass is marked as default):
+> ```bash
+> aws eks create-addon --cluster-name network-o11y-demo \
+>   --addon-name aws-ebs-csi-driver \
+>   --service-account-role-arn arn:aws:iam::<ACCOUNT_ID>:role/AmazonEKS_EBS_CSI_DriverRole
+> kubectl patch storageclass gp2 \
+>   -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+> ```
+
 First create and fill in the NetBox credentials Secret:
 
 ```bash
 cp k8s/netbox/netbox-secret.yaml.example k8s/netbox/netbox-secret.yaml
-# Edit netbox-secret.yaml — fill in:
-#   superuser-password  (NetBox admin UI password)
-#   superuser-api-token (40-char hex, e.g. openssl rand -hex 20)
-#   secret-key          (50+ chars,   e.g. openssl rand -base64 40)
-#   postgresql-password (any strong password)
+# Edit netbox-secret.yaml — fill in ALL fields marked CHANGE_ME.
+# The file contains primary credential fields plus internal key aliases
+# required by the Helm chart — both sets must be filled with matching values.
+# See the example file for generation hints (openssl rand -hex 20, etc.)
 ```
 
 Then deploy NetBox, the netbox-sd adapter, and the populate job:
@@ -279,8 +287,8 @@ It reads two gitignored credential files from the repo root:
 # (Grafana Cloud → Administration → Service Accounts → Add service account token)
 echo "glc_eyJ..." > grafana-cloud-api.token
 
-# Create instance.details — your Grafana Cloud instance URL
-echo "url: https://yourorg.grafana.net" > instance.details
+# Create grafana-cloud.instance — your Grafana Cloud instance URL
+echo "url: https://yourorg.grafana.net" > grafana-cloud.instance
 
 bash scripts/deploy-dashboards.sh
 ```

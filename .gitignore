@@ -28,7 +28,7 @@ k8s/netbox/netbox-secret.yaml
 
 # Grafana Cloud API token and instance details — never commit
 grafana-cloud-api.token
-instance.details
+grafana-cloud.instance
 
 # Python cache
 __pycache__/
