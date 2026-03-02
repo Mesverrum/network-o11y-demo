@@ -34,6 +34,15 @@ grafana-cloud.instance
 __pycache__/
 *.pyc
 
+# Ansible config backups — these are generated at runtime, not source-controlled here.
+# In a real deployment, commit backups/ to a dedicated private repo for audit history.
+ansible/backups/
+
+# Ansible retry files
+ansible/*.retry
+ansible/playbooks/*.retry
+
 # OS noise
 .DS_Store
 .DS_Store?
+*.docx

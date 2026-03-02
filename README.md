@@ -42,7 +42,7 @@ A self-contained, reproducible demo environment that showcases Grafana's network
 │  │  │  Nokia SR Linux Clos Fabric (namespace: network-lab) │  │  │
 │  │  │                                                      │  │  │
 │  │  │   Spine1 ──── Spine2                                 │  │  │
-│  │  │   / | \      / | \                                   │  │  │
+│  │  │   / | \       / | \                                  │  │  │
 │  │  │  L1  L2  L3─L1  L2  L3   (eBGP underlay)             │  │  │
 │  │  │  |   |   |               (iBGP/EVPN overlay)         │  │  │
 │  │  │  C1  C2  C3   (Linux client pods)                    │  │  │
@@ -115,6 +115,8 @@ Syslog is forwarded from SR Linux over UDP to Alloy's NodePort (30614) on the no
 | netbox-sd | ✅ Deployed | Prometheus HTTP SD adapter; serving 8 device targets |
 | NetBox populate job | ✅ Completed | Seeded all devices, interfaces, IPs, prefixes |
 | NetBox metric enrichment | ✅ Configured | `device_role`, `site`, `platform`, `tenant` labels on all SNMP + gNMI metrics |
+| Ansible runner | ✅ Implemented | Interactive pod; NetBox dynamic inventory; BGP config, backup, drift detection |
+| Ansible backup CronJob | ✅ Implemented | Daily config backup to PVC; see `k8s/ansible/backup-cronjob.yaml` |
 
 ---
 
@@ -130,9 +132,24 @@ Syslog is forwarded from SR Linux over UDP to Alloy's NodePort (30614) on the no
 
 ---
 
+## Blog Post Series
+
+This repository is the companion codebase for the blog series **"Network Observability Without the Lock-in"**. Each post maps directly to a deployment stage:
+
+| Post | Topic | Deploy command | Directory |
+|------|-------|---------------|-----------|
+| [Post 3](blog/10_drafts/blog-post-03-the-lab.md) | Building the Lab: SR Linux on Kubernetes | `make post-03` | `k8s/topology/`, `k8s/telemetry/` |
+| [Post 4](blog/10_drafts/blog-post-04-netbox.md) | NetBox as Your Source of Truth | `make post-04` | `k8s/netbox/` |
+| [Post 5](blog/10_drafts/blog-post-05-grafana.md) | Observability with Grafana | `make post-05` | `grafana/` |
+| [Post 6](blog/10_drafts/blog-post-06-ansible.md) | Network Config Management with Ansible | `make post-06` | `ansible/`, `k8s/ansible/` |
+
+Run `make help` to see all available targets.
+
+---
+
 ## Deployment
 
-### 1. Provision Infrastructure
+### 0. Provision Infrastructure *(Pre-requisite)*
 
 ```bash
 cd terraform/
@@ -193,7 +210,7 @@ docker run --rm -v $(pwd)/k8s/topology:/topology \
   --naming non-prefixed
 ```
 
-### 5. Apply Networking Fixes (one-shot)
+### 5. Apply Networking Fixes — Post 3 *(or `make deploy-networking`)*
 
 Run the fix script once after the topology is first deployed:
 
@@ -208,7 +225,7 @@ This fixes four things — see `scripts/fix-networking.sh` for full explanations
 - **MTU clamp** to 1400 on client containers: Prevents TCP fragmentation over double VxLAN encapsulation. Re-applied automatically by the reconciler.
 - **iptables DNAT** for SNMP (UDP 161) and gNMI (TCP 57400) in each launcher pod: Makes SR Linux management ports reachable from the Kubernetes network. Re-applied automatically by the reconciler.
 
-### 6. Deploy the Network Reconciler
+### 6. Deploy the Network Reconciler — Post 3
 
 The reconciler watches for topology pod restarts and automatically re-applies the ARP, MTU, and DNAT fixes:
 
@@ -219,7 +236,7 @@ kubectl -n network-lab get deploy network-reconciler   # should be 1/1 Ready
 
 The reconciler polls every 30 seconds, detects pod UID changes, and re-applies fixes automatically.
 
-### 7. Deploy NetBox (optional)
+### 7. Deploy NetBox — Post 4 *(or `make post-04`)*
 
 > **EKS prerequisite:** NetBox requires persistent storage. On a fresh EKS cluster, install the AWS EBS CSI driver add-on first (or ensure the `gp2` StorageClass is marked as default):
 > ```bash
@@ -257,7 +274,7 @@ bash scripts/access.sh
 # → http://localhost:8080   (login: admin / password from netbox-secret.yaml)
 ```
 
-### 8. Deploy the Telemetry Stack
+### 8. Deploy the Telemetry Stack — Post 3 *(or `make deploy-telemetry`)*
 
 First create the Grafana Cloud credentials Secret:
 
@@ -277,7 +294,7 @@ bash scripts/deploy-telemetry.sh
 
 This deploys ktranslate, Alloy, gnmic, the node telemetry Services, and runs the `srl-syslog-config` Job to configure syslog forwarding on each SR Linux node. The network-reconciler automatically installs and starts `softflowd` on each client node.
 
-### 9. Deploy Grafana Dashboards (optional)
+### 9. Deploy Grafana Dashboards — Post 5 *(or `make post-05`)*
 
 The dashboards in `grafana/dashboards/` can be pushed to Grafana Cloud using the deploy script.
 It reads two gitignored credential files from the repo root:
@@ -298,7 +315,39 @@ To regenerate dashboard JSON before deploying:
 python3 grafana/dashboards.py && bash scripts/deploy-dashboards.sh
 ```
 
-### 10. Start Traffic Generation
+### 10. Deploy Ansible Config Management — Post 6 *(or `make post-06`)*
+
+The Ansible layer deploys an interactive runner pod and a daily backup CronJob.
+NetBox is used as the dynamic inventory source.
+
+```bash
+bash scripts/deploy-ansible.sh
+```
+
+Once deployed, exec into the runner to run playbooks:
+
+```bash
+kubectl exec -it -n network-tools deployment/ansible-runner -- bash
+
+# Inside the runner:
+ansible-inventory --graph                              # devices from NetBox
+ansible-playbook playbooks/drift-detection.yml         # compliance check
+ansible-playbook playbooks/configure-bgp-neighbors.yml --check --diff  # dry run
+ansible-playbook playbooks/backup-configs.yml          # config backup
+ansible-playbook playbooks/remediate-bgp.yml --limit leaf2  # BGP remediation
+```
+
+Trigger a manual backup at any time:
+
+```bash
+make backup
+# or
+kubectl create job -n network-tools backup-now --from=cronjob/ansible-backup
+```
+
+See `ansible/` for all playbooks, inventory, and group_vars.
+
+### 11. Start Traffic Generation
 
 ```bash
 bash scripts/traffic.sh start
