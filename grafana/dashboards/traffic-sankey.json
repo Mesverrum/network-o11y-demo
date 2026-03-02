@@ -1,43 +1,35 @@
 {
-  "uid": "net-o11y-traffic-sankey",
-  "title": "Network O11y \u2014 Traffic Sankey",
-  "description": "Sankey flow diagrams of SR Linux Clos fabric traffic. Uses label_replace() to map gNMI interface names to connected device names.",
-  "tags": [
-    "network-o11y-demo"
-  ],
-  "schemaVersion": 41,
-  "version": 0,
-  "refresh": "30s",
-  "time": {
-    "from": "now-1h",
-    "to": "now"
+  "annotations": {
+    "list": []
   },
-  "timepicker": {},
-  "timezone": "browser",
+  "description": "Sankey flow diagrams of SR Linux Clos fabric traffic. Uses label_replace() to map gNMI interface names to connected device names.",
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
+  "id": 4338411995324416,
   "links": [],
   "panels": [
     {
-      "id": 1,
-      "type": "row",
-      "title": "Spine \u2194 Leaf Traffic",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "collapsed": false,
-      "panels": []
+      "id": 1,
+      "panels": [],
+      "title": "Spine \u2194 Leaf Traffic",
+      "type": "row"
     },
     {
-      "id": 2,
-      "type": "netsage-sankey-panel",
-      "title": "Spine \u2192 Leaf",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
       },
       "gridPos": {
         "h": 14,
@@ -45,16 +37,13 @@
         "x": 0,
         "y": 1
       },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
+      "id": 2,
       "options": {
+        "layoutIterations": 32,
         "linkColor": "multi",
         "nodeColor": "#7EB26D",
-        "nodeWidth": 20,
         "nodePadding": 10,
-        "layoutIterations": 32
+        "nodeWidth": 20
       },
       "targets": [
         {
@@ -62,15 +51,16 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/spine.*\", ifDescr=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"ifDescr\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"ifDescr\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"ifDescr\", \"ethernet-1/3\"  ))",
-          "legendFormat": "",
-          "refId": "A",
           "editorMode": "code",
-          "range": false,
+          "expr": "sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/spine.*\", ifDescr=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"ifDescr\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"ifDescr\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"ifDescr\", \"ethernet-1/3\"  ))",
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
+      "title": "Spine \u2192 Leaf",
       "transformations": [
         {
           "id": "organize",
@@ -79,26 +69,28 @@
               "Time": true
             },
             "indexByName": {
-              "source": 0,
+              "Value": 2,
               "destination": 1,
-              "Value": 2
+              "source": 0
             },
             "renameByName": {
-              "source": "Source",
+              "Value": "bps",
               "destination": "Destination",
-              "Value": "bps"
+              "source": "Source"
             }
           }
         }
-      ]
+      ],
+      "type": "netsage-sankey-panel"
     },
     {
-      "id": 3,
-      "type": "netsage-sankey-panel",
-      "title": "Leaf \u2192 Spine",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
       },
       "gridPos": {
         "h": 14,
@@ -106,16 +98,13 @@
         "x": 12,
         "y": 1
       },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
+      "id": 3,
       "options": {
+        "layoutIterations": 32,
         "linkColor": "multi",
         "nodeColor": "#7EB26D",
-        "nodeWidth": 20,
         "nodePadding": 10,
-        "layoutIterations": 32
+        "nodeWidth": 20
       },
       "targets": [
         {
@@ -123,15 +112,16 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (source, destination) (  label_replace(    label_replace(      label_replace(        rate(ifHCOutOctets{job=~\"integrations/snmp/leaf.*\", ifDescr=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,        \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"      ),      \"destination\", \"spine1\", \"ifDescr\", \"ethernet-1/49\"    ),    \"destination\", \"spine2\", \"ifDescr\", \"ethernet-1/50\"  ))",
-          "legendFormat": "",
-          "refId": "A",
           "editorMode": "code",
-          "range": false,
+          "expr": "sum by (source, destination) (  label_replace(    label_replace(      label_replace(        rate(ifHCOutOctets{job=~\"integrations/snmp/leaf.*\", ifDescr=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,        \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"      ),      \"destination\", \"spine1\", \"ifDescr\", \"ethernet-1/49\"    ),    \"destination\", \"spine2\", \"ifDescr\", \"ethernet-1/50\"  ))",
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
+      "title": "Leaf \u2192 Spine",
       "transformations": [
         {
           "id": "organize",
@@ -140,26 +130,28 @@
               "Time": true
             },
             "indexByName": {
-              "source": 0,
+              "Value": 2,
               "destination": 1,
-              "Value": 2
+              "source": 0
             },
             "renameByName": {
-              "source": "Source",
+              "Value": "bps",
               "destination": "Destination",
-              "Value": "bps"
+              "source": "Source"
             }
           }
         }
-      ]
+      ],
+      "type": "netsage-sankey-panel"
     },
     {
-      "id": 4,
-      "type": "netsage-sankey-panel",
-      "title": "Spine \u2194 Leaf (Aggregate)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
       },
       "gridPos": {
         "h": 14,
@@ -167,16 +159,13 @@
         "x": 0,
         "y": 15
       },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
+      "id": 4,
       "options": {
+        "layoutIterations": 32,
         "linkColor": "multi",
         "nodeColor": "#7EB26D",
-        "nodeWidth": 20,
         "nodePadding": 10,
-        "layoutIterations": 32
+        "nodeWidth": 20
       },
       "targets": [
         {
@@ -184,15 +173,16 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/spine.*\", ifDescr=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"ifDescr\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"ifDescr\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"ifDescr\", \"ethernet-1/3\"  ))) + on(source, destination) (sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/leaf.*\", ifDescr=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"$1\", \"source\", \"(leaf.*)\"      ),      \"source\", \"spine1\", \"ifDescr\", \"ethernet-1/49\"    ),    \"source\", \"spine2\", \"ifDescr\", \"ethernet-1/50\"  )))",
-          "legendFormat": "",
-          "refId": "A",
           "editorMode": "code",
-          "range": false,
+          "expr": "(sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/spine.*\", ifDescr=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"ifDescr\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"ifDescr\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"ifDescr\", \"ethernet-1/3\"  ))) + on(source, destination) (sum by (source, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(ifHCOutOctets{job=~\"integrations/snmp/leaf.*\", ifDescr=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,          \"source\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"$1\", \"source\", \"(leaf.*)\"      ),      \"source\", \"spine1\", \"ifDescr\", \"ethernet-1/49\"    ),    \"source\", \"spine2\", \"ifDescr\", \"ethernet-1/50\"  )))",
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         }
       ],
+      "title": "Spine \u2194 Leaf (Aggregate)",
       "transformations": [
         {
           "id": "organize",
@@ -201,34 +191,45 @@
               "Time": true
             },
             "indexByName": {
-              "source": 0,
+              "Value": 2,
               "destination": 1,
-              "Value": 2
+              "source": 0
             },
             "renameByName": {}
           }
         }
-      ]
+      ],
+      "type": "netsage-sankey-panel"
     }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "network-o11y-demo"
   ],
   "templating": {
     "list": [
       {
-        "name": "datasource",
-        "type": "datasource",
-        "label": "Prometheus",
-        "query": "prometheus",
-        "refresh": 1,
         "current": {},
         "hide": 0,
         "includeAll": false,
+        "label": "Prometheus",
         "multi": false,
-        "options": []
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
       }
     ]
   },
-  "annotations": {
-    "list": []
+  "time": {
+    "from": "now-1h",
+    "to": "now"
   },
-  "fiscalYearStartMonth": 0
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Network O11y \u2014 Traffic Sankey",
+  "uid": "net-o11y-traffic-sankey",
+  "version": 13
 }

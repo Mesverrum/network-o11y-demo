@@ -1,53 +1,37 @@
 {
-  "uid": "net-o11y-bgp-status",
-  "title": "Network O11y \u2014 BGP Session Status",
-  "description": "BGP neighbor health, route counts, and message activity from gNMI streaming telemetry across the SR Linux Clos fabric.",
-  "tags": [
-    "network-o11y-demo"
-  ],
-  "schemaVersion": 41,
-  "version": 0,
-  "refresh": "30s",
-  "time": {
-    "from": "now-1h",
-    "to": "now"
+  "annotations": {
+    "list": []
   },
-  "timepicker": {},
-  "timezone": "browser",
+  "description": "BGP neighbor health, route counts, and message activity from gNMI streaming telemetry across the SR Linux Clos fabric.",
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
+  "id": 4331406954139648,
   "links": [],
   "panels": [
     {
-      "id": 1,
-      "type": "row",
-      "title": "Session Health",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "collapsed": false,
-      "panels": []
+      "id": 1,
+      "panels": [],
+      "title": "Session Health",
+      "type": "row"
     },
     {
-      "id": 2,
-      "type": "stat",
-      "title": "BGP Sessions",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "color": {
+            "mode": "fixed"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -57,13 +41,22 @@
               }
             ]
           },
-          "color": {
-            "mode": "fixed"
-          }
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -71,10 +64,6 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
         "textMode": "auto"
       },
       "targets": [
@@ -83,22 +72,43 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "count(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"})",
-          "legendFormat": "Sessions",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "count(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"})",
+          "instant": true,
+          "legendFormat": "Sessions",
           "range": false,
-          "instant": true
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "BGP Sessions",
+      "type": "stat"
     },
     {
-      "id": 3,
-      "type": "stat",
-      "title": "Sessions Up (ever established)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -106,9 +116,48 @@
         "x": 4,
         "y": 1
       },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"} >= 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "Up",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Sessions Up (ever established)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -122,48 +171,9 @@
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          }
+          "unit": "none"
         },
         "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "count(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"} >= 1) or vector(0)",
-          "legendFormat": "Up",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "IPv4 Neighbors Exchanging Routes",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
       "gridPos": {
         "h": 4,
@@ -171,9 +181,48 @@
         "x": 8,
         "y": 1
       },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"} > 0) or vector(0)",
+          "instant": true,
+          "legendFormat": "Active",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "IPv4 Neighbors Exchanging Routes",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -187,48 +236,9 @@
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          }
+          "unit": "none"
         },
         "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "count(srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"} > 0) or vector(0)",
-          "legendFormat": "Active",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "Total IPv4 Received Routes",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
       "gridPos": {
         "h": 4,
@@ -236,29 +246,12 @@
         "x": 12,
         "y": 1
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
+      "id": 5,
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -266,10 +259,6 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
         "textMode": "auto"
       },
       "targets": [
@@ -278,22 +267,39 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "Routes",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "sum(srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "instant": true,
+          "legendFormat": "Routes",
           "range": false,
-          "instant": true
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Total IPv4 Received Routes",
+      "type": "stat"
     },
     {
-      "id": 6,
-      "type": "stat",
-      "title": "Total IPv4 Active Routes",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -301,25 +307,12 @@
         "x": 16,
         "y": 1
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "fixed"
-          }
-        },
-        "overrides": []
-      },
+      "id": 6,
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -327,10 +320,6 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
         "textMode": "auto"
       },
       "targets": [
@@ -339,32 +328,27 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(srl_bgp_neighbor_afi_safi_active_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "Active",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "sum(srl_bgp_neighbor_afi_safi_active_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "instant": true,
+          "legendFormat": "Active",
           "range": false,
-          "instant": true
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Total IPv4 Active Routes",
+      "type": "stat"
     },
     {
-      "id": 7,
-      "type": "stat",
-      "title": "Session Flaps (last hour)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -382,13 +366,22 @@
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          }
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 7,
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -396,10 +389,6 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
         "textMode": "auto"
       },
       "targets": [
@@ -408,35 +397,114 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"}[1h])) or vector(0)",
-          "legendFormat": "Flaps",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "sum(increase(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"}[1h])) or vector(0)",
+          "instant": true,
+          "legendFormat": "Flaps",
           "range": false,
-          "instant": true
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Session Flaps (last hour)",
+      "type": "stat"
     },
     {
-      "id": 8,
-      "type": "row",
-      "title": "Underlay Sessions",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 5
       },
-      "collapsed": false,
-      "panels": []
+      "id": 8,
+      "panels": [],
+      "title": "Underlay Sessions",
+      "type": "row"
     },
     {
-      "id": 9,
-      "type": "table",
-      "title": "Underlay BGP (Link IPs \u2014 exchange loopback reachability)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "red",
+                        "index": 0,
+                        "text": "Down"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "from": 1,
+                      "result": {
+                        "color": "green",
+                        "index": 1,
+                        "text": "Up"
+                      },
+                      "to": 99999
+                    },
+                    "type": "range"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Flaps"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -444,6 +512,153 @@
         "x": 0,
         "y": 6
       },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "clamp_min(sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"}) - 1, 0)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_peer_as{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_received_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_active_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_sent_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "F"
+        }
+      ],
+      "title": "Underlay BGP (Link IPs \u2014 exchange loopback reachability)",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4,
+              "Value #D": 5,
+              "Value #E": 6,
+              "Value #F": 7,
+              "neighbor_peer_address": 1,
+              "source": 0
+            },
+            "renameByName": {
+              "Value #A": "Status",
+              "Value #B": "Flaps",
+              "Value #C": "Peer AS",
+              "Value #D": "Rx Prefixes",
+              "Value #E": "Active Prefixes",
+              "Value #F": "Tx Prefixes",
+              "neighbor_peer_address": "Peer IP",
+              "source": "Device"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Overlay Sessions",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
@@ -457,26 +672,26 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "0": {
-                        "text": "Down",
                         "color": "red",
-                        "index": 0
+                        "index": 0,
+                        "text": "Down"
                       }
-                    }
+                    },
+                    "type": "value"
                   },
                   {
-                    "type": "range",
                     "options": {
                       "from": 1,
-                      "to": 99999,
                       "result": {
-                        "text": "Up",
                         "color": "green",
-                        "index": 1
-                      }
-                    }
+                        "index": 1,
+                        "text": "Up"
+                      },
+                      "to": 99999
+                    },
+                    "type": "range"
                   }
                 ]
               },
@@ -523,153 +738,6 @@
             ]
           }
         ]
-      },
-      "options": {
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ]
-        },
-        "showHeader": true,
-        "sortBy": [],
-        "cellHeight": "sm"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"})",
-          "legendFormat": "",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "clamp_min(sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"}) - 1, 0)",
-          "legendFormat": "",
-          "refId": "B",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_peer_as{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\"})",
-          "legendFormat": "",
-          "refId": "C",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_received_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "D",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_active_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "E",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_sent_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"192[.]168[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "F",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "indexByName": {
-              "source": 0,
-              "neighbor_peer_address": 1,
-              "Value #A": 2,
-              "Value #B": 3,
-              "Value #C": 4,
-              "Value #D": 5,
-              "Value #E": 6,
-              "Value #F": 7
-            },
-            "renameByName": {
-              "source": "Device",
-              "neighbor_peer_address": "Peer IP",
-              "Value #A": "Status",
-              "Value #B": "Flaps",
-              "Value #C": "Peer AS",
-              "Value #D": "Rx Prefixes",
-              "Value #E": "Active Prefixes",
-              "Value #F": "Tx Prefixes"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "type": "row",
-      "title": "Overlay Sessions",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 11,
-      "type": "table",
-      "title": "Overlay BGP (Loopback IPs \u2014 EVPN / tenant routes)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
       },
       "gridPos": {
         "h": 8,
@@ -677,96 +745,17 @@
         "x": 0,
         "y": 15
       },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Status"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "0": {
-                        "text": "Down",
-                        "color": "red",
-                        "index": 0
-                      }
-                    }
-                  },
-                  {
-                    "type": "range",
-                    "options": {
-                      "from": 1,
-                      "to": 99999,
-                      "result": {
-                        "text": "Up",
-                        "color": "green",
-                        "index": 1
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Flaps"
-            },
-            "properties": [
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 1
-                    },
-                    {
-                      "color": "red",
-                      "value": 5
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              }
-            ]
-          }
-        ]
-      },
+      "id": 11,
       "options": {
+        "cellHeight": "sm",
         "footer": {
-          "show": false,
           "reducer": [
             "sum"
-          ]
+          ],
+          "show": false
         },
         "showHeader": true,
-        "sortBy": [],
-        "cellHeight": "sm"
+        "sortBy": []
       },
       "targets": [
         {
@@ -774,80 +763,81 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "editorMode": "code",
           "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\"})",
-          "legendFormat": "",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "editorMode": "code",
           "expr": "clamp_min(sum by (source, neighbor_peer_address) (srl_bgp_neighbor_established_transitions{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\"}) - 1, 0)",
-          "legendFormat": "",
-          "refId": "B",
-          "editorMode": "code",
-          "range": false,
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "B"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "editorMode": "code",
           "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_peer_as{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\"})",
-          "legendFormat": "",
-          "refId": "C",
-          "editorMode": "code",
-          "range": false,
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "C"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "editorMode": "code",
           "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_received_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "D",
-          "editorMode": "code",
-          "range": false,
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "D"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "editorMode": "code",
           "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_active_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "E",
-          "editorMode": "code",
-          "range": false,
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "E"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_sent_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
-          "legendFormat": "",
-          "refId": "F",
           "editorMode": "code",
-          "range": false,
+          "expr": "sum by (source, neighbor_peer_address) (srl_bgp_neighbor_afi_safi_sent_routes{source=~\"$device\", job=\"integrations/gnmi\", neighbor_peer_address=~\"10[.].*\", afi_safi_afi_safi_name=\"ipv4-unicast\"})",
+          "format": "table",
           "instant": true,
-          "format": "table"
+          "legendFormat": "",
+          "range": false,
+          "refId": "F"
         }
       ],
+      "title": "Overlay BGP (Loopback IPs \u2014 EVPN / tenant routes)",
       "transformations": [
         {
           "id": "merge",
@@ -860,49 +850,63 @@
               "Time": true
             },
             "indexByName": {
-              "source": 0,
-              "neighbor_peer_address": 1,
               "Value #A": 2,
               "Value #B": 3,
               "Value #C": 4,
               "Value #D": 5,
               "Value #E": 6,
-              "Value #F": 7
+              "Value #F": 7,
+              "neighbor_peer_address": 1,
+              "source": 0
             },
             "renameByName": {
-              "source": "Device",
-              "neighbor_peer_address": "Peer IP",
               "Value #A": "Status",
               "Value #B": "Flaps",
               "Value #C": "Peer AS",
               "Value #D": "Rx Prefixes",
               "Value #E": "Active Prefixes",
-              "Value #F": "Tx Prefixes"
+              "Value #F": "Tx Prefixes",
+              "neighbor_peer_address": "Peer IP",
+              "source": "Device"
             }
           }
         }
-      ]
+      ],
+      "type": "table"
     },
     {
-      "id": 12,
-      "type": "row",
-      "title": "IPv4 Route Counts",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 23
       },
-      "collapsed": false,
-      "panels": []
+      "id": 12,
+      "panels": [],
+      "title": "IPv4 Route Counts",
+      "type": "row"
     },
     {
-      "id": 13,
-      "type": "timeseries",
-      "title": "IPv4 Received Routes per Neighbor",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 4,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -910,34 +914,19 @@
         "x": 0,
         "y": 24
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 4,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
+      "id": 13,
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -946,22 +935,37 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"}",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "srl_bgp_neighbor_afi_safi_received_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"}",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "IPv4 Received Routes per Neighbor",
+      "type": "timeseries"
     },
     {
-      "id": 14,
-      "type": "timeseries",
-      "title": "IPv4 Active Routes per Neighbor",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 4,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -969,34 +973,19 @@
         "x": 12,
         "y": 24
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 4,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
+      "id": 14,
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1005,35 +994,50 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "srl_bgp_neighbor_afi_safi_active_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"}",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "srl_bgp_neighbor_afi_safi_active_routes{job=\"integrations/gnmi\", source=~\"$device\", afi_safi_afi_safi_name=\"ipv4-unicast\"}",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "IPv4 Active Routes per Neighbor",
+      "type": "timeseries"
     },
     {
-      "id": 15,
-      "type": "row",
-      "title": "Session Stability & Message Activity",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 32
       },
-      "collapsed": false,
-      "panels": []
+      "id": 15,
+      "panels": [],
+      "title": "Session Stability & Message Activity",
+      "type": "row"
     },
     {
-      "id": 16,
-      "type": "timeseries",
-      "title": "BGP Updates Received (rate/s)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 4,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1041,34 +1045,19 @@
         "x": 0,
         "y": 33
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 4,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
+      "id": 16,
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1077,22 +1066,37 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(srl_bgp_neighbor_received_messages_total_updates{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "rate(srl_bgp_neighbor_received_messages_total_updates{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "BGP Updates Received (rate/s)",
+      "type": "timeseries"
     },
     {
-      "id": 17,
-      "type": "timeseries",
-      "title": "BGP Updates Sent (rate/s)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 4,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1100,34 +1104,19 @@
         "x": 12,
         "y": 33
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 4,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
+      "id": 17,
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
           "calcs": [
             "lastNotNull",
             "max"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1136,22 +1125,37 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(srl_bgp_neighbor_sent_messages_total_updates{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "rate(srl_bgp_neighbor_sent_messages_total_updates{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "BGP Updates Sent (rate/s)",
+      "type": "timeseries"
     },
     {
-      "id": 18,
-      "type": "timeseries",
-      "title": "BGP Messages Received (rate/s)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 4,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1159,34 +1163,19 @@
         "x": 0,
         "y": 41
       },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 4,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
+      "id": 18,
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
           "calcs": [
             "lastNotNull",
             "mean"
-          ]
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1195,40 +1184,32 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(srl_bgp_neighbor_received_messages_total_messages{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "rate(srl_bgp_neighbor_received_messages_total_messages{job=\"integrations/gnmi\", source=~\"$device\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "BGP Messages Received (rate/s)",
+      "type": "timeseries"
     },
     {
-      "id": 19,
-      "type": "timeseries",
-      "title": "Established Transitions (cumulative)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 41
-      },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
           "custom": {
-            "lineWidth": 1,
             "fillOpacity": 4,
+            "lineWidth": 1,
             "showPoints": "never",
             "spanNulls": true,
             "stacking": {
-              "mode": "none",
-              "group": "A"
+              "group": "A",
+              "mode": "none"
             }
           },
           "thresholds": {
@@ -1239,21 +1220,29 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "id": 19,
       "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
         "tooltip": {
           "mode": "multi",
           "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
         }
       },
       "targets": [
@@ -1262,32 +1251,31 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"}",
-          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
-          "refId": "A",
           "editorMode": "code",
+          "expr": "srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\", source=~\"$device\"}",
+          "instant": false,
+          "legendFormat": "{{source}} \u2192 {{neighbor_peer_address}}",
           "range": true,
-          "instant": false
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Established Transitions (cumulative)",
+      "type": "timeseries"
     },
     {
-      "id": 20,
-      "type": "row",
-      "title": "BGP Event Logs",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 49
       },
-      "collapsed": false,
-      "panels": []
+      "id": 20,
+      "panels": [],
+      "title": "BGP Event Logs",
+      "type": "row"
     },
     {
-      "id": 21,
-      "type": "logs",
-      "title": "BGP Events \u2014 ${device}",
       "datasource": {
         "type": "loki",
         "uid": "${loki_datasource}"
@@ -1298,6 +1286,7 @@
         "x": 0,
         "y": 50
       },
+      "id": 21,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -1317,43 +1306,55 @@
           "legendFormat": "",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "BGP Events \u2014 ${device}",
+      "type": "logs"
     }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "network-o11y-demo"
   ],
   "templating": {
     "list": [
       {
-        "name": "datasource",
-        "type": "datasource",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
         "label": "Prometheus",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
         "query": "prometheus",
         "refresh": 1,
+        "type": "datasource"
+      },
+      {
         "current": {},
         "hide": 0,
         "includeAll": false,
-        "multi": false,
-        "options": []
-      },
-      {
-        "name": "loki_datasource",
-        "type": "datasource",
         "label": "Loki",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
         "query": "loki",
         "refresh": 1,
-        "current": {},
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "options": []
+        "type": "datasource"
       },
       {
-        "name": "device",
-        "type": "query",
-        "label": "Device",
+        "allValue": ".*",
+        "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "${datasource}"
         },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Device",
+        "multi": true,
+        "name": "device",
+        "options": [],
         "query": {
           "query": "label_values(srl_bgp_neighbor_established_transitions{job=\"integrations/gnmi\"}, source)",
           "refId": "StandardVariableQuery"
@@ -1361,17 +1362,17 @@
         "refresh": 2,
         "regex": "",
         "sort": 1,
-        "multi": true,
-        "includeAll": true,
-        "current": {},
-        "hide": 0,
-        "options": [],
-        "allValue": ".*"
+        "type": "query"
       }
     ]
   },
-  "annotations": {
-    "list": []
+  "time": {
+    "from": "now-1h",
+    "to": "now"
   },
-  "fiscalYearStartMonth": 0
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Network O11y \u2014 BGP Session Status",
+  "uid": "net-o11y-bgp-status",
+  "version": 17
 }
