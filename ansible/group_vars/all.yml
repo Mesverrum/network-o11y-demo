@@ -1,0 +1,27 @@
+---
+# Variables applied to every host in the inventory.
+#
+# SR Linux gNMI connection via the nokia.srlinux Ansible collection.
+# The collection connects over gRPC to the device's gNMI server (port 57400).
+#
+# In this demo, devices are reached via Kubernetes ClusterIP services:
+#   <device>-telemetry.network-lab.svc.cluster.local:57400
+# The ansible_host is composed from the device name in inventory/netbox.yml.
+
+# ── Connection ────────────────────────────────────────────────────────────────
+ansible_connection:  ansible.netcommon.grpc
+ansible_network_os:  nokia.srlinux.srlinux
+ansible_port:        57400
+
+# ContainerLab generates self-signed TLS certificates for SR Linux gNMI.
+# Skip certificate verification in the demo environment.
+ansible_grpc_verify_certificate: false
+
+# ── Credentials ───────────────────────────────────────────────────────────────
+# ContainerLab default credentials for Nokia SR Linux.
+# Override via environment variable SRL_PASSWORD for production use.
+ansible_user:     admin
+ansible_password: "{{ lookup('env', 'SRL_PASSWORD') | default('NokiaSrl1!', true) }}"
+
+# ── Backup settings ───────────────────────────────────────────────────────────
+backup_dir: "{{ playbook_dir }}/../backups"

@@ -1,0 +1,24 @@
+---
+# Ansible Galaxy collections required for this demo.
+#
+# Install with:
+#   ansible-galaxy collection install -r requirements.yml
+#
+# Or let scripts/deploy-ansible.sh handle it.
+
+collections:
+  # NetBox dynamic inventory plugin
+  - name: netbox.netbox
+    version: ">=3.19.0"
+
+  # Nokia SR Linux modules (config, get, cli) — uses gNMI/gRPC transport
+  - name: nokia.srlinux
+    version: ">=0.7.0"
+
+  # gRPC connection plugin required by nokia.srlinux
+  - name: ansible.netcommon
+    version: ">=6.1.0"
+
+  # General utility filters and modules
+  - name: ansible.utils
+    version: ">=3.0.0"

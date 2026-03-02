@@ -1,0 +1,63 @@
+---
+# drift-detection.yml — Check whether the current device configuration matches
+# the desired state defined in configure-bgp-neighbors.yml, WITHOUT making any
+# changes.
+#
+# This is a compliance check. Run it on a schedule (see k8s/ansible/backup-cronjob.yaml)
+# and capture the output to detect configuration drift before it causes incidents.
+#
+# Usage:
+#   ansible-playbook playbooks/drift-detection.yml
+#
+# Exit code:
+#   0 — all devices match the desired state (no drift detected)
+#   2 — one or more devices have drifted (changes would be applied if run without --check)
+#
+# Integration:
+#   - Pipe output to a Loki-compatible log shipper to make drift visible in Grafana
+#   - Use Grafana Alerting to fire when drift is detected
+
+- name: BGP configuration drift detection (check mode)
+  hosts: device_roles_leaf
+  gather_facts: false
+
+  vars:
+    bgp_connect_retry:     5
+    bgp_hold_time:        15
+    bgp_keepalive:         5
+    bgp_min_adv_interval:  1
+
+  tasks:
+    - name: Check BGP underlay group timer parameters (check mode — no changes applied)
+      nokia.srlinux.config:
+        config:
+          network-instance:
+            - name: default
+              protocols:
+                bgp:
+                  group:
+                    - name: eBGP
+                      timers:
+                        connect-retry: "{{ bgp_connect_retry }}"
+                        hold-time: "{{ bgp_hold_time }}"
+                        keepalive-interval: "{{ bgp_keepalive }}"
+                        minimum-advertisement-interval: "{{ bgp_min_adv_interval }}"
+                      transport:
+                        tcp-mss: 1400
+        state: merged
+      check_mode: true     # never apply — report only
+      diff: true           # show exactly what differs
+      register: drift_result
+
+    - name: Report drift status for each device
+      debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ 'DRIFT DETECTED — run configure-bgp-neighbors.yml to remediate'
+             if drift_result.changed else 'compliant' }}
+
+    - name: Fail if drift detected (so CI pipelines can catch it)
+      fail:
+        msg: "Configuration drift detected on {{ inventory_hostname }}"
+      when:
+        - drift_result.changed
+        - lookup('env', 'FAIL_ON_DRIFT') | default('false') | bool

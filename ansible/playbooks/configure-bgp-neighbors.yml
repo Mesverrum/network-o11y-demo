@@ -1,0 +1,61 @@
+---
+# configure-bgp-neighbors.yml — Enforce the desired BGP underlay and overlay
+# neighbor configuration on all leaf nodes.
+#
+# What this configures:
+#   - eBGP underlay neighbor timers (connect-retry, hold-time, keepalive)
+#   - BGP group parameters (multipath, add-paths)
+#
+# What it does NOT change:
+#   - Existing neighbor IPs or peer-AS values (those come from startup-config)
+#   - Routing policies (export-local, all)
+#   - EVPN overlay configuration
+#
+# This is a safe, idempotent operation: running it twice has no effect if the
+# configuration is already in the desired state.
+#
+# Usage:
+#   # Dry run — see what would change without applying it:
+#   ansible-playbook playbooks/configure-bgp-neighbors.yml --check --diff
+#
+#   # Apply changes:
+#   ansible-playbook playbooks/configure-bgp-neighbors.yml
+#
+#   # Target a single device:
+#   ansible-playbook playbooks/configure-bgp-neighbors.yml --limit leaf1
+
+- name: Configure BGP underlay neighbor parameters on leaf nodes
+  hosts: device_roles_leaf
+  gather_facts: false
+
+  vars:
+    # Desired BGP underlay timer values.
+    # These are tuned for fast convergence in the demo environment.
+    bgp_connect_retry:     5    # seconds
+    bgp_hold_time:        15    # seconds (3× keepalive)
+    bgp_keepalive:         5    # seconds
+    bgp_min_adv_interval:  1    # seconds
+
+  tasks:
+    - name: Set BGP underlay group timer parameters
+      nokia.srlinux.config:
+        config:
+          network-instance:
+            - name: default
+              protocols:
+                bgp:
+                  group:
+                    - name: eBGP
+                      timers:
+                        connect-retry: "{{ bgp_connect_retry }}"
+                        hold-time: "{{ bgp_hold_time }}"
+                        keepalive-interval: "{{ bgp_keepalive }}"
+                        minimum-advertisement-interval: "{{ bgp_min_adv_interval }}"
+                      transport:
+                        tcp-mss: 1400    # matches reduced MTU in Clabbernetes
+        state: merged
+      register: bgp_result
+
+    - name: Report changes
+      debug:
+        msg: "{{ inventory_hostname }}: {{ 'changed' if bgp_result.changed else 'no changes needed' }}"

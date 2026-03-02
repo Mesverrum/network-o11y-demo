@@ -1,0 +1,17 @@
+---
+# Variables for devices in the "spine" device role.
+#
+# Spines use AS numbers 201 and 202 in the eBGP underlay.
+# They act as route reflectors for the iBGP/EVPN overlay.
+
+bgp_local_as_map:
+  spine1: 201
+  spine2: 202
+
+# iBGP overlay: spines are the route reflector cluster
+bgp_ibgp_role: route-reflector
+bgp_ibgp_cluster_id: "10.0.2.0"
+
+# Export policy applied to underlay eBGP peers
+bgp_export_policy: export-local
+bgp_import_policy: all

@@ -1,0 +1,59 @@
+---
+# backup-configs.yml — Pull running configuration from all SR Linux devices and
+# save to timestamped JSON files in the backups/ directory.
+#
+# Usage:
+#   ansible-playbook playbooks/backup-configs.yml
+#
+# Output:
+#   backups/<hostname>_<YYYY-MM-DD>.json   (per-device full configuration)
+#   backups/backup-manifest_<date>.txt     (summary of what was captured)
+#
+# Schedule: see k8s/ansible/backup-cronjob.yaml for automated daily runs.
+# Diff: git diff backups/ to see what changed between runs.
+
+- name: Back up running configuration from all SR Linux devices
+  hosts: device_roles_spine:device_roles_leaf
+  gather_facts: false
+  vars:
+    today: "{{ lookup('pipe', 'date +%Y-%m-%d') }}"
+    backup_path: "{{ backup_dir }}/{{ today }}"
+
+  tasks:
+    - name: Ensure backup directory exists
+      file:
+        path: "{{ backup_path }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Retrieve full running configuration via gNMI GET
+      nokia.srlinux.get:
+        paths:
+          - path:     "/"
+            datatype: config
+      register: device_config
+
+    - name: Save configuration to timestamped JSON file
+      copy:
+        content: "{{ device_config.result | to_nice_json }}"
+        dest:    "{{ backup_path }}/{{ inventory_hostname }}.json"
+      delegate_to: localhost
+
+    - name: Record hostname in manifest
+      lineinfile:
+        path:   "{{ backup_path }}/manifest.txt"
+        line:   "{{ inventory_hostname }}  {{ ansible_date_time.iso8601 }}"
+        create: true
+      delegate_to: localhost
+
+  post_tasks:
+    - name: Backup summary
+      debug:
+        msg: |
+          Backup complete. Files written to {{ backup_path }}/
+          Run:  git diff backups/  to see changes since last run.
+          Run:  git add backups/ && git commit -m "backup: {{ today }}"  to commit.
+      run_once: true
+      delegate_to: localhost

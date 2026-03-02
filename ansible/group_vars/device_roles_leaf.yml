@@ -1,0 +1,45 @@
+---
+# Variables for devices in the "leaf" device role.
+#
+# Leaves use AS numbers 101, 102, 103 in the eBGP underlay.
+# Each leaf connects to both spines (spine1 AS 201, spine2 AS 202).
+
+bgp_local_as_map:
+  leaf1: 101
+  leaf2: 102
+  leaf3: 103
+
+# Uplink eBGP peers: both spines
+# P2P subnets follow the scheme: 192.168.<spine_index><leaf_index>.x/31
+bgp_underlay_peers_map:
+  leaf1:
+    - peer_ip: 192.168.11.1
+      peer_as: 201
+      description: "uplink to spine1"
+    - peer_ip: 192.168.12.1
+      peer_as: 202
+      description: "uplink to spine2"
+  leaf2:
+    - peer_ip: 192.168.21.1
+      peer_as: 201
+      description: "uplink to spine1"
+    - peer_ip: 192.168.22.1
+      peer_as: 202
+      description: "uplink to spine2"
+  leaf3:
+    - peer_ip: 192.168.31.1
+      peer_as: 201
+      description: "uplink to spine1"
+    - peer_ip: 192.168.32.1
+      peer_as: 202
+      description: "uplink to spine2"
+
+# iBGP overlay: leaves peer with both spines as route reflectors
+bgp_ibgp_peers:
+  - peer_ip: 10.0.2.1
+    description: "iBGP/EVPN overlay → spine1"
+  - peer_ip: 10.0.2.2
+    description: "iBGP/EVPN overlay → spine2"
+
+bgp_export_policy: export-local
+bgp_import_policy: all

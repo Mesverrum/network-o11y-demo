@@ -1,0 +1,133 @@
+---
+# Daily automated backup CronJob.
+#
+# Runs the backup-configs playbook every day at 02:00 UTC.
+# Output is written to a PersistentVolumeClaim so backups survive pod restarts.
+#
+# Usage:
+#   # Deploy the CronJob:
+#   kubectl apply -f k8s/ansible/backup-cronjob.yaml
+#
+#   # Trigger a manual backup immediately:
+#   kubectl create job -n network-tools backup-manual \
+#     --from=cronjob/ansible-backup
+#
+#   # View the latest backup logs:
+#   kubectl logs -n network-tools job/backup-manual
+#
+#   # List backed-up files:
+#   kubectl exec -n network-tools job/backup-manual -- ls /backups/
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ansible-backups
+  namespace: network-tools
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ansible-backup
+  namespace: network-tools
+  labels:
+    app: ansible-backup
+spec:
+  schedule: "0 2 * * *"     # 02:00 UTC daily
+  concurrencyPolicy: Forbid  # don't run a new job if previous is still running
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: ansible-backup
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            - name: install-ansible
+              image: python:3.12-slim
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  pip install --quiet --no-cache-dir ansible ansible-core
+                  ansible-galaxy collection install \
+                    netbox.netbox nokia.srlinux ansible.netcommon ansible.utils \
+                    --collections-path /collections
+              volumeMounts:
+                - name: ansible-bin
+                  mountPath: /usr/local/lib/python3.12/site-packages
+                - name: collections
+                  mountPath: /collections
+
+          containers:
+            - name: backup
+              image: python:3.12-slim
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  export ANSIBLE_COLLECTIONS_PATH=/collections
+                  export ANSIBLE_CONFIG=/ansible/ansible.cfg
+                  ansible-playbook /ansible/playbooks/backup-configs.yml \
+                    -v \
+                    -e "backup_dir=/backups"
+              env:
+                - name: NETBOX_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: netbox-credentials
+                      key: superuser-api-token
+                - name: NETBOX_URL
+                  value: "http://netbox.network-tools.svc.cluster.local"
+                - name: SRL_PASSWORD
+                  value: "NokiaSrl1!"
+              volumeMounts:
+                - name: ansible-bin
+                  mountPath: /usr/local/lib/python3.12/site-packages
+                - name: collections
+                  mountPath: /collections
+                - name: playbooks
+                  mountPath: /ansible/ansible.cfg
+                  subPath: ansible.cfg
+                - name: playbooks
+                  mountPath: /ansible/inventory/netbox.yml
+                  subPath: netbox-inventory.yml
+                - name: playbooks
+                  mountPath: /ansible/group_vars/all.yml
+                  subPath: group_vars_all.yml
+                - name: playbooks
+                  mountPath: /ansible/playbooks/backup-configs.yml
+                  subPath: backup-configs.yml
+                - name: backups
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 512Mi
+
+          volumes:
+            - name: ansible-bin
+              emptyDir: {}
+            - name: collections
+              emptyDir: {}
+            - name: playbooks
+              configMap:
+                name: ansible-playbooks
+            - name: backups
+              persistentVolumeClaim:
+                claimName: ansible-backups

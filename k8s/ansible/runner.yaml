@@ -1,0 +1,221 @@
+---
+# Ansible runner — an interactive pod for running Ansible playbooks
+# against the SR Linux fabric from within the Kubernetes cluster.
+#
+# The runner has access to:
+#   - NetBox API (in-cluster DNS: netbox.network-tools.svc.cluster.local)
+#   - SR Linux gNMI (via *-telemetry ClusterIP services in network-lab namespace)
+#
+# Usage:
+#   kubectl exec -it -n network-tools deployment/ansible-runner -- bash
+#   cd /ansible
+#   ansible-inventory --graph                              # list discovered devices
+#   ansible-playbook playbooks/backup-configs.yml          # run a backup
+#   ansible-playbook playbooks/drift-detection.yml         # compliance check
+#   ansible-playbook playbooks/configure-bgp-neighbors.yml --check --diff  # dry run
+#
+# The playbooks and inventory are mounted from ConfigMaps so they can be updated
+# by re-applying this file without rebuilding an image.
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ansible-playbooks
+  namespace: network-tools
+  labels:
+    app: ansible-runner
+data:
+  ansible.cfg: |
+    [defaults]
+    inventory           = /ansible/inventory/netbox.yml
+    host_key_checking   = False
+    timeout             = 30
+    stdout_callback     = yaml
+    retry_files_enabled = False
+
+    [inventory]
+    enable_plugins = netbox.netbox.nb_inventory, host_list, yaml, ini
+
+    [persistent_connection]
+    command_timeout = 60
+    connect_timeout = 30
+
+  netbox-inventory.yml: |
+    plugin: netbox.netbox.nb_inventory
+    api_endpoint: "http://netbox.network-tools.svc.cluster.local"
+    token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
+    validate_certs: false
+    query_filters:
+      - status: active
+    group_by:
+      - device_roles
+      - sites
+      - platforms
+    compose:
+      ansible_host: "name + '-telemetry.network-lab.svc.cluster.local'"
+
+  group_vars_all.yml: |
+    ansible_connection:  ansible.netcommon.grpc
+    ansible_network_os:  nokia.srlinux.srlinux
+    ansible_port:        57400
+    ansible_grpc_verify_certificate: false
+    ansible_user:     admin
+    ansible_password: "{{ lookup('env', 'SRL_PASSWORD') | default('NokiaSrl1!', true) }}"
+    backup_dir: /ansible/backups
+
+  backup-configs.yml: |
+    ---
+    - name: Backup SR Linux running configuration
+      hosts: device_roles_spine:device_roles_leaf
+      gather_facts: false
+      vars:
+        today: "{{ lookup('pipe', 'date +%Y-%m-%d') }}"
+      tasks:
+        - name: Ensure backup directory exists
+          file:
+            path: "/ansible/backups/{{ today }}"
+            state: directory
+            mode: "0755"
+          delegate_to: localhost
+          run_once: true
+        - name: Retrieve running configuration
+          nokia.srlinux.get:
+            paths:
+              - path: "/"
+                datatype: config
+          register: device_config
+        - name: Save configuration to file
+          copy:
+            content: "{{ device_config.result | to_nice_json }}"
+            dest: "/ansible/backups/{{ today }}/{{ inventory_hostname }}.json"
+          delegate_to: localhost
+
+  drift-detection.yml: |
+    ---
+    - name: BGP configuration drift detection
+      hosts: device_roles_leaf
+      gather_facts: false
+      vars:
+        bgp_connect_retry: 5
+        bgp_hold_time: 15
+        bgp_keepalive: 5
+        bgp_min_adv_interval: 1
+      tasks:
+        - name: Check BGP parameters (check mode)
+          nokia.srlinux.config:
+            config:
+              network-instance:
+                - name: default
+                  protocols:
+                    bgp:
+                      group:
+                        - name: eBGP
+                          timers:
+                            connect-retry: "{{ bgp_connect_retry }}"
+                            hold-time: "{{ bgp_hold_time }}"
+                            keepalive-interval: "{{ bgp_keepalive }}"
+                            minimum-advertisement-interval: "{{ bgp_min_adv_interval }}"
+            state: merged
+          check_mode: true
+          diff: true
+          register: result
+        - name: Report
+          debug:
+            msg: "{{ inventory_hostname }}: {{ 'DRIFT DETECTED' if result.changed else 'compliant' }}"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ansible-runner
+  namespace: network-tools
+  labels:
+    app: ansible-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ansible-runner
+  template:
+    metadata:
+      labels:
+        app: ansible-runner
+    spec:
+      initContainers:
+        - name: install-ansible
+          image: python:3.12-slim
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              pip install --quiet --no-cache-dir ansible ansible-core
+              ansible-galaxy collection install \
+                netbox.netbox \
+                nokia.srlinux \
+                ansible.netcommon \
+                ansible.utils \
+                --collections-path /usr/share/ansible/collections
+          volumeMounts:
+            - name: ansible-bin
+              mountPath: /usr/local/lib/python3.12/site-packages
+            - name: collections
+              mountPath: /usr/share/ansible/collections
+
+      containers:
+        - name: runner
+          image: python:3.12-slim
+          command: ["sleep", "infinity"]
+          env:
+            - name: NETBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-credentials
+                  key: superuser-api-token
+            - name: NETBOX_URL
+              value: "http://netbox.network-tools.svc.cluster.local"
+            - name: SRL_PASSWORD
+              value: "NokiaSrl1!"
+            - name: ANSIBLE_CONFIG
+              value: "/ansible/ansible.cfg"
+          volumeMounts:
+            - name: ansible-bin
+              mountPath: /usr/local/lib/python3.12/site-packages
+            - name: collections
+              mountPath: /usr/share/ansible/collections
+            - name: playbooks
+              mountPath: /ansible/ansible.cfg
+              subPath: ansible.cfg
+            - name: playbooks
+              mountPath: /ansible/inventory/netbox.yml
+              subPath: netbox-inventory.yml
+            - name: playbooks
+              mountPath: /ansible/group_vars/all.yml
+              subPath: group_vars_all.yml
+            - name: playbooks
+              mountPath: /ansible/playbooks/backup-configs.yml
+              subPath: backup-configs.yml
+            - name: playbooks
+              mountPath: /ansible/playbooks/drift-detection.yml
+              subPath: drift-detection.yml
+            - name: backups
+              mountPath: /ansible/backups
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      volumes:
+        - name: ansible-bin
+          emptyDir: {}
+        - name: collections
+          emptyDir: {}
+        - name: playbooks
+          configMap:
+            name: ansible-playbooks
+        - name: backups
+          emptyDir: {}

@@ -1,0 +1,91 @@
+---
+# remediate-bgp.yml — Reset a BGP session that is stuck in the Idle state.
+#
+# This playbook is the runbook target linked from the Grafana BGP alert.
+# When a BGP session on a leaf stays Idle for > 60s, Grafana fires an alert
+# and the notification includes a link to run this playbook.
+#
+# What it does:
+#   1. Reads the current BGP neighbor state via gNMI GET
+#   2. Identifies any sessions that are not Established
+#   3. Issues a BGP soft-reset for those sessions
+#   4. Waits up to 30s and confirms the session returned to Established
+#
+# Usage:
+#   # Manually — pass the target device and optionally the peer IP:
+#   ansible-playbook playbooks/remediate-bgp.yml --limit leaf2
+#   ansible-playbook playbooks/remediate-bgp.yml --limit leaf2 -e "peer_ip=192.168.21.1"
+#
+#   # From Grafana IRM webhook → Ansible AWX job template:
+#   # Set ANSIBLE_LIMIT env var to the affected device hostname.
+
+- name: Check and remediate BGP sessions
+  hosts: "{{ target_host | default('device_roles_leaf') }}"
+  gather_facts: false
+
+  vars:
+    peer_ip: ""    # empty = check all peers; set to target a specific session
+    bgp_established_wait: 30
+
+  tasks:
+    - name: Read current BGP neighbor state
+      nokia.srlinux.get:
+        paths:
+          - path:     "/network-instance[name=default]/protocols/bgp/neighbor"
+            datatype: state
+      register: bgp_state
+
+    - name: Identify BGP sessions not in Established state
+      set_fact:
+        idle_sessions: >-
+          {{
+            bgp_state.result
+            | json_query("'network-instance'[?name=='default'].protocols.bgp.neighbor[]")
+            | default([])
+            | selectattr('session-state', 'ne', 'established')
+            | selectattr('peer-address', 'match', peer_ip if peer_ip else '.*')
+            | list
+          }}
+
+    - name: No idle sessions — nothing to remediate
+      debug:
+        msg: "All BGP sessions on {{ inventory_hostname }} are Established."
+      when: idle_sessions | length == 0
+
+    - name: Report idle sessions found
+      debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ idle_sessions | length }} idle session(s):
+          {{ idle_sessions | map(attribute='peer-address') | list | join(', ') }}
+      when: idle_sessions | length > 0
+
+    - name: Trigger BGP soft-reset for each idle session
+      nokia.srlinux.cli:
+        commands:
+          - "tools network-instance default protocols bgp neighbor {{ item['peer-address'] }} reset"
+      loop: "{{ idle_sessions }}"
+      loop_control:
+        label: "{{ item['peer-address'] }}"
+      when: idle_sessions | length > 0
+
+    - name: Wait for sessions to re-establish
+      nokia.srlinux.get:
+        paths:
+          - path:     "/network-instance[name=default]/protocols/bgp/neighbor[peer-address={{ item['peer-address'] }}]/session-state"
+            datatype: state
+      register: session_check
+      retries: 6
+      delay: 5
+      until: >-
+        session_check.result
+        | json_query("'network-instance'[0].protocols.bgp.neighbor[0].'session-state'")
+        == 'established'
+      loop: "{{ idle_sessions }}"
+      loop_control:
+        label: "{{ item['peer-address'] }}"
+      when: idle_sessions | length > 0
+
+    - name: Remediation result
+      debug:
+        msg: "{{ inventory_hostname }}: BGP sessions restored successfully."
+      when: idle_sessions | length > 0

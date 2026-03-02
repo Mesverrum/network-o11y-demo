@@ -1,0 +1,46 @@
+---
+# NetBox dynamic inventory for Ansible.
+#
+# This plugin queries NetBox's REST API at runtime and groups devices by
+# device_role, site, and platform — the same taxonomy used in Grafana labels.
+#
+# When a device is added to or removed from NetBox, the next Ansible run
+# automatically picks up the change. No static hosts file to maintain.
+#
+# Required environment variables:
+#   NETBOX_URL    — NetBox base URL (default: in-cluster K8s DNS)
+#   NETBOX_TOKEN  — NetBox API token (from netbox-credentials secret)
+#
+# Usage (from within cluster or with port-forward):
+#   ansible-inventory --list         # See all discovered devices
+#   ansible-inventory --graph        # See group hierarchy
+#   ansible all -m ping              # Test connectivity
+
+plugin: netbox.netbox.nb_inventory
+
+api_endpoint: "{{ lookup('env', 'NETBOX_URL') | default('http://netbox.network-tools.svc.cluster.local', true) }}"
+token:        "{{ lookup('env', 'NETBOX_TOKEN') }}"
+validate_certs: false
+
+# Only include active devices — ignore staged/decommissioned
+query_filters:
+  - status: active
+
+# Group devices by these NetBox fields.
+# Results in groups like: device_roles_leaf, device_roles_spine,
+# sites_network_lab, platforms_nokia_srlinux
+group_by:
+  - device_roles
+  - sites
+  - platforms
+
+# Map NetBox device data to Ansible connection variables.
+# Devices are accessed via their Kubernetes telemetry ClusterIP services
+# (created by k8s/telemetry/node-telemetry-services.yaml).
+# Format: <device-name>-telemetry.network-lab.svc.cluster.local
+compose:
+  ansible_host: "name + '-telemetry.network-lab.svc.cluster.local'"
+
+# Pull in device custom_fields and config_context as host vars
+config_context: false
+local_context_data: false
