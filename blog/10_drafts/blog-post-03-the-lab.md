@@ -10,13 +10,9 @@ The full source is at [github.com/grafana/network-o11y-demo](https://github.com/
 
 ## Why a simulated lab?
 
-Real network hardware is expensive, physically constrained, and difficult to share. The solution is **ContainerLab** — a tool that runs real network operating system images as containers — combined with **Clabbernetes**, which orchestrates those topologies as Kubernetes pods.
+Real network hardware is expensive, physically constrained, and hard to hand to a colleague on the other side of the world. **ContainerLab** solves this by running real network OS images as containers; **Clabbernetes** takes it further and orchestrates those topologies as Kubernetes pods.
 
-Nokia SR Linux ships a fully functional container image under a free developer licence. You get a real routing stack — BGP, EVPN, gNMI — not a simulator. The topology is:
-
-- **Reproducible** — tear it down and rebuild in minutes
-- **Shareable** — anyone with `kubectl` access can use it
-- **Observable** — the same telemetry interfaces (SNMP, gNMI, syslog, NetFlow) as physical hardware
+The important thing about Nokia SR Linux is that it ships a fully functional container image under a free developer licence. This isn't a stripped-down simulator — it's the same routing stack you'd run in production, with BGP, EVPN, and gNMI all working. You can tear the topology down and rebuild it in minutes, share it with anyone who has `kubectl` access, and it exposes the same telemetry interfaces — SNMP, gNMI, syslog, NetFlow — as physical hardware. That last part is what makes it useful for this series.
 
 ## The topology: a Nokia SR Linux Clos fabric
 
@@ -81,16 +77,7 @@ With the topology running and networking fixed, four telemetry streams flow from
 
 **NetFlow.** The three Linux clients run softflowd, exporting NetFlow v9 to ktranslate. ktranslate normalizes flows, converts to OTLP log records, and forwards to Alloy, which writes to Loki. This gives you top-talker and protocol breakdown visibility in Grafana.
 
-## What you have at the end
-
-After running through this post:
-
-- A Nokia SR Linux Clos fabric (2 spines, 3 leaves, 3 clients) running on EKS
-- All four telemetry streams — SNMP, gNMI, syslog, NetFlow — flowing to Grafana Cloud
-- An Alloy pipeline ready to receive inventory enrichment from NetBox
-- A fully reproducible environment rebuildable in under 30 minutes
-
-Every metric at this point carries only bare context: an IP address and a job name. The next post adds the intelligence layer — NetBox wiring device inventory labels into every metric automatically.
+At this point you have a Nokia SR Linux Clos fabric running on EKS, with all four telemetry streams — SNMP, gNMI, syslog, NetFlow — flowing into Grafana Cloud. The environment rebuilds from scratch in under 30 minutes. But every metric still carries only bare context: an IP address and a job name. The next post adds the intelligence layer — NetBox wiring device inventory labels into every metric automatically.
 
 ---
 

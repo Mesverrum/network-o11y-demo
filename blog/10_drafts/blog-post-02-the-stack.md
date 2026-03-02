@@ -6,17 +6,13 @@
 
 Before replacing SolarWinds, you need a clear picture of what it actually does — and what each component's open-source equivalent is. This post draws that map. By the end, you'll know exactly which tool replaces which, how they connect, and why the combination is stronger than what it replaces.
 
-## The three pillars of network observability
+## Metrics, logs, and flows
 
-Network observability rests on three signal types. Miss any one of them and you'll have blind spots that cost you during incidents.
+Network monitoring lives and dies on three signal types. Metrics — interface rates, error counters, BGP prefix counts, CPU load — tell you the current state of the network. Logs — BGP session down, config change, authentication failure — tell you what happened and when. Flows — which source sent how many bytes to which destination — tell you who's talking to whom.
 
-**Metrics** are time-series numbers: interface traffic rates, error counters, BGP prefix counts, CPU utilization, queue depths. They tell you the *current state* of the network. SolarWinds NPM covers this with SNMP polling.
+Miss any one of them and you'll have blind spots that surface at the worst possible time.
 
-**Logs** are discrete events: a BGP session going down, a configuration change, an authentication failure. They tell you *what happened and when*. SolarWinds covers this, poorly, with Log Analyzer and the acquired Kiwi Syslog.
-
-**Flows** are traffic summaries: which source sent how many bytes to which destination, over what time window. They answer "who is talking to whom." SolarWinds NTA covers this with NetFlow and sFlow ingestion.
-
-SolarWinds covers all three — but in separate products, with separate UIs, separate licences, and no native correlation between them. The open stack covers all three in a unified pipeline that feeds a single interface.
+SolarWinds covers all three, and that's genuinely something. The problem is separate products, separate UIs, and separate licences — NPM for metrics, NTA for flows, Log Analyzer for logs — with no native correlation between them. When something breaks at 2am, you're switching tabs and copying timestamps. The open stack covers all three in a unified pipeline that feeds a single interface.
 
 ## The replacement map
 
@@ -92,15 +88,13 @@ Network devices (SR Linux)              Linux clients
 
 NetBox runs alongside the pipeline. A small HTTP adapter (netbox-sd) translates NetBox's device database into Prometheus HTTP SD format. Every metric Alloy collects gets enriched with labels from NetBox before it reaches Grafana Cloud.
 
-## Why this combination wins
+## Why this combination works
 
-**Each component does one thing well.** Small, focused tools with clean interfaces outperform monolithic systems over time. When gnmic adds support for a new gNMI path, you update gnmic — not the entire monitoring platform.
+The components are small and focused, which means when something changes — gnmic adds support for a new gNMI path, Alloy gets a new relabeling feature — you update one thing, not the entire platform. That modularity also matters for trust: every component is open source. If Alloy's SNMP implementation does something unexpected, you can read the code. If a CVE is published, you can read the patch and the fix.
 
-**Everything is auditable.** Every component is open source. If Alloy's SNMP implementation does something unexpected, you can read the code. If a security vulnerability is disclosed, you can read the patch.
+The real day-to-day difference is the single UI. Metrics, logs, and flows all live in Grafana, queryable in the same dashboard. Alert rules reference the same Prometheus queries you already visualize. When something fires at night, the context is already there — you're not logging into a second product to find the correlated syslog.
 
-**One UI instead of four.** Metrics, logs, and flows in Grafana. Alert rules reference the same metrics you visualize. When an alert fires, the context is already in the dashboard — no switching between consoles.
-
-**Pricing aligned with growth.** You pay for what you ingest, not per device.
+And the cost model is different in kind, not just degree. You pay for what you ingest, not per device. Adding a device to NetBox doesn't move a licence counter.
 
 ---
 

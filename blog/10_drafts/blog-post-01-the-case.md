@@ -40,37 +40,19 @@ SolarWinds is not uniquely untrustworthy — any complex proprietary software is
 
 Even setting aside trust and cost, there's a more fundamental problem: SolarWinds NPM was designed for a network that no longer exists.
 
-It was built around physical appliances, predictable polling intervals, and the assumption that everything worth monitoring speaks SNMP. That assumption is increasingly wrong:
-
-- Kubernetes clusters don't have SNMP endpoints
-- Cloud-native services expose Prometheus metrics or OpenTelemetry traces, not MIB trees
-- The network industry itself is moving to **gNMI** — a streaming telemetry protocol where devices *push* state changes in real time, at sub-second granularity, rather than waiting to be polled every five minutes
+It was built around physical appliances, predictable polling intervals, and the assumption that everything worth monitoring speaks SNMP. That assumption is increasingly wrong. Kubernetes clusters don't have SNMP endpoints. Cloud-native services expose Prometheus metrics or OpenTelemetry traces, not MIB trees. And the network industry has been moving to **gNMI** for years — a streaming protocol where devices push state changes in real time, at sub-second granularity, rather than waiting to be polled every five minutes.
 
 Nokia, Juniper, Arista, and Cisco all ship gNMI support on current platforms. SolarWinds has no gNMI support and no roadmap for it.
 
 ## What the alternative looks like
 
-The open-source ecosystem has quietly built everything SolarWinds offers — and several things it can't:
+The open-source ecosystem has quietly assembled everything SolarWinds offers, and several things it can't. [Grafana Alloy](https://grafana.com/oss/alloy/) handles SNMP polling, OTLP ingestion, and syslog in one agent — no Windows licence required. gnmic handles gNMI streaming. ktranslate handles NetFlow and sFlow. [Grafana Loki](https://grafana.com/oss/loki/) stores logs. NetBox manages device inventory and IP space. Ansible handles config backup, drift detection, and remediation. [Grafana Cloud](https://grafana.com/products/cloud/) ties it together with a shared UI, alerting, and on-call management.
 
-- **[Grafana Alloy](https://grafana.com/oss/alloy/)** — unified telemetry agent for SNMP, OpenTelemetry, and syslog
-- **gnmic** — native gNMI client for streaming telemetry
-- **ktranslate** — NetFlow and sFlow ingestion
-- **[Grafana Loki](https://grafana.com/oss/loki/)** — log aggregation
-- **NetBox** — device inventory and IP address management
-- **Ansible** — config backup, drift detection, and remediation
-- **[Grafana Cloud](https://grafana.com/products/cloud/)** — unified dashboards, alerting, and on-call management
+None of these charge per node. All are open source — auditable, forkable, extensible, and designed to interoperate through open standards rather than proprietary APIs.
 
-None of these charge per node. All are open source — auditable, forkable, and extensible. And they're designed to work together through open standards, not proprietary APIs.
+This series shows you how to assemble that stack against a real simulated network. The result is a working replacement for everything SolarWinds NPM, NTA, IPAM, NCM, and Log Analyzer provide — running on infrastructure you control.
 
-This series shows you how to assemble that stack, step by step, against a real simulated network. By the end, you'll have a complete, working replacement for everything SolarWinds NPM, NTA, IPAM, NCM, and Log Analyzer provide — running on infrastructure you control.
-
-## Who this series is for
-
-**Network engineers at renewal time** who need to understand what a migration actually involves before committing.
-
-**IT leaders and architects** who need to make the case to the business — with numbers, a migration plan, and an honest accounting of gaps.
-
-**Engineers in adjacent roles** — platform, SRE, DevOps — who have inherited a SolarWinds environment and want to understand how it fits (or doesn't) into a modern observability stack.
+It's written for network engineers facing a renewal decision who want to understand what a migration actually involves before committing. For IT leaders who need to make the case to the business — with numbers, a migration plan, and an honest accounting of gaps. And for engineers in adjacent roles — platform, SRE, DevOps — who inherited a SolarWinds environment and want to understand how it fits into a modern observability stack. That last group tends to find this the most useful: SolarWinds expertise transfers to other SolarWinds shops. Prometheus, Grafana, and Ansible don't have that problem.
 
 ---
 

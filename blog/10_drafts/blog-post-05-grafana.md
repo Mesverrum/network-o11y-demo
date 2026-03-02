@@ -4,9 +4,9 @@
 
 ---
 
-Everything built in the previous posts — the SR Linux fabric, the four telemetry streams, the NetBox inventory enrichment — exists to answer questions. Is the network healthy right now? Which leaf interface is saturated? Why did BGP go down at 14:32? Who is generating that traffic spike?
+The fabric is running, the telemetry streams are flowing, and NetBox is enriching every metric with inventory context. None of that is useful until you can actually see it and act on it.
 
-This post walks through the Grafana dashboards that answer those questions, shows what each replaces in the SolarWinds world, and highlights capabilities this stack has that SolarWinds simply cannot provide.
+This post walks through the Grafana dashboards that answer operational questions — which interface is saturated, why BGP went down at 14:32, who is generating that traffic spike — and what each replaces in the SolarWinds world.
 
 ## One UI instead of four
 
@@ -56,19 +56,11 @@ SolarWinds NPM's node detail view covers CPU and interfaces via SNMP only. No gN
 
 ## What Grafana gives you that SolarWinds can't
 
-### gNMI streaming telemetry
+**gNMI is a hard capability gap.** gNMI delivers state changes from the device the moment they happen — no polling interval, no five-minute blind window. For fast-moving events like BGP flaps or interface state changes, the difference between knowing in seconds and knowing after the next poll is often the difference between containing an incident and escalating one. Every modern network OS supports gNMI. SolarWinds NPM does not.
 
-This is a hard capability gap. gNMI delivers state changes from the device in real time — no polling interval, no five-minute blind window. For fast-moving events — BGP flaps, interface state changes, queue depth spikes — the difference between knowing in seconds and knowing in five minutes is often the difference between containing an incident and escalating one.
+The log correlation story is different in kind, not just degree. [Loki](https://grafana.com/oss/loki/) sits alongside Prometheus as a first-class data source in the same Grafana instance. When you see an anomaly, you hover to set the time range and the Loki panel below immediately shows the syslog events from that device in that window. No tab switching, no second login, no timestamp copying. SolarWinds Log Analyzer is a separate product that requires separate credentials and doesn't know about your NPM time selection.
 
-Every modern network OS supports gNMI. SolarWinds NPM does not.
-
-### Unified log correlation
-
-[Loki](https://grafana.com/oss/loki/) is a first-class data source in Grafana, sitting alongside Prometheus in the same dashboard. You can annotate a metric time series with log events from the same time window, from the same device, inline — not as a link to a separate log tool. The investigation workflow becomes: see the anomaly → hover to set the time range → the Loki panel below shows the cause. Usually visible immediately.
-
-### Alerting without a separate product
-
-[Grafana Alerting](https://grafana.com/docs/grafana/latest/alerting/) evaluates rules against the same Prometheus queries used in dashboards. When a rule fires, the notification includes a direct link to the relevant dashboard with the incident time window pre-set. [Grafana IRM](https://grafana.com/products/cloud/irm/) routes through on-call schedules and escalation policies. This replaces SolarWinds Alerts plus a third-party on-call integration plus a separate incident management tool — in one coherent system.
+And alerting doesn't require a third product. [Grafana Alerting](https://grafana.com/docs/grafana/latest/alerting/) evaluates rules against the same Prometheus queries you visualize in dashboards — the rule and the dashboard are looking at the same data. When a rule fires, the notification links directly to the dashboard with the incident time window pre-set. [Grafana IRM](https://grafana.com/products/cloud/irm/) handles on-call schedules and escalation. That's the SolarWinds Alerts product, a third-party on-call tool, and a separate incident management platform — replaced with one coherent system.
 
 ## Deploying the dashboards
 

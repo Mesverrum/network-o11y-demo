@@ -101,13 +101,13 @@ A credible migration plan requires honesty about where the open stack still fall
 
 ## Making the business case to leadership
 
-**Lead with risk reduction.** Post-SUNBURST, the argument "we're moving our privileged network monitoring platform to open-source software where we can audit the code" is a legitimate security argument, not just a cost argument. The question "do we trust our monitoring platform as a potential supply chain attack vector?" is now reasonable to ask.
+Start with risk, not cost. Post-SUNBURST, the argument that you're moving your privileged network monitoring platform to software whose source code you can actually read is a legitimate security argument. The question of whether your monitoring platform is a supply chain attack surface is no longer hypothetical — it was answered in 2020. That framing tends to get attention in ways that cost spreadsheets don't.
 
-**Quantify the savings at renewal.** Get the current SolarWinds renewal quote. Show the Grafana Cloud consumption cost for the same coverage. The difference is the annual saving. Multiply by five years. Add avoided Windows Server and SQL Server costs. The number is usually large enough to fund the migration with significant surplus.
+Then quantify the savings at renewal time. Get the current SolarWinds renewal quote. Price out Grafana Cloud consumption for the same coverage. Show the difference. Multiply by five years. Add avoided Windows Server and SQL Server costs. The number is usually large enough to fund the migration and leave a surplus.
 
-**Frame skills as an investment.** Every engineer who becomes proficient with Prometheus, Grafana, Loki, and Ansible becomes more capable across your entire infrastructure stack — not just the network monitoring tool. These skills transfer to application observability, cloud infrastructure, and CI/CD pipelines. SolarWinds expertise transfers to other SolarWinds shops. That's it.
+The skills argument is worth making explicitly: every engineer who gets comfortable with Prometheus, Grafana, Loki, and Ansible gets better at their job across the entire infrastructure stack — not just the network monitoring tool. Those skills apply to application observability, cloud infrastructure, and CI/CD pipelines. SolarWinds expertise applies to other SolarWinds environments. That's a meaningful difference when you're thinking about hiring and retention.
 
-**Use parallel running to reduce perceived risk.** SolarWinds stays running until the replacement is validated. Frame Phase 1 as "adding observability capability" rather than "replacing SolarWinds." The political risk is lower and the outcomes are the same.
+Finally, use parallel running to manage political risk. SolarWinds stays running until the replacement is validated. Frame Phase 1 as "adding observability capability" — which is true — rather than "replacing SolarWinds." The outcome is the same and the conversation is easier.
 
 ## Getting started today
 

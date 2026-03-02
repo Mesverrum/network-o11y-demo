@@ -1,17 +1,17 @@
 # Network Observability Demo
 
-A self-contained, reproducible demo environment that showcases Grafana's network observability capabilities using a simulated Nokia SR Linux Clos fabric running in Kubernetes. Intended for Grafana Labs field engineers and customers to illustrate end-to-end collection, enrichment, and visualization of network telemetry in Grafana Cloud.
+A companion demo environment for the blog series **Network Observability Without the Lock-in**. It runs a Nokia SR Linux Clos fabric as Kubernetes pods on AWS EKS, wires up four telemetry streams (SNMP, gNMI, sFlow, syslog), enriches everything with NetBox inventory labels, and pushes it all to Grafana Cloud. Deployable from scratch with a handful of commands; designed for field engineers and customers who want to see the full stack running rather than take it on faith.
 
 ---
 
-## Goals
+## What it does
 
-- Demonstrate multi-protocol network telemetry collection (SNMP, gNMI, sFlow, syslog) from simulated network devices.
-- Show how ktranslate, gnmic, and Grafana Alloy form a production-grade network telemetry pipeline.
-- Illustrate device inventory enrichment using NetBox as a source of truth.
-- Deliver pre-built Grafana Cloud dashboards covering topology, interface health, traffic flows, and device inventory.
-- Be fully reproducible — deployable from scratch with a small set of commands.
-- Be configurable for different Grafana Cloud stacks via a simple secrets file.
+- Collects SNMP, gNMI, sFlow, and syslog from simulated SR Linux devices
+- Uses NetBox as the inventory source of truth, with labels flowing automatically into every metric
+- Deploys ktranslate, gnmic, and Grafana Alloy as a production-representative pipeline
+- Pushes pre-built dashboards covering topology, interface health, BGP status, traffic flows, and device inventory to Grafana Cloud
+- Includes an Ansible layer for config backup, drift detection, and BGP remediation
+- Rebuilds from scratch in under 30 minutes; configurable for any Grafana Cloud stack via a secrets file
 
 ---
 
@@ -44,7 +44,7 @@ A self-contained, reproducible demo environment that showcases Grafana's network
 │  │  │   Spine1 ──── Spine2                                 │  │  │
 │  │  │   / | \       / | \                                  │  │  │
 │  │  │  L1  L2  L3─L1  L2  L3   (eBGP underlay)             │  │  │
-│  │  │  |   |   |               (iBGP/EVPN overlay)         │  │  │
+│  │  │  |  |  |              (iBGP/EVPN overlay)         │  │  │
 │  │  │  C1  C2  C3   (Linux client pods)                    │  │  │
 │  │  └──────────────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────────────┘  │
@@ -92,31 +92,31 @@ Syslog is forwarded from SR Linux over UDP to Alloy's NodePort (30614) on the no
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| AWS VPC (2 AZs, NAT GW) | ✅ Deployed | `eu-west-1` |
-| EKS cluster (private endpoint) | ✅ Deployed | 2× m5.2xlarge nodes, 100 GiB EBS |
-| EC2 Bastion host | ✅ Deployed | SSH-only access |
-| Clabbernetes manager | ✅ Deployed | Helm, `c9s` namespace |
-| SR Linux Clos fabric | ✅ Deployed | 2 spines, 3 leaves, 3 clients |
-| eBGP underlay | ✅ Working | All sessions established |
-| iBGP/EVPN overlay (L2VPN) | ✅ Working | MAC-VRF across all leaves |
-| Client connectivity | ✅ Working | ping + iperf3 between clients |
-| Traffic generation | ✅ Working | `scripts/traffic.sh start` |
-| SNMP v2c on all SR Linux nodes | ✅ Configured | community `public`, mgmt + default NI |
-| gNMI (gRPC) on all SR Linux nodes | ✅ Configured | port 57400, TLS `clab-profile` |
-| sFlow v5 on all SR Linux nodes | ✅ Configured | counter-samples only (simulator limitation) |
-| collector topology node | ✅ Deployed | fabric monitoring point (leaf1:e1-2, IP 10.0.3.2/30) |
-| softflowd on client nodes | ✅ Running | NetFlow v9 → ktranslate (managed by reconciler) |
-| ktranslate | ✅ Deployed | NetFlow v9 → OTLP → Alloy |
-| Grafana Alloy | ✅ Deployed | SNMP polling + OTLP receive + syslog → Grafana Cloud |
-| gnmic | ✅ Deployed | gNMI streaming → Prometheus → Alloy |
-| SR Linux syslog | ✅ Configured | RFC5424 UDP → Alloy → Loki; `hostname`, `app_name`, `severity` labels |
-| Grafana Cloud pipeline | ✅ Configured | Credentials via `grafana-cloud-secret.yaml` |
-| NetBox | ✅ Deployed | Fabric inventory populated; UI via `scripts/access.sh` |
-| netbox-sd | ✅ Deployed | Prometheus HTTP SD adapter; serving 8 device targets |
-| NetBox populate job | ✅ Completed | Seeded all devices, interfaces, IPs, prefixes |
-| NetBox metric enrichment | ✅ Configured | `device_role`, `site`, `platform`, `tenant` labels on all SNMP + gNMI metrics |
-| Ansible runner | ✅ Implemented | Interactive pod; NetBox dynamic inventory; BGP config, backup, drift detection |
-| Ansible backup CronJob | ✅ Implemented | Daily config backup to PVC; see `k8s/ansible/backup-cronjob.yaml` |
+| AWS VPC (2 AZs, NAT GW) | Deployed | `eu-west-1` |
+| EKS cluster (private endpoint) | Deployed | 2× m5.2xlarge nodes, 100 GiB EBS |
+| EC2 Bastion host | Deployed | SSH-only access |
+| Clabbernetes manager | Deployed | Helm, `c9s` namespace |
+| SR Linux Clos fabric | Deployed | 2 spines, 3 leaves, 3 clients |
+| eBGP underlay | Working | All sessions established |
+| iBGP/EVPN overlay (L2VPN) | Working | MAC-VRF across all leaves |
+| Client connectivity | Working | ping + iperf3 between clients |
+| Traffic generation | Working | `scripts/traffic.sh start` |
+| SNMP v2c on all SR Linux nodes | Configured | community `public`, mgmt + default NI |
+| gNMI (gRPC) on all SR Linux nodes | Configured | port 57400, TLS `clab-profile` |
+| sFlow v5 on all SR Linux nodes | Configured | counter-samples only (simulator limitation) |
+| collector topology node | Deployed | fabric monitoring point (leaf1:e1-2, IP 10.0.3.2/30) |
+| softflowd on client nodes | Running | NetFlow v9 → ktranslate (managed by reconciler) |
+| ktranslate | Deployed | NetFlow v9 → OTLP → Alloy |
+| Grafana Alloy | Deployed | SNMP polling + OTLP receive + syslog → Grafana Cloud |
+| gnmic | Deployed | gNMI streaming → Prometheus → Alloy |
+| SR Linux syslog | Configured | RFC5424 UDP → Alloy → Loki; `hostname`, `app_name`, `severity` labels |
+| Grafana Cloud pipeline | Configured | Credentials via `grafana-cloud-secret.yaml` |
+| NetBox | Deployed | Fabric inventory populated; UI via `scripts/access.sh` |
+| netbox-sd | Deployed | Prometheus HTTP SD adapter; serving 8 device targets |
+| NetBox populate job | Completed | Seeded all devices, interfaces, IPs, prefixes |
+| NetBox metric enrichment | Configured | `device_role`, `site`, `platform`, `tenant` labels on all SNMP + gNMI metrics |
+| Ansible runner | Implemented | Interactive pod; NetBox dynamic inventory; BGP config, backup, drift detection |
+| Ansible backup CronJob | Implemented | Daily config backup to PVC; see `k8s/ansible/backup-cronjob.yaml` |
 
 ---
 
@@ -383,10 +383,10 @@ Grafana Cloud dashboards are accessed directly via your Grafana Cloud URL — no
 ```
 Spine1 (AS 201)    Spine2 (AS 202)
   e1-1 e1-2 e1-3    e1-1 e1-2 e1-3
-   |    |    |        |    |    |
+   |   |   |       |   |   |
   L1   L2   L3      L1   L2   L3
   (AS101)(AS102)(AS103)
-   |         |         |
+   |        |        |
   C1        C2        C3
 172.17.0.1  172.17.0.2  172.17.0.3
 ```

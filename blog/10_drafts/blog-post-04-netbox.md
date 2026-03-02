@@ -24,7 +24,7 @@ NetBox is not just an IP address database. It models the full operational contex
 
 All of this is exposed via a REST API with full filtering and pagination. And critically, NetBox implements the **Prometheus HTTP Service Discovery** specification — a standard way to expose scrape targets and their labels to any Prometheus-compatible collector.
 
-## Part A: Getting data into NetBox
+## Getting data into NetBox
 
 ### The populate script (what we do in the lab)
 
@@ -56,7 +56,7 @@ A static script works for a lab, but real networks change continuously. For prod
 - **CMDB sync** — if you already have a ServiceNow or Infoblox record, sync into NetBox on a schedule via the API
 - **Webhooks** — NetBox fires webhooks when inventory changes; Alloy can respond by picking up a new device within minutes of it being added, with no manual reconfiguration
 
-## Part B: Reading NetBox in Alloy
+## Reading NetBox in Alloy
 
 Populating NetBox is valuable on its own. The real payoff is making that inventory data flow automatically into every metric the pipeline collects.
 
@@ -126,11 +126,11 @@ ifHCInOctets{instance="192.168.0.1:161", job="snmp", ifDescr="ethernet-1/1",
 
 Now a Grafana dashboard can show all interface errors across your leaf tier with a single label filter: `device_role="leaf"`. No manual grouping. No static node lists. Add a new leaf to NetBox, and it appears in that dashboard automatically at the next poll cycle.
 
-## Why this beats SolarWinds IPAM
+## Why this matters more than SolarWinds IPAM
 
-SolarWinds IPAM manages IP addresses, but the data doesn't automatically flow into NPM dashboards. If you want a node's site or role to appear in an NPM alert, you configure it manually in NPM's custom properties — separately from the IPAM record.
+SolarWinds IPAM manages IP addresses, but the data doesn't flow into NPM dashboards automatically. If you want a node's site or role to appear in an alert, you go configure it manually in NPM's custom properties — separately from the IPAM record. It goes stale almost immediately.
 
-NetBox with netbox-sd makes inventory a **live data source in the metrics pipeline**, not a reference document you consult separately. When a device changes role in NetBox, the change propagates to every metric label within five minutes. And the model generalizes cleanly — any new collector you add reads the same netbox-sd endpoint and inherits the same labels.
+NetBox with netbox-sd turns inventory into a live input to the metrics pipeline, not a reference document you consult after the fact. When a device changes role in NetBox, every metric label reflecting that role updates within five minutes. And it generalizes: any new collector you add reads the same netbox-sd endpoint and inherits the same labels, with no additional configuration.
 
 ---
 

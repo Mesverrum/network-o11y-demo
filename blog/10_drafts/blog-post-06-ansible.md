@@ -10,13 +10,11 @@ In the SolarWinds world, this is NCM — Network Configuration Manager. In the o
 
 ## Why Ansible for network config
 
-Ansible is the standard for network configuration management for three reasons:
+Ansible became the standard for network configuration management for reasons that hold up on real networks. It's agentless — no software to install on the device side, which matters when you're managing hardware that's been running for years and you have no appetite for additional moving parts. Ansible connects over SSH, NETCONF, or gNMI depending on the module, and issues commands directly.
 
-**It's agentless.** No software to install on network devices. Ansible connects over SSH (or gNMI or NETCONF, depending on the module) and issues configuration commands directly. Nothing to maintain on the device side — which matters in a heterogeneous environment with hardware that's been running for years.
+It's also declarative where it matters. You describe the desired state — "this BGP neighbour should have peer-AS 65001 and this import policy" — and the network modules figure out what commands to issue. Run the same playbook twice on an already-correct device; nothing changes. That idempotency is what makes it safe to run on a schedule without human supervision.
 
-**It's declarative where it matters.** You describe the desired state — "BGP neighbour 192.168.1.0 should be configured with peer-AS 65001 and a specific import policy" — and Ansible's network modules figure out what commands to issue. Run the playbook twice; the second run is a no-op if config is already correct.
-
-**Its module coverage is comprehensive.** Nokia SR Linux (`nokia.srlinux`), Juniper Junos (`junipernetworks.junos`), Arista EOS (`arista.eos`), Cisco IOS (`cisco.ios`) — all have maintained collections with modules covering interfaces, BGP, routing policies, and VLANs.
+And the module coverage is broad enough for real environments. Nokia SR Linux, Juniper Junos, Arista EOS, Cisco IOS — all have maintained Ansible Galaxy collections covering interfaces, BGP, routing policies, and VLANs. You're not starting from scratch for each vendor.
 
 ## NetBox as the Ansible inventory source
 
