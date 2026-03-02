@@ -121,63 +121,73 @@ data:
     }
 
     // ─── 3a. NetBox enrichment — SNMP metrics ─────────────────────────────────────
-    // Adds device_role, site, platform, and tenant labels sourced from NetBox
-    // (populated by k8s/netbox/populate-job.yaml).  The netbox-sd service exposes
-    // these same labels in Prometheus HTTP SD format for Alloy's discovery.http.
+    // Adds job_snmp, device, device_role, site, platform, and tenant labels.
     //
-    // The `instance` label on SNMP metrics matches the NetBox device name
-    // (spine1, spine2, leaf1, leaf2, leaf3).
+    // Label sources:
+    //   job      = "integrations/snmp"  (set by prometheus.scrape job_name above)
+    //   instance = "<node>-telemetry.network-lab.svc.cluster.local:161"
+    //              (the address Alloy used to reach the SNMP exporter target)
+    //
+    // Grafana SNMP integration dashboards filter on job_snmp=~"integrations/snmp.*"
+    // rather than job=~"...", so job_snmp must be set explicitly.
 
     prometheus.relabel "netbox_enrich_snmp" {
       forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 
-      // Extract device name from the job label suffix (e.g. "integrations/snmp/spine1" → "spine1").
-      // NOTE: instance = "prometheus.exporter.snmp.srl_fabric" (Alloy internal), NOT the device FQDN.
+      // ── job_snmp ──────────────────────────────────────────────────────────────────
+      // Grafana dashboard variable queries use: job_snmp=~"integrations/snmp.*"
+      // Copy the job label value → job_snmp so those variables resolve correctly.
       rule {
         source_labels = ["job"]
-        regex         = "integrations/snmp/(spine[12]|leaf[123])"
+        target_label  = "job_snmp"
+      }
+
+      // ── Device name ───────────────────────────────────────────────────────────────
+      // instance = "spine1-telemetry.network-lab.svc.cluster.local:161"
+      // Strip the "-telemetry.<cluster-dns>:<port>" suffix to get the bare device name.
+      rule {
+        source_labels = ["instance"]
+        regex         = "^([^.]+?)-telemetry\\..*"
         target_label  = "device"
         replacement   = "$1"
       }
 
-      // Also expose as "source" so SNMP metrics share the same label as gNMI metrics.
+      // Mirror to "source" so SNMP and gNMI metrics share the same label vocabulary.
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/(spine[12]|leaf[123])"
+        source_labels = ["device"]
         target_label  = "source"
-        replacement   = "$1"
       }
 
-      // device_role
+      // ── Device role ───────────────────────────────────────────────────────────────
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/spine.*"
+        source_labels = ["device"]
+        regex         = "spine.*"
         target_label  = "device_role"
         replacement   = "spine"
       }
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/leaf.*"
+        source_labels = ["device"]
+        regex         = "leaf.*"
         target_label  = "device_role"
         replacement   = "leaf"
       }
 
-      // site, platform, tenant
+      // ── Site, platform, tenant ────────────────────────────────────────────────────
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/(spine[12]|leaf[123])"
+        source_labels = ["device"]
+        regex         = ".+"
         target_label  = "site"
         replacement   = "network-lab"
       }
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/(spine[12]|leaf[123])"
+        source_labels = ["device"]
+        regex         = ".+"
         target_label  = "platform"
         replacement   = "sr-linux"
       }
       rule {
-        source_labels = ["job"]
-        regex         = "integrations/snmp/(spine[12]|leaf[123])"
+        source_labels = ["device"]
+        regex         = ".+"
         target_label  = "tenant"
         replacement   = "network-o11y-demo"
       }
