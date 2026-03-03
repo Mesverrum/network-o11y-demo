@@ -44,7 +44,7 @@ A companion demo environment for the blog series **Network Observability Without
 │  │  │   Spine1 ──── Spine2                                 │  │  │
 │  │  │   / | \       / | \                                  │  │  │
 │  │  │  L1  L2  L3─L1  L2  L3   (eBGP underlay)             │  │  │
-│  │  │  |  |  |              (iBGP/EVPN overlay)         │  │  │
+│  │  │  |  |  |              (iBGP/EVPN overlay)            │  │  │
 │  │  │  C1  C2  C3   (Linux client pods)                    │  │  │
 │  │  └──────────────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────────────┘  │
