@@ -8,6 +8,18 @@ aws.credentials
 .env.out
 values.local.yaml
 
+# Local lab secrets / mutable ktranslate discovery state
+local/.env
+local/groups/*.env
+!local/groups/*.env.sample
+local/config/
+local/state/
+local/compose-groups.generated.yaml
+local/compose-limits.generated.yaml
+local/snmp.yaml
+local/.dash-payloads/
+local/.ref-KtransToGrafana/
+
 # Terraform state and working files
 **/.terraform/
 **/.terraform.lock.hcl
@@ -41,6 +53,15 @@ ansible/backups/
 # Ansible retry files
 ansible/*.retry
 ansible/playbooks/*.retry
+
+# Local lab built binaries
+local/join-app/join-app
+
+# Agent/debug scratch scripts (underscore prefix) and one-off personal imports
+local/scripts/_*
+local/scripts/import-netterfield-wip.py
+local/scripts/preserve-ktranslate-uids.py
+local/scripts/retarget-otlp-networko11ydev.py
 
 # OS noise
 .DS_Store

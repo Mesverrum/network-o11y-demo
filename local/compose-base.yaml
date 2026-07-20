@@ -1,0 +1,145 @@
+# Local lab telemetry stack — KtransToGrafana golden path + Clos extras.
+# Pattern: https://github.com/Mesverrum/KtransToGrafana
+#
+# Static services live here. Per-group SNMP pollers/discovery are rendered into
+# compose-groups.generated.yaml by `make generate` from groups/*.env.
+#
+# Requires ContainerLab so the external "clab" network exists.
+
+name: srl-local-telemetry
+
+services:
+  alloy:
+    image: ${ALLOY_IMAGE:-grafana/alloy:latest}
+    container_name: alloy
+    restart: unless-stopped
+    environment:
+      - GC_OTLP_URL=${GC_OTLP_URL}
+      - GC_OTLP_ACCOUNT=${GC_OTLP_ACCOUNT}
+      - GC_OTLP_KEY=${GC_OTLP_KEY}
+      - OTEL_METRIC_EXPORT_INTERVAL=1000
+      # Stamped onto every signal so all telemetry from this host carries it.
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.host=${KTRANS_HOST}
+    volumes:
+      - ./alloy/config.alloy:/config.alloy:ro
+      # Lab container stdout/stderr → Loki via loki.source.docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "4317:4317"
+      - "12346:12346"
+    command:
+      - --server.http.listen-addr=0.0.0.0:12346
+      - --storage.path=/var/lib/alloy/data
+      - --stability.level=experimental
+      - run
+      - /config.alloy
+    networks:
+      - clab
+      - default
+
+  gnmic:
+    image: ${GNMIC_IMAGE:-ghcr.io/openconfig/gnmic:latest}
+    container_name: gnmic
+    restart: unless-stopped
+    depends_on:
+      - alloy
+    volumes:
+      - ./gnmic/gnmic.yaml:/app/gnmic.yaml:ro
+    command:
+      - --config
+      - /app/gnmic.yaml
+      - subscribe
+    networks:
+      - clab
+      - default
+
+  ktranslate_flow:
+    image: ${KTRANSLATE_IMAGE:-quay.io/kentik/ktranslate:latest}
+    container_name: ktranslate_flow
+    restart: unless-stopped
+    environment:
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-ktranslate}${KTRANS_HOST:+-}${KTRANS_HOST}
+      - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    depends_on:
+      - alloy
+    command:
+      - --format=otel
+      - --format_metric=otel
+      - --otel.protocol=grpc
+      - --otel.endpoint=http://alloy:4317/
+      - --nf.source=${NF_SOURCE:-netflow9}
+      - --nf.port=9995
+      - --metalisten=0.0.0.0:9996
+      - --dns=127.0.0.1:53
+      - --sinks=otel
+      - --metrics=jchf
+      - --tee_logs=true
+      - --service_name=flow
+      - --max_flows_per_message=100
+      - --rollup_interval=60
+      - --rollup_top_k=100
+      - --rollups=s_sum,bytes_by_flow,in_bytes+out_bytes,src_addr,dst_addr,l4_src_port,l4_dst_port,protocol,custom_str.application,device_name,custom_str.src_host,custom_str.dst_host,src_geo,dst_geo
+      - --rollup_keep_undefined=true
+    ports:
+      - "9995:9995/udp"
+      - "9996:9996"
+    networks:
+      - clab
+      - default
+
+  ktranslate_syslog:
+    image: ${KTRANSLATE_IMAGE:-quay.io/kentik/ktranslate:latest}
+    container_name: ktranslate_syslog
+    restart: unless-stopped
+    environment:
+      - OTEL_SERVICE_NAME=ktranslate-syslog${KTRANS_HOST:+-}${KTRANS_HOST}
+      - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    depends_on:
+      - alloy
+    command:
+      - --format=otel
+      - --format_metric=otel
+      - --otel.protocol=grpc
+      - --otel.endpoint=http://alloy:4317/
+      - --syslog.source=${SYSLOG_SOURCE:-0.0.0.0:1514}
+      - --metalisten=0.0.0.0:9998
+      - --sinks=otel
+      - --metrics=jchf
+      - --tee_logs=true
+      - --service_name=syslog
+    ports:
+      - "1514:1514/udp"
+      - "1514:1514/tcp"
+      - "9998:9998"
+    networks:
+      - clab
+      - default
+
+  topology_exporter:
+    image: ${TOPOLOGY_EXPORTER_IMAGE:-srl-local/network-topology-exporter:v1.0.0}
+    container_name: topology_exporter
+    restart: unless-stopped
+    environment:
+      - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
+    volumes:
+      - ./topology-exporter/config.yaml:/etc/topology-exporter/config.yaml:ro
+      - topology_exporter_data:/var/lib/network-topology-exporter
+    depends_on:
+      - alloy
+    command:
+      - --config.file=/etc/topology-exporter/config.yaml
+    ports:
+      - "9100:9100"
+    networks:
+      - clab
+      - default
+
+volumes:
+  topology_exporter_data:
+
+networks:
+  clab:
+    external: true
+    name: ${CLAB_NETWORK:-clab}
+  default:
+    name: srl-local-telemetry

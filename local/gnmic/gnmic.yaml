@@ -1,0 +1,64 @@
+# gnmic — gNMI subscribe for the local Clos (spine1, leaf1, leaf2).
+# Targets are ContainerLab node names on the shared "clab" Docker network.
+# Auth/TLS: ContainerLab SR Linux defaults (admin / NokiaSrl1!, clab-profile).
+#
+# Metrics export via OTLP/gRPC to Alloy (same path as ktranslate).
+
+username: admin
+password: NokiaSrl1!
+skip-verify: true
+encoding: json_ietf
+timeout: 10s
+retry-timer: 5s
+
+targets:
+  spine1:57400:
+    name: spine1
+  leaf1:57400:
+    name: leaf1
+  leaf2:57400:
+    name: leaf2
+
+subscriptions:
+  interface_stats:
+    paths:
+      - /interface[name=*]/statistics
+      - /interface[name=*]/oper-state
+      - /interface[name=*]/admin-state
+    stream-mode: sample
+    sample-interval: 30s
+
+  bgp_neighbors:
+    paths:
+      - /network-instance[name=default]/protocols/bgp/neighbor
+    stream-mode: sample
+    sample-interval: 30s
+
+  system_resources:
+    paths:
+      - /platform/control/cpu
+      - /platform/control/memory
+    stream-mode: sample
+    sample-interval: 30s
+
+  # LLDP neighbors via YANG (SR Linux has no LLDP-MIB for SNMP topology-exporter).
+  # Replaces the former lldp_bridge sr_cli sidecar.
+  lldp_neighbors:
+    paths:
+      - /system/lldp/interface[name=*]/neighbor
+    stream-mode: sample
+    sample-interval: 30s
+
+outputs:
+  alloy:
+    type: otlp
+    endpoint: alloy:4317
+    protocol: grpc
+    timeout: 10s
+    metric-prefix: gnmi
+    append-subscription-name: true
+    strip-leading-underscore: true
+    strings-as-attributes: true
+    resource-attributes:
+      service.name: gnmic
+    debug: false

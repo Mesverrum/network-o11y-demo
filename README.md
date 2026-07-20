@@ -15,6 +15,63 @@ A companion demo environment for the blog series **Network Observability Without
 
 ---
 
+## Local lab (WSL laptop)
+
+For a reduced Clos you can run on a **16 GB Windows laptop** (WSL2 + ContainerLab + Docker), see **[local/README.md](local/README.md)**. That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path (credential groups + discovery/polling split) with **ktranslate** for SNMP/NetFlow/syslog, Alloy as an OTLP forwarder into Grafana Cloud, plus gnmic and topology-exporter. The AWS/EKS deployment below is unchanged.
+
+### Clone and run (first time)
+
+**Prerequisites:** WSL2 Ubuntu, Docker (Desktop with WSL backend or Engine in WSL), [ContainerLab](https://containerlab.dev/install/), `yq`, `envsubst` (`sudo apt install yq gettext-base`), and a Grafana Cloud stack with OTLP credentials (**Connections → OpenTelemetry**).
+
+```bash
+git clone https://github.com/YOUR_ORG/network-o11y-demo.git
+cd network-o11y-demo/local
+
+cp .env.example .env
+# Edit .env: GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (from your Grafana Cloud stack)
+# Optional: LAB_TESTER_ID=network-lab  (topology/entity label; else KTRANS_HOST or hostname)
+
+cp groups/srl.env.sample groups/srl.env
+make generate
+sudo chown -R 1000:1000 config state   # discovery writes as uid 1000
+
+make check
+make up          # clab → compose → SNMP targets → discover → softflowd → syslog
+make status
+make traffic     # ongoing client1↔client2 workloads
+```
+
+From the repo root you can also use `make local-up` / `make local-down` / `make local-help`.
+
+**Optional — app↔network join demo** (Tempo traces + softflowd flows on the same 5-tuple):
+
+```bash
+make join-app
+```
+
+**Optional — import the join demo dashboard** to your Grafana Cloud stack (after metrics are flowing):
+
+```bash
+python3 scripts/build-network-join-demo.py
+# Option A: gcx
+GCX_BIN=/path/to/gcx GCX_CONTEXT=yourstack python3 scripts/import-network-join-demo-gcx.py
+# Option B: service account token in .env (GRAFANA_URL + GRAFANA_TOKEN)
+./scripts/import-network-join-demo.sh
+```
+
+Merge OTLP settings into `.env` from environment variables: `python3 scripts/retarget-otlp-gc.py --write`.
+
+**Verify in Grafana Cloud** (Explore → Prometheus):
+
+```promql
+count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count(network_topology_device_info{tester_id="network-lab"})
+```
+
+Never commit `local/.env`, `local/groups/*.env`, or generated `local/config/` / `local/state/` — they are gitignored.
+
+---
+
 ## Architecture
 
 ```
@@ -533,6 +590,7 @@ tofu destroy
 ```
 .
 ├── README.md
+├── local/                  ← WSL laptop lab (ContainerLab + Compose); see local/README.md
 ├── scripts/
 │   ├── access.sh           ← Open SSH port forwards locally (NetBox, Alloy, gnmic)
 │   ├── setup-env.sh        ← Load AWS credentials into env

@@ -1,0 +1,53 @@
+# Reduced Clos for a 16 GB WSL laptop lab.
+# 1 spine + 2 leaves + 2 clients — speakable topology without the full AWS Clos.
+#
+# Derived from k8s/topology/topology.clab.yml (Nokia SR Linux / srl-labs).
+
+name: srl-local
+prefix: ""
+
+topology:
+  defaults:
+    kind: nokia_srlinux
+
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:24.10.1
+      type: ixrd2l
+    linux:
+      image: ghcr.io/srl-labs/network-multitool
+
+  nodes:
+    spine1:
+      group: spine
+      startup-config: configs/fabric/spine1.cfg
+
+    leaf1:
+      group: leaf
+      startup-config: configs/fabric/leaf1.cfg
+
+    leaf2:
+      group: leaf
+      startup-config: configs/fabric/leaf2.cfg
+
+    client1:
+      kind: linux
+      group: server
+      exec:
+        - ip address add 172.17.0.1/24 dev eth1
+        - ip -6 address add 2002::172:17:0:1/96 dev eth1
+        - iperf3 -s -p 5201 -D > /dev/null 2>&1
+        - iperf3 -s -p 5202 -D > /dev/null 2>&1
+
+    client2:
+      kind: linux
+      group: server
+      exec:
+        - ip address add 172.17.0.2/24 dev eth1
+        - ip -6 address add 2002::172:17:0:2/96 dev eth1
+
+  links:
+    - endpoints: ["spine1:e1-1", "leaf1:e1-49"]
+    - endpoints: ["spine1:e1-2", "leaf2:e1-49"]
+    - endpoints: ["leaf1:e1-1", "client1:eth1"]
+    - endpoints: ["leaf2:e1-1", "client2:eth1"]

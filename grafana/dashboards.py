@@ -11,35 +11,22 @@ SNMP (Grafana Alloy integrations/snmp):
   ifDescr:       ethernet-1/1 format
   Names follow standard snmp_exporter / IF-MIB conventions (ifHCInOctets, etc.)
 
-gNMI (gnmic → Alloy relabeling → Prometheus):
-  job:           integrations/gnmi
+gNMI BGP (gnmic → OTLP → Alloy → Prometheus) — prefer raw OTEL names:
+  job:           gnmic
   source:        device name  (spine1, leaf1, …)
-  interface_name: ethernet-1/1
   neighbor_peer_address: BGP peer IP
 
-  gnmic generates long YANG-path metric names; Alloy's prometheus.relabel
-  "netbox_enrich_gnmi" renames them to short srl_* names following
-  https://prometheus.io/docs/practices/naming/:
+  Metric names keep the YANG path with colons, so PromQL must use
+  {__name__="gnmi_bgp_neighbors_...:bgp_neighbor_<suffix>"}. Helper: bgp().
 
-    srl_iface_{in,out}_octets              — interface byte counters
-    srl_iface_{in,out}_error_packets       — interface error counters
-    srl_iface_{in,out}_discarded_packets   — interface discard counters
-    srl_iface_{in,out}_packets             — interface packet counters
-    srl_iface_carrier_transitions          — link flap counter
+  Suffixes used by dashboards:
+    established_transitions, peer_as,
+    afi_safi_{received,active,sent}_routes,
+    received/sent_messages_total_{messages,updates,notifications}
 
-    srl_bgp_neighbor_established_transitions      — BGP session flap counter
-    srl_bgp_neighbor_afi_safi_received_routes     — routes received per AFI/SAFI
-    srl_bgp_neighbor_afi_safi_active_routes       — active routes per AFI/SAFI
-    srl_bgp_neighbor_afi_safi_sent_routes         — routes advertised
-    srl_bgp_neighbor_peer_as                      — remote AS number
-    srl_bgp_neighbor_received_messages_total_notifications
-    srl_bgp_neighbor_sent_messages_total_notifications
-
-    srl_cpu_total_average_1                — 1-min CPU utilization %
-    srl_cpu_total_average_5                — 5-min CPU utilization %
-    srl_memory_free                        — free memory bytes
-    srl_memory_utilization                 — memory utilization %
-    srl_memory_physical                    — total physical memory bytes
+gNMI interface/system (K8s path still uses Alloy rename → srl_*):
+  job:           integrations/gnmi
+  srl_iface_*, srl_cpu_*, srl_memory_*
 """
 
 import json, os
@@ -67,12 +54,34 @@ IFACE_IN_PKT   = "srl_iface_in_packets"
 IFACE_OUT_PKT  = "srl_iface_out_packets"
 IFACE_CARRIER  = "srl_iface_carrier_transitions"
 
-# gNMI BGP metrics
-BGP_ESTAB      = "srl_bgp_neighbor_established_transitions"
-BGP_RX_ROUTES  = "srl_bgp_neighbor_afi_safi_received_routes"
-BGP_ACT_ROUTES = "srl_bgp_neighbor_afi_safi_active_routes"
-BGP_SENT_ROUTES= "srl_bgp_neighbor_afi_safi_sent_routes"
-BGP_PEER_AS    = "srl_bgp_neighbor_peer_as"
+# gnmic OTEL BGP metric name prefix (colons from OTLP export)
+BGP_PREFIX = (
+    "gnmi_bgp_neighbors_srl_nokia_network_instance:"
+    "network_instance_protocols_srl_nokia_bgp:bgp_neighbor_"
+)
+GNMI_BGP_JOB = 'job="gnmic"'
+
+# BGP metric suffixes (append to BGP_PREFIX via bgp())
+BGP_ESTAB       = "established_transitions"
+BGP_RX_ROUTES   = "afi_safi_received_routes"
+BGP_ACT_ROUTES  = "afi_safi_active_routes"
+BGP_SENT_ROUTES = "afi_safi_sent_routes"
+BGP_PEER_AS     = "peer_as"
+BGP_RX_MSG      = "received_messages_total_messages"
+BGP_TX_MSG      = "sent_messages_total_messages"
+BGP_RX_UPD      = "received_messages_total_updates"
+BGP_TX_UPD      = "sent_messages_total_updates"
+BGP_RX_NOT      = "received_messages_total_notifications"
+BGP_TX_NOT      = "sent_messages_total_notifications"
+BGP_SESSION     = "session_state"
+BGP_ADMIN       = "admin_state"
+
+
+def bgp(suffix: str, *labels: str) -> str:
+    """PromQL selector for a gnmic OTEL BGP metric (colon names need __name__)."""
+    parts = [f'__name__="{BGP_PREFIX}{suffix}"', GNMI_BGP_JOB, *labels]
+    return "{" + ", ".join(p for p in parts if p) + "}"
+
 
 # gNMI system resources
 CPU_TOTAL_1    = "srl_cpu_total_average_1"
@@ -631,54 +640,46 @@ def _bgp_table_overrides():
 
 
 def dash_bgp_status():
-    GNMI  = 'job="integrations/gnmi"'
-    DEV   = f'{GNMI}, source=~"$device"'
+    DEV = 'source=~"$device"'
     # The gNMI path maps to afi_safi_afi_safi_name (double prefix) with values
     # ipv4-unicast, ipv6-unicast, evpn.
-    IPV4  = 'afi_safi_afi_safi_name="ipv4-unicast"'
-
-    BGP_RX_MSG   = "srl_bgp_neighbor_received_messages_total_messages"
-    BGP_TX_MSG   = "srl_bgp_neighbor_sent_messages_total_messages"
-    BGP_RX_UPD   = "srl_bgp_neighbor_received_messages_total_updates"
-    BGP_TX_UPD   = "srl_bgp_neighbor_sent_messages_total_updates"
-    BGP_RX_NOT   = "srl_bgp_neighbor_received_messages_total_notifications"
-    BGP_TX_NOT   = "srl_bgp_neighbor_sent_messages_total_notifications"
-    BGP_LOCAL_AS = "srl_bgp_neighbor_local_as_as_number"
-    BGP_HOLD     = "srl_bgp_neighbor_timers_negotiated_hold_time"
+    IPV4 = 'afi_safi_afi_safi_name="ipv4-unicast"'
+    UNDERLAY = 'neighbor_peer_address=~"192[.]168[.].*"'
+    OVERLAY = 'neighbor_peer_address=~"10[.].*"'
 
     panels = [
         row("Session Health", y=0),
 
         stat("BGP Sessions", [_t_inst(
-            f'count({BGP_ESTAB}{{{DEV}}})', "Sessions",
+            f'count({bgp(BGP_ESTAB, DEV)})', "Sessions",
         )], x=0, y=1, w=4, h=4, unit="none", color_mode="fixed",
             thresholds={"mode": "absolute", "steps": [{"color": "blue", "value": None}]}),
 
         stat("Sessions Up (ever established)", [_t_inst(
-            f'count({BGP_ESTAB}{{{DEV}}} >= 1) or vector(0)', "Up",
+            f'count({bgp(BGP_ESTAB, DEV)} >= 1) or vector(0)', "Up",
         )], x=4, y=1, w=4, h=4, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "red", "value": None}, {"color": "green", "value": 1}]}),
 
         stat("IPv4 Neighbors Exchanging Routes", [_t_inst(
-            f'count({BGP_RX_ROUTES}{{{DEV}, {IPV4}}} > 0) or vector(0)', "Active",
+            f'count({bgp(BGP_RX_ROUTES, DEV, IPV4)} > 0) or vector(0)', "Active",
         )], x=8, y=1, w=4, h=4, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "red", "value": None}, {"color": "green", "value": 1}]}),
 
         stat("Total IPv4 Received Routes", [_t_inst(
-            f'sum({BGP_RX_ROUTES}{{{DEV}, {IPV4}}})', "Routes",
+            f'sum({bgp(BGP_RX_ROUTES, DEV, IPV4)})', "Routes",
         )], x=12, y=1, w=4, h=4, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "red", "value": None}, {"color": "green", "value": 1}]}),
 
         stat("Total IPv4 Active Routes", [_t_inst(
-            f'sum({BGP_ACT_ROUTES}{{{DEV}, {IPV4}}})', "Active",
+            f'sum({bgp(BGP_ACT_ROUTES, DEV, IPV4)})', "Active",
         )], x=16, y=1, w=4, h=4, unit="none", color_mode="fixed",
             thresholds={"mode": "absolute", "steps": [{"color": "green", "value": None}]}),
 
         stat("Session Flaps (last hour)", [_t_inst(
-            f'sum(increase({BGP_ESTAB}{{{DEV}}}[1h])) or vector(0)', "Flaps",
+            f'sum(increase({bgp(BGP_ESTAB, DEV)}[1h])) or vector(0)', "Flaps",
         )], x=20, y=1, w=4, h=4, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "green", "value": None}, {"color": "yellow", "value": 1},
@@ -687,17 +688,17 @@ def dash_bgp_status():
         row("Underlay Sessions", y=5),
 
         table("Underlay BGP (Link IPs — exchange loopback reachability)", [
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_ESTAB}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*"}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_ESTAB, DEV, UNDERLAY)})',
                     ref="A", fmt="table"),
-            _t_inst(f'clamp_min(sum by (source, neighbor_peer_address) ({BGP_ESTAB}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*"}}) - 1, 0)',
+            _t_inst(f'clamp_min(sum by (source, neighbor_peer_address) ({bgp(BGP_ESTAB, DEV, UNDERLAY)}) - 1, 0)',
                     ref="B", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_PEER_AS}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*"}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_PEER_AS, DEV, UNDERLAY)})',
                     ref="C", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_RX_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_RX_ROUTES, DEV, UNDERLAY, IPV4)})',
                     ref="D", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_ACT_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_ACT_ROUTES, DEV, UNDERLAY, IPV4)})',
                     ref="E", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_SENT_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"192[.]168[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_SENT_ROUTES, DEV, UNDERLAY, IPV4)})',
                     ref="F", fmt="table"),
         ], x=0, y=6, w=24, h=8,
             transformations=_bgp_table_xforms(),
@@ -706,17 +707,17 @@ def dash_bgp_status():
         row("Overlay Sessions", y=14),
 
         table("Overlay BGP (Loopback IPs — EVPN / tenant routes)", [
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_ESTAB}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*"}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_ESTAB, DEV, OVERLAY)})',
                     ref="A", fmt="table"),
-            _t_inst(f'clamp_min(sum by (source, neighbor_peer_address) ({BGP_ESTAB}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*"}}) - 1, 0)',
+            _t_inst(f'clamp_min(sum by (source, neighbor_peer_address) ({bgp(BGP_ESTAB, DEV, OVERLAY)}) - 1, 0)',
                     ref="B", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_PEER_AS}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*"}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_PEER_AS, DEV, OVERLAY)})',
                     ref="C", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_RX_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_RX_ROUTES, DEV, OVERLAY, IPV4)})',
                     ref="D", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_ACT_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_ACT_ROUTES, DEV, OVERLAY, IPV4)})',
                     ref="E", fmt="table"),
-            _t_inst(f'sum by (source, neighbor_peer_address) ({BGP_SENT_ROUTES}{{source=~"$device", {GNMI}, neighbor_peer_address=~"10[.].*", {IPV4}}})',
+            _t_inst(f'sum by (source, neighbor_peer_address) ({bgp(BGP_SENT_ROUTES, DEV, OVERLAY, IPV4)})',
                     ref="F", fmt="table"),
         ], x=0, y=15, w=24, h=8,
             transformations=_bgp_table_xforms(),
@@ -725,13 +726,13 @@ def dash_bgp_status():
         row("IPv4 Route Counts", y=23),
 
         timeseries("IPv4 Received Routes per Neighbor", [_t(
-            f'{BGP_RX_ROUTES}{{{DEV}, {IPV4}}}',
+            bgp(BGP_RX_ROUTES, DEV, IPV4),
             "{{source}} → {{neighbor_peer_address}}",
         )], x=0, y=24, w=12, h=8, unit="none",
             legend_calcs=["lastNotNull", "max"]),
 
         timeseries("IPv4 Active Routes per Neighbor", [_t(
-            f'{BGP_ACT_ROUTES}{{{DEV}, {IPV4}}}',
+            bgp(BGP_ACT_ROUTES, DEV, IPV4),
             "{{source}} → {{neighbor_peer_address}}",
         )], x=12, y=24, w=12, h=8, unit="none",
             legend_calcs=["lastNotNull", "max"]),
@@ -739,25 +740,25 @@ def dash_bgp_status():
         row("Session Stability & Message Activity", y=32),
 
         timeseries("BGP Updates Received (rate/s)", [_t(
-            f'rate({BGP_RX_UPD}{{{DEV}}}[$__rate_interval])',
+            f'rate({bgp(BGP_RX_UPD, DEV)}[$__rate_interval])',
             "{{source}} → {{neighbor_peer_address}}",
         )], x=0, y=33, w=12, h=8, unit="reqps",
             legend_calcs=["lastNotNull", "max"]),
 
         timeseries("BGP Updates Sent (rate/s)", [_t(
-            f'rate({BGP_TX_UPD}{{{DEV}}}[$__rate_interval])',
+            f'rate({bgp(BGP_TX_UPD, DEV)}[$__rate_interval])',
             "{{source}} → {{neighbor_peer_address}}",
         )], x=12, y=33, w=12, h=8, unit="reqps",
             legend_calcs=["lastNotNull", "max"]),
 
         timeseries("BGP Messages Received (rate/s)", [
-            _t(f'rate({BGP_RX_MSG}{{{DEV}}}[$__rate_interval])',
+            _t(f'rate({bgp(BGP_RX_MSG, DEV)}[$__rate_interval])',
                "{{source}} → {{neighbor_peer_address}}", ref="A"),
         ], x=0, y=41, w=12, h=8, unit="reqps",
             legend_calcs=["lastNotNull", "mean"]),
 
         timeseries("Established Transitions (cumulative)", [
-            _t(f'{BGP_ESTAB}{{{DEV}}}',
+            _t(bgp(BGP_ESTAB, DEV),
                "{{source}} → {{neighbor_peer_address}}", ref="A"),
         ], x=12, y=41, w=12, h=8, unit="none",
             legend_calcs=["lastNotNull"],
@@ -778,7 +779,7 @@ def dash_bgp_status():
         ds_var("datasource", "Prometheus"),
         ds_var("loki_datasource", "Loki", "loki"),
         query_var("device", "Device",
-                  f'label_values({BGP_ESTAB}{{job="integrations/gnmi"}}, source)',
+                  f'label_values({bgp(BGP_ESTAB)}, source)',
                   all_value=".*"),
     ]
 
@@ -787,7 +788,7 @@ def dash_bgp_status():
         title="Network O11y — BGP Session Status",
         panels=panels, variables=variables,
         description="BGP neighbor health, route counts, and message activity "
-                    "from gNMI streaming telemetry across the SR Linux Clos fabric.",
+                    "from gnmic OTLP telemetry across the SR Linux Clos fabric.",
     )
 
 
@@ -896,6 +897,7 @@ def dash_device_details():
     GNMI     = 'job="integrations/gnmi"'
     DEV      = f'{GNMI}, source=~"$device"'
     SNMP_DEV = 'job="integrations/snmp/$device"'
+    BGP_DEV  = 'source=~"$device"'
 
     panels = [
         # ── Top stat row ────────────────────────────────────────────────────
@@ -916,7 +918,7 @@ def dash_device_details():
                  {"color": "red", "value": 85}]}),
 
         stat("BGP Sessions Up", [_t_inst(
-            f'count(sum by (source, neighbor_peer_address) ({BGP_ESTAB}{{{DEV}}}) >= 1)'
+            f'count(sum by (source, neighbor_peer_address) ({bgp(BGP_ESTAB, BGP_DEV)}) >= 1)'
             f' or vector(0)', "Sessions")],
              x=12, y=0, w=6, h=4, unit="none",
              thresholds={"mode": "absolute", "steps": [
@@ -1074,13 +1076,13 @@ def dash_network_topology():
 
         # ── Right-hand stats column ───────────────────────────────────────────
         stat("BGP Sessions Up", [_t_inst(
-            f'count(avg by (source, neighbor_peer_address) ({BGP_ESTAB}{{{GNMI}}}) >= 1)',
+            f'count(avg by (source, neighbor_peer_address) ({bgp(BGP_ESTAB)}) >= 1)',
             "Sessions",
         )], x=16, y=0, w=4, h=3, unit="none", color_mode="fixed",
             thresholds={"mode": "absolute", "steps": [{"color": "blue", "value": None}]}),
 
         stat("Session Flaps (1h)", [_t_inst(
-            f'sum(increase({BGP_ESTAB}{{{GNMI}}}[1h])) or vector(0)', "Flaps",
+            f'sum(increase({bgp(BGP_ESTAB)}[1h])) or vector(0)', "Flaps",
         )], x=20, y=0, w=4, h=3, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "green", "value": None},
@@ -1088,7 +1090,7 @@ def dash_network_topology():
                 {"color": "red", "value": 3}]}),
 
         stat("IPv4 Active Routes", [_t_inst(
-            f'sum({BGP_ACT_ROUTES}{{{GNMI}, {IPV4}}})', "Routes",
+            f'sum({bgp(BGP_ACT_ROUTES, IPV4)})', "Routes",
         )], x=16, y=3, w=8, h=3, unit="none",
             thresholds={"mode": "absolute", "steps": [
                 {"color": "red", "value": None}, {"color": "green", "value": 1}]}),
@@ -1139,11 +1141,11 @@ def dash_network_topology():
         table("Network Devices", [
             # A: BGP sessions per device
             _t_inst(
-                f'count by (source) (avg by (source, neighbor_peer_address) ({BGP_ESTAB}{{{GNMI}}}) >= 1)',
+                f'count by (source) (avg by (source, neighbor_peer_address) ({bgp(BGP_ESTAB)}) >= 1)',
                 ref="A", fmt="table"),
             # B: BGP flaps last hour
             _t_inst(
-                f'sum by (source) (increase({BGP_ESTAB}{{{GNMI}}}[1h]))',
+                f'sum by (source) (increase({bgp(BGP_ESTAB)}[1h]))',
                 ref="B", fmt="table"),
             # C: Interfaces up
             _t_inst(

@@ -1,0 +1,53 @@
+---
+description: Local WSL lab — topology, compose, CRLF, clab network, scripts
+globs: local/**
+alwaysApply: false
+---
+
+# local/ lab conventions
+
+## Topology
+
+1 spine + 2 leaves + 2 clients (`ixrd2l`). Configs in `local/configs/fabric/`. Lab name `srl-local`; Docker mgmt network **`clab`** (`CLAB_NETWORK=clab`).
+
+## Compose (KtransToGrafana golden path)
+
+`compose-base.yaml` + `compose-groups.generated.yaml` + `compose-limits.generated.yaml` (via `make up`).
+
+Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_syslog`, `topology_exporter`.
+
+- Groups: `groups/srl.env` → `make generate` → poller/discovery configs under `config/` + `state/`
+- Discovery: `make discover GROUP=srl` (not `--snmp_discovery_on_start`)
+- Custom SNMP profiles: `snmp-profiles/nokia/` → mount `kentik_snmp/nokia/` (stock profiles stay in image); expect `nokia-srlinux.yml` after rediscover
+- Alloy: `local/alloy/config.alloy` — comments must be `//` only. Receives OTLP; scrapes Docker logs for Clos + sidecars (skips ktranslate — those use `--tee_logs` OTLP); remaps gnmic LLDP → `network_topology_edge_info`; stamps `deployment.host`
+- gnmic: `local/gnmic/gnmic.yaml` (OTLP → Alloy; includes `lldp_neighbors` subscribe)
+- topology-exporter: `local/topology-exporter/config.yaml` — Image: `make topology-exporter-image`
+- ~~lldp-bridge~~ retired — see `local/lldp-bridge/README.md`
+
+## Scripts
+
+- LF line endings only (CRLF breaks bash under WSL).
+- `update-snmp-targets.sh` — /32 mgmt IPs into `groups/srl.env` TARGETS + regenerate
+- `update-topology-targets.sh` — rewrite topology-exporter `host:` lines from live clab IPs
+- `softflowd.sh` — clients → `ktranslate_flow:9995`
+- `syslog-config.sh` — `docker exec -i` + `sr_cli` → `ktranslate_syslog:1514` (requires `system logging network-instance mgmt`)
+- `snmp-trap-config.sh` — SRL `trap-group ktranslate` via mgmt → poller UDP `1620` / `public`
+- `emit-events.sh` — apply syslog+trap config, flap leaf client/spine links for real traps+syslog
+- `events-loop.sh` — background traps every 3m + emit-events every 5m (`make events-loop|events-stop|events-status`)
+- `traffic.sh` — ongoing client1↔client2 UDP workloads (steady 3M, burst 8M/20s, reverse 1M, ping 1/s); TCP iperf can stall, but short HTTP (join-app) works
+- `join-app.sh` — OTel Go HTTP client on client1 → server on client2 (`172.17.0.2:8080`); traces → `alloy:4317`
+- `join-fault.sh` — tc netem delay/loss on client eth1 for Investigation talk track
+- `trap-gen.sh` — synthetic SNMPv2c traps to poller (`make traps`)
+
+## Operator commands
+
+`make -C local up|down|status|traffic|traffic-stop|traffic-status|join-app|join-app-stop|join-app-status|join-fault|join-fault-stop|join-fault-status|events-loop|events-stop|events-status|logs|generate|discover|topology-exporter-image|topology-targets` or root `make local-up`. Agents may use `wsl -e bash -lc '...'` from Windows.
+
+## Topology metrics
+
+- Devices: `network_topology_device_info` (exporter OTLP; `tester_id` from `LAB_TESTER_ID`, default `network-lab`)
+- Edges: `network_topology_edge_info` (gnmic LLDP YANG → Alloy remap; stock SRL SNMP has no LLDP rem-table)
+
+## Deferred in local/
+
+NetBox/Ansible unless requested — NetBox is optional via a group with `DISCOVERY_SOURCE=netbox`.

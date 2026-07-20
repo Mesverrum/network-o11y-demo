@@ -1,0 +1,15 @@
+# DEPRECATED — use compose-base.yaml + compose-groups.generated.yaml
+#
+# The local lab follows the KtransToGrafana golden path:
+#   docker compose --env-file .env \
+#     -f compose-base.yaml \
+#     -f compose-groups.generated.yaml \
+#     -f compose-limits.generated.yaml up -d
+#
+# Prefer: make up
+#
+# This file remains only so accidental `docker compose` without -f fails loudly
+# rather than starting the old monolithic SNMP service.
+
+services: {}
+name: srl-local-telemetry-DEPRECATED

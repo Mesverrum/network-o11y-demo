@@ -1,0 +1,4 @@
+# Migrated to KtransToGrafana golden path.
+# Use: cp groups/srl.env.sample groups/srl.env
+# Then: make generate && make up
+# Discovery writes state/devices-srl.yaml; do not use a root snmp.yaml anymore.

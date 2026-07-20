@@ -1,0 +1,288 @@
+// Alloy — OTLP forwarder for the local lab (KtransToGrafana golden path).
+// Receives OTLP from ktranslate (SNMP / NetFlow / syslog) + gnmic + topology,
+// scrapes docker stdout for non-ktranslate lab containers, runs pipeline
+// processors, exports to Grafana Cloud.
+//
+// Pattern from https://github.com/Mesverrum/KtransToGrafana
+//
+// ktranslate logs: --tee_logs=true already ships app logs (and device
+// syslog/traps) over OTLP. Docker scrape below skips *ktranslate* containers
+// to avoid duplicate lines in Loki.
+
+livedebugging {
+  enabled = true
+}
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    max_recv_msg_size = "128MiB"
+  }
+  http { }
+
+  output {
+    metrics = [otelcol.processor.transform.preprocessing.input]
+    logs    = [otelcol.processor.resourcedetection.default.input]
+    traces  = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+// --- Docker container logs (lab nodes + collectors except ktranslate) --------
+discovery.docker "lab" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "lab_logs" {
+  targets = discovery.docker.lab.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Skip ktranslate*: those already tee logs over OTLP (--tee_logs=true).
+  rule {
+    source_labels = ["container"]
+    regex         = ".*ktranslate.*"
+    action        = "drop"
+  }
+
+  // Keep Clos nodes + telemetry sidecars (compose names / clab short names).
+  rule {
+    source_labels = ["container"]
+    regex         = "^(alloy|gnmic|topology_exporter|spine1|leaf1|leaf2|client1|client2)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container"]
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "lab" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.lab_logs.output
+  labels     = {
+    "job"       = "docker",
+    "collector" = "docker",
+  }
+  forward_to = [loki.process.lab_docker.receiver]
+}
+
+loki.process "lab_docker" {
+  stage.docker { }
+
+  forward_to = [otelcol.receiver.loki.docker.receiver]
+}
+
+otelcol.receiver.loki "docker" {
+  output {
+    logs = [otelcol.processor.transform.docker_logs.input]
+  }
+}
+
+// OTLP→Loki in Grafana Cloud keys off resource service.name; without this,
+// docker-scraped lines land as service_name=unknown_service.
+otelcol.processor.transform "docker_logs" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "resource"
+    statements = [
+      `set(attributes["collector"], "docker")`,
+    ]
+  }
+
+  log_statements {
+    context = "log"
+    statements = [
+      `set(resource.attributes["service.name"], log.attributes["container"]) where log.attributes["container"] != nil`,
+      `set(resource.attributes["service.name"], log.attributes["service_name"]) where resource.attributes["service.name"] == nil and log.attributes["service_name"] != nil`,
+    ]
+  }
+
+  output {
+    logs = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+// LLDP edges come from gnmic YANG subscribe (see transform below). No Prometheus scrape.
+
+// Official Grafana Cloud ktranslate-netflow integration shape:
+// rename kentik.rollup.bytes_by_flow → network.io.by_flow and remap attributes.
+// SNMP / syslog set their own service.name so this pass leaves them alone.
+otelcol.processor.transform "preprocessing" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "metric"
+    statements = [
+      `set(metric.name, "network.io.by_flow") where metric.name == "kentik.rollup.bytes_by_flow"`,
+      `set(resource.attributes["service.name"], "integrations/ktranslate-netflow") where metric.name == "network.io.by_flow"`,
+      `set(metric.unit, "By") where metric.name == "network.io.by_flow"`,
+      // Dashboards filter on tester_id (default network-lab; override via LAB_TESTER_ID)
+      `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, "network_topology_.*")`,
+      `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+    ]
+  }
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      // gnmic LLDP neighbor system-name → network_topology_edge_info (replaces lldp_bridge)
+      `set(datapoint.attributes["src_device"], datapoint.attributes["source"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["dst_device"], datapoint.attributes["value"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["src_port"], datapoint.attributes["interface_name"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      // Preserve chassis MAC for identity-demo (mac: subtype) — was dropped before
+      `set(datapoint.attributes["dst_chassis_id"], datapoint.attributes["neighbor_id"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["link_kind"], "ethernet") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["direction"], "forward") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(metric.name, "network_topology_edge_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+
+      // Neighbor port-id as parallel edge metric (iface-level connected_to talk track)
+      `set(datapoint.attributes["src_device"], datapoint.attributes["source"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["src_port"], datapoint.attributes["interface_name"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["dst_port"], datapoint.attributes["value"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["dst_chassis_id"], datapoint.attributes["neighbor_id"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(metric.name, "network_topology_edge_port_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+
+      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, "network_topology_.*")`,
+      `set(datapoint.attributes["network.protocol.name"], datapoint.attributes["application"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "application") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.transport"], datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "protocol") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.local.country"], datapoint.attributes["src_country"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "src_country") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.peer.country"], datapoint.attributes["dst_country"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "dst_country") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.local.address"], datapoint.attributes["src_addr"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "src_addr") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.local.port"], datapoint.attributes["src_port"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "src_port") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.peer.address"], datapoint.attributes["dst_addr"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "dst_addr") where metric.name == "network.io.by_flow"`,
+      `set(datapoint.attributes["network.peer.port"], datapoint.attributes["dst_port"]) where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "dst_port") where metric.name == "network.io.by_flow"`,
+      `delete_key(datapoint.attributes, "zone") where metric.name == "network.io.by_flow"`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+otelcol.processor.resourcedetection "default" {
+  detectors = ["env", "system"]
+
+  system {
+    hostname_sources = ["os"]
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+  }
+}
+
+otelcol.processor.transform "drop_unneeded_resource_attributes" {
+  error_mode = "ignore"
+
+  trace_statements {
+    context = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+
+  metric_statements {
+    context = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+
+  log_statements {
+    context = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      "set(attributes[\"deployment.environment\"], resource.attributes[\"deployment.environment\"])",
+      "set(attributes[\"service.version\"], resource.attributes[\"service.version\"])",
+      // Promote KTRANS_HOST (via OTEL_RESOURCE_ATTRIBUTES) so series filter by deployment_host.
+      "set(attributes[\"deployment.host\"], resource.attributes[\"deployment.host\"]) where resource.attributes[\"deployment.host\"] != nil",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = env("GC_OTLP_URL")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = env("GC_OTLP_ACCOUNT")
+  password = env("GC_OTLP_KEY")
+}

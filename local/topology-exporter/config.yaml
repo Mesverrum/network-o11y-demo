@@ -1,0 +1,87 @@
+# network-topology-exporter — local lab (ContainerLab Clos: spine1 + leaf1/leaf2)
+# Discovers topology via SNMP + LLDP; pushes OTLP metrics/logs to Alloy → Grafana Cloud.
+# Upstream: https://github.com/grafana/network-topology-exporter
+#
+# Mgmt IPs are rewritten by scripts/update-topology-targets.sh after clab deploy.
+
+listen:
+  addr: ":9100"
+
+discovery:
+  interval: 60s
+  timeout_per_device: 15s
+  parallelism: 3
+  cycle_budget_fraction: 0.8
+  liveness_max_stale_cycles: 3
+  unconfirmed_link_ttl_cycles: 3
+  scope:
+    cidr_allow_list:
+      - 172.20.20.0/24
+
+modules:
+  snmp:
+    enabled: true
+    version: v2c
+    community_env: SNMP_COMMUNITY
+  lldp:
+    enabled: true
+  cdp:
+    enabled: false
+  bgp:
+    enabled: true
+    # Nokia SR Linux: vendor v2 walker is experimental; prefer RFC 4273 + Nokia table outcome counters
+    disable_v2_mib: false
+  ospf:
+    enabled: false
+  fdb:
+    enabled: false
+  arp:
+    enabled: false
+  isis:
+    enabled: false
+  mpls_te:
+    enabled: false
+
+credentials:
+  profiles:
+    - name: lab-v2c
+      type: snmp_v2c
+      community_env: SNMP_COMMUNITY
+  assignments:
+    - cidr: 172.20.20.0/24
+      profiles: [lab-v2c]
+  fallback_order: [lab-v2c]
+  trial_rate_per_second: 5
+
+snapshot:
+  path: /tmp/network-topology-exporter-snapshot.json
+
+output:
+  otlp:
+    enabled: true
+    # gRPC authority (no scheme) — Alloy OTLP receiver on :4317
+    endpoint: "alloy:4317"
+    protocol: grpc
+    timeout: 10s
+    # Lab: push full graph every cycle so Explore stays fresh
+    heartbeat_cycles: 1
+
+targets:
+  - host: 172.20.20.2
+    port: 161
+    site: srl-local
+    labels:
+      role: spine
+      tester_id: network-lab
+  - host: 172.20.20.6
+    port: 161
+    site: srl-local
+    labels:
+      role: leaf
+      tester_id: network-lab
+  - host: 172.20.20.3
+    port: 161
+    site: srl-local
+    labels:
+      role: leaf
+      tester_id: network-lab

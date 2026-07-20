@@ -45,6 +45,11 @@ help: ## Show this help
 	@printf "  %-28s %s\n" "make check"      "Run Ansible drift detection (requires post-06)"
 	@printf "  %-28s %s\n" "make backup"     "Run Ansible config backup now (requires post-06)"
 	@echo ""
+	@echo "Local lab (WSL + ContainerLab — see local/README.md):"
+	@printf "  %-28s %s\n" "make local-help" "Show local lab targets"
+	@printf "  %-28s %s\n" "make local-up"   "Bring up reduced Clos + ktranslate/Alloy"
+	@printf "  %-28s %s\n" "make local-down" "Tear down local lab"
+	@echo ""
 	@echo "Current kubectl context: $(KUBE_CONTEXT)"
 	@echo ""
 
@@ -203,6 +208,25 @@ traffic: check-kubectl ## Start traffic generation on client nodes
 .PHONY: traffic-stop
 traffic-stop: check-kubectl ## Stop traffic generation
 	bash scripts/traffic.sh stop
+
+# ─── Local lab (WSL / ContainerLab / Docker Compose) ──────────────────────────
+# Parallel path — does not require AWS/EKS. See local/README.md.
+
+.PHONY: local-help
+local-help: ## Show local lab Makefile help
+	$(MAKE) -C local help
+
+.PHONY: local-up
+local-up: ## Deploy local Clos + ktranslate/Alloy → Grafana Cloud
+	$(MAKE) -C local up
+
+.PHONY: local-down
+local-down: ## Tear down local lab
+	$(MAKE) -C local down
+
+.PHONY: local-status
+local-status: ## Status of local lab
+	$(MAKE) -C local status
 
 # ─── Guards ───────────────────────────────────────────────────────────────────
 
