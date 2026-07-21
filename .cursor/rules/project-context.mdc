@@ -12,4 +12,6 @@ alwaysApply: true
 - **OTLP sink:** operator's Grafana Cloud stack (`GC_OTLP_*` in `local/.env`). Helper: `local/scripts/retarget-otlp-gc.py`.
 - **Clos join app:** `make -C local join-app` — OTel HTTP on client1→client2 EVPN; Tempo `clos-join-demo` joins softflowd on port 8080; `clos_join_entity_info` / `clos_join_edge_info` overlay service+hosts on the subway nodeGraph. Talk-track latency: `make join-fault` / `join-fault-stop` (tc netem on client eth1). Identity tabs: `entity_demo_*` + dashboard `demo_model` variable (hostname / poison / mac_alias / address / iface).
 - **Secrets:** never commit `local/.env`, `local/groups/*.env`, `local/state/`, or Grafana/AWS credential files.
+- **WSL `/mnt/c`:** clab postdeploy fails on drvfs — `make -C local fabric-apply` or `make stabilize`. Never `clab deploy --reconfigure` unless the user asks.
+- **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` — default sample uses CIDR discovery.
 - **Memory:** read and update root `AGENTS.md` (+ these rules) when architecture or bring-up changes.

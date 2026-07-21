@@ -93,11 +93,17 @@ up: check generate bootstrap limits ## Deploy fabric + telemetry + discover SRL 
 	  || clab deploy -t topology.clab.yml)
 	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
 	@sleep 60
+	@echo "==> Applying fabric config (postdeploy workaround for /mnt/c)..."
+	@bash $(ROOT)scripts/apply-fabric-config.sh
 	@echo "==> deployment.host = $(KTRANS_HOST)"
 	@echo "==> Starting telemetry compose stack..."
 	cd $(ROOT) && $(COMPOSE) up -d
-	@echo "==> Updating SNMP discovery TARGETS from clab mgmt IPs..."
-	bash $(ROOT)scripts/update-snmp-targets.sh
+	@echo "==> Syncing NetBox Cloud inventory..."
+	@if grep -q '^DISCOVERY_SOURCE=netbox' "$(ROOT)groups/srl.env" 2>/dev/null; then \
+	  bash $(ROOT)scripts/netbox-bootstrap.sh; \
+	else \
+	  bash $(ROOT)scripts/update-snmp-targets.sh; \
+	fi
 	@echo "==> Discovering SRL devices (GROUP=srl)..."
 	cd $(ROOT) && ./scripts/run-discovery.sh srl || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
 	@echo "==> Updating topology-exporter targets..."
@@ -111,6 +117,14 @@ up: check generate bootstrap limits ## Deploy fabric + telemetry + discover SRL 
 	@echo ""
 	@echo "Lab is up. Next: make status && make traffic && make emit-events"
 	@echo "Grafana: count by (device_name, service_name) (kentik_snmp_DeviceMetrics)"
+
+.PHONY: fabric-apply
+fabric-apply: ## Apply configs/fabric/*.cfg via sr_cli (WSL /mnt/c postdeploy workaround)
+	bash $(ROOT)scripts/apply-fabric-config.sh
+
+.PHONY: stabilize
+stabilize: ## Recover lab without clab --reconfigure (start SRL, apply config, discover)
+	bash $(ROOT)scripts/stabilize-lab.sh
 
 .PHONY: down
 down: ## Destroy fabric + stop compose
@@ -144,6 +158,18 @@ topology-exporter-image: ## Download release binary and build local topology-exp
 	       https://github.com/grafana/network-topology-exporter/releases/download/v1.0.0/topology-exporter-linux-amd64
 	@chmod +x $(ROOT)topology-exporter/build/topology-exporter-linux-amd64
 	cd $(ROOT)topology-exporter && docker build -t srl-local/network-topology-exporter:v1.0.0 .
+
+.PHONY: netbox-bootstrap netbox-sync
+netbox-bootstrap netbox-sync: ## Populate NetBox Cloud + sync clab mgmt IPs
+	bash $(ROOT)scripts/netbox-bootstrap.sh
+
+.PHONY: netbox-sync-mgmt
+netbox-sync-mgmt: ## Refresh NetBox primary_ip4 from live clab mgmt IPs
+	@set -a && . $(ROOT).env && set +a && python3 $(ROOT)scripts/update-netbox-mgmt-ips.py
+
+.PHONY: netbox-populate
+netbox-populate: ## Seed NetBox with local lab topology (idempotent)
+	@set -a && . $(ROOT).env && set +a && python3 $(ROOT)scripts/netbox-populate.py
 
 .PHONY: topology-targets
 topology-targets: ## Rewrite topology-exporter target hosts from live clab mgmt IPs

@@ -9,6 +9,8 @@ with official netflow remapping, and `deployment.host` tagging. Clos extras
 
 The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 
+**New to networking or ktranslate?** See **[docs/network-observability-primer.md](../docs/network-observability-primer.md)** — terminology, telemetry types, pain points, and how this stack maps to Grafana Cloud.
+
 ## Talk-track topology
 
 ```
@@ -30,7 +32,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | Topology devices | SR Linux SNMP → `topology_exporter` (OTLP) → Alloy → GC (`network_topology_device_info`) |
 | Topology edges | SR Linux LLDP via **gnmic** YANG → Alloy remap → GC (`network_topology_edge_info`) |
 
-NetBox is optional (set `DISCOVERY_SOURCE=netbox` on a group + `NETBOX_*` in `.env`).
+NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
 
 **Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Edges come from **gnmic** (`lldp_neighbors` subscribe), not SNMP topology-exporter.
 
@@ -113,7 +115,12 @@ make topology-exporter-image
 | `make discover GROUP=srl` | One-shot SNMP discovery → `state/devices-srl.yaml` + poller reload |
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
-| `make snmp-targets` | Refresh `groups/srl.env` TARGETS after clab IP changes |
+| `make snmp-targets` | Refresh `groups/srl.env` TARGETS (cidr discovery only) |
+| `make netbox-populate` | Seed NetBox Cloud with local lab topology |
+| `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
+| `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
+| `make fabric-apply` | Load `configs/fabric/*.cfg` when clab postdeploy fails (`/mnt/c`) |
+| `make stabilize` | Recover without `clab --reconfigure`: start SRL, fabric, discover |
 | `make topology-targets` | Refresh topology-exporter SNMP hosts after clab IP changes |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
@@ -146,6 +153,21 @@ Upstream docs: [KtransToGrafana README](https://github.com/Mesverrum/KtransToGra
 - `make up` writes `compose-limits.generated.yaml` from host RAM (set `MEM_LIMITS=off` to skip)
 - If nodes OOM, destroy the lab (`make down`) and close other heavy apps before `make up` again
 - First pull of `ghcr.io/nokia/srlinux:24.10.1` is large (~1.3 GiB)
+
+## WSL `/mnt/c` and fabric config
+
+When the repo lives under `/mnt/c/Users/...`, ContainerLab **postdeploy cannot commit**
+SR Linux startup config (`config.tmp` permission error on drvfs). Clab still starts containers,
+but BGP/EVPN/SNMP are missing until you run:
+
+```bash
+make fabric-apply    # SNMP on /mnt/c; full fabric if native WSL + FULL_FABRIC=1
+make stabilize       # full recovery without clab --reconfigure
+```
+
+**Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it
+SIGTERM-stops all nodes (exit code 143), which is not OOM. For a stable long-running lab,
+clone to native WSL ext4 (`~/projects/network-o11y-demo`) so postdeploy commits full BGP/EVPN.
 
 ## Network name
 

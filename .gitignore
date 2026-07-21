@@ -12,6 +12,7 @@ values.local.yaml
 local/.env
 local/groups/*.env
 !local/groups/*.env.sample
+!local/groups/*.env.*.sample
 local/config/
 local/state/
 local/compose-groups.generated.yaml

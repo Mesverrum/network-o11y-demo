@@ -31,6 +31,17 @@ fi
 
 mkdir -p "${CONFIG_DIR}" "${STATE_DIR}"
 
+# NetBox API URL is baked into discovery YAML (ktranslate only expands ${...} on
+# token fields, not the netbox url). Token stays as ${NETBOX_TOKEN} for runtime.
+if [[ -f "${REPO_ROOT}/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_ROOT}/.env"
+  set +a
+fi
+# Only used when a group has DISCOVERY_SOURCE=netbox; set NETBOX_API_URL in .env.
+export NETBOX_API_URL="${NETBOX_API_URL:-}"
+
 # Only the placeholders listed here get substituted. Everything else
 # (notably docker compose's own ${OTEL_SERVICE_NAME}, ${NF_SOURCE}, ${GC_*})
 # stays literal so docker compose can resolve it from .env at runtime.
@@ -79,7 +90,11 @@ for env_file in "${GROUP_FILES[@]}"; do
           echo "ERROR: ${env_file}: DISCOVERY_SOURCE=netbox requires NETBOX_IP_TO_PICK" >&2
           exit 1
         fi
-        # NETBOX_HOST/NETBOX_TOKEN live in .env (they're container-runtime creds,
+        if [[ -z "${NETBOX_API_URL:-}" ]]; then
+          echo "ERROR: ${env_file}: DISCOVERY_SOURCE=netbox requires NETBOX_API_URL in .env" >&2
+          exit 1
+        fi
+        # NETBOX_API_URL/NETBOX_TOKEN live in .env (they're container-runtime creds,
         # not generator inputs), so preflight validates them — not this script.
         if [[ -z "${NETBOX_TAG:-}${NETBOX_SITE:-}${NETBOX_LOCATION:-}${NETBOX_TENANT:-}${NETBOX_ROLE:-}${NETBOX_STATUS:-}" ]]; then
           echo "WARN:  ${env_file}: no NetBox filters set; this group will pull every device from NetBox" >&2
@@ -173,7 +188,7 @@ for env_file in "${GROUP_FILES[@]}"; do
 
     # Render the discovery-source block. cidr groups fill the `cidrs:` list;
     # netbox groups leave cidrs empty and add a `netbox:` block whose host/token
-    # stay as ${NETBOX_HOST}/${NETBOX_TOKEN} literals for ktranslate to resolve
+    # stay as ${NETBOX_API_URL}/${NETBOX_TOKEN} literals for ktranslate to resolve
     # from the discover container's env at runtime. Both feed the same two
     # template placeholders (CIDRS_YAML slots after `cidrs:`, NETBOX_BLOCK_YAML
     # slots after `no_use_bulkwalkall:`), so there is only one discovery template.
@@ -190,7 +205,7 @@ for env_file in "${GROUP_FILES[@]}"; do
     else
       CIDRS_YAML=" []"
       # Each filter is omitted entirely when empty, so an unused filter doesn't
-      # render as `tag: []` (which NetBox reads as "match the empty tag" rather
+      # render as `tag: []` (which NetBox reads as "match the empty tag" rathe
       # than "no constraint").
       NETBOX_FILTERS_YAML=""
       _append_array_filter() {
@@ -211,12 +226,12 @@ for env_file in "${GROUP_FILES[@]}"; do
       _append_array_filter  site     "${NETBOX_SITE:-}"
       _append_array_filter  location "${NETBOX_LOCATION:-}"
       _append_array_filter  tenant   "${NETBOX_TENANT:-}"
-      _append_scalar_filter role     "${NETBOX_ROLE:-}"
+      _append_array_filter  role     "${NETBOX_ROLE:-}"
       _append_scalar_filter status   "${NETBOX_STATUS:-}"
-      # $'...' is ANSI-C quoting: it does NOT expand ${NETBOX_HOST}/${NETBOX_TOKEN},
-      # so those stay literal for ktranslate. The filters and ip_to_pick are
-      # spliced in double-quoted, so their actual values land here at generate time.
-      NETBOX_BLOCK_YAML=$'\n    netbox:\n        host: ${NETBOX_HOST}\n        token: ${NETBOX_TOKEN}'"${NETBOX_FILTERS_YAML}"$'\n        ip_to_pick: '"${NETBOX_IP_TO_PICK}"
+      # $'...' is ANSI-C quoting: it does NOT expand ${NETBOX_API_URL}/${NETBOX_TOKEN},
+      # url is expanded at generate time from .env; token stays ${NETBOX_TOKEN}
+      # for ktranslate to resolve inside the discover container.
+      NETBOX_BLOCK_YAML=$'\n    netbox:\n        url: '"${NETBOX_API_URL}"$'\n        token: ${NETBOX_TOKEN}'"${NETBOX_FILTERS_YAML}"$'\n        ip_to_pick: '"${NETBOX_IP_TO_PICK}"
     fi
     export CIDRS_YAML NETBOX_BLOCK_YAML
 
@@ -242,7 +257,7 @@ for env_file in "${GROUP_FILES[@]}"; do
       [[ -n "${_comms}" ]] && DEFAULT_COMMUNITIES_YAML="${_comms}"
     fi
 
-    # Emit the 7 v3 fields. $1 = first-line prefix (8 spaces for default_v3, or
+    # Emit the 7 v3 fields. $1 = first-line prefix (8 spaces for default_v3, o
     # "      - " for an other_v3s list item), $2 = continuation indent.
     _v3_block() {
       local first="$1" ind="$2"
