@@ -5,7 +5,7 @@ find . \( -name '*.sh' -o -name '*.env' -o -name '*.env.sample' -o -name 'Makefi
   -print0 | xargs -0 sed -i 's/\r$//'
 cp groups/srl.env.sample groups/srl.env
 sed -i 's/\r$//' groups/srl.env
-./scripts/generate-groups.sh
+bash scripts/generate-groups.sh
 echo "--- compose-groups head ---"
 head -50 compose-groups.generated.yaml
 echo "--- poller ---"

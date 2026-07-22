@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CFG="${ROOT}/topology-exporter/config.yaml"
 ALLOY="${ROOT}/alloy/config.alloy"
 NODES=(spine1 leaf1 leaf2)
-TESTER_ID="$("${ROOT}/scripts/lab-tester-id.sh")"
+TESTER_ID="$(bash "${ROOT}/scripts/lab-tester-id.sh")"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }

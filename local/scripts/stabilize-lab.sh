@@ -69,7 +69,7 @@ else
   bash "${ROOT}/scripts/update-snmp-targets.sh"
 fi
 
-./scripts/run-discovery.sh srl || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
+bash "${ROOT}/scripts/run-discovery.sh" srl || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
 bash "${ROOT}/scripts/update-topology-targets.sh"
 bash "${ROOT}/scripts/softflowd.sh"
 bash "${ROOT}/scripts/sflow-config.sh" || info "sflow config skipped"

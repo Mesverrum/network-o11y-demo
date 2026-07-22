@@ -18,7 +18,7 @@ if [ -n "${v}" ]; then
   exit 0
 fi
 
-host_id="$("${ROOT}/scripts/host-id.sh" 2>/dev/null || true)"
+host_id="$(bash "${ROOT}/scripts/host-id.sh" 2>/dev/null || true)"
 if [ -n "${host_id}" ]; then
   printf '%s\n' "${host_id}"
 else

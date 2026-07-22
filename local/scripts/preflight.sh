@@ -83,8 +83,8 @@ if [[ -f .env ]]; then
 fi
 
 # --- Host identity that tags all telemetry and suffixes service.name ---
-if [[ -x scripts/host-id.sh ]]; then
-  HOST_ID="$(./scripts/host-id.sh 2>/dev/null)"
+if [[ -f scripts/host-id.sh ]]; then
+  HOST_ID="$(bash scripts/host-id.sh 2>/dev/null)"
   if [[ -n "${HOST_ID}" ]]; then
     if grep -qE '^KTRANS_HOST=.+' .env 2>/dev/null; then
       _ok "deployment.host = ${HOST_ID} (explicit KTRANS_HOST in .env)"

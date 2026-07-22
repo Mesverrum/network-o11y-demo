@@ -16,7 +16,7 @@ ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export CLAB_NETWORK ?= clab
 
 # Prefer explicit KTRANS_HOST in .env; else hostname (same as KtransToGrafana).
-KTRANS_HOST := $(shell $(ROOT)scripts/host-id.sh 2>/dev/null)
+KTRANS_HOST := $(shell bash $(ROOT)scripts/host-id.sh 2>/dev/null)
 export KTRANS_HOST
 
 # Staggered bring-up (fabric + collectors) reduces simultaneous load on WSL laptops.
@@ -55,11 +55,11 @@ check: ## Verify docker, containerlab, .env, groups/srl.env
 
 .PHONY: preflight
 preflight: ## KtransToGrafana-style readiness checks
-	@cd $(ROOT) && ./scripts/preflight.sh
+	@cd $(ROOT) && bash scripts/preflight.sh
 
 .PHONY: generate
 generate: ## Render poller/discovery configs + compose-groups.generated.yaml
-	@cd $(ROOT) && ./scripts/generate-groups.sh
+	@cd $(ROOT) && bash scripts/generate-groups.sh
 
 .PHONY: bootstrap
 bootstrap: ## Seed empty state/devices-<group>.yaml stubs
@@ -76,11 +76,11 @@ bootstrap: ## Seed empty state/devices-<group>.yaml stubs
 
 .PHONY: limits
 limits: ## Compute per-container memory limits from host RAM
-	@cd $(ROOT) && ./scripts/compute-limits.sh
+	@cd $(ROOT) && bash scripts/compute-limits.sh
 
 .PHONY: limits-show
 limits-show: ## Preview memory limits without writing
-	@cd $(ROOT) && ./scripts/compute-limits.sh --dry-run
+	@cd $(ROOT) && bash scripts/compute-limits.sh --dry-run
 
 .PHONY: host
 host: ## Print deployment.host (KTRANS_HOST)
@@ -89,7 +89,7 @@ host: ## Print deployment.host (KTRANS_HOST)
 .PHONY: discover
 discover: ## Run one-shot SNMP discovery (GROUP=srl)
 	@test -n "$(GROUP)" || { echo "ERROR: pass GROUP=<name>, e.g. make discover GROUP=srl" >&2; exit 1; }
-	@cd $(ROOT) && ./scripts/run-discovery.sh $(GROUP)
+	@cd $(ROOT) && bash scripts/run-discovery.sh $(GROUP)
 
 .PHONY: up
 up: check generate bootstrap limits ## Staggered deploy (default): fabric + collectors + discover
@@ -105,7 +105,7 @@ ifeq ($(LAB_STAGGER),0)
 	cd $(ROOT) && $(COMPOSE) up -d
 	@$(MAKE) -C $(ROOT) --no-print-directory _post-up-config
 else
-	@cd $(ROOT) && ./scripts/staggered-up.sh
+	@cd $(ROOT) && bash scripts/staggered-up.sh
 endif
 	@echo ""
 	@echo "Lab is up. Next: make status && make traffic && make emit-events"
@@ -124,7 +124,7 @@ _post-up-config:
 	  bash $(ROOT)scripts/update-snmp-targets.sh; \
 	fi
 	@echo "==> Discovering SRL devices (GROUP=srl)..."
-	cd $(ROOT) && ./scripts/run-discovery.sh srl || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
+	cd $(ROOT) && bash scripts/run-discovery.sh srl || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
 	@echo "==> Updating topology-exporter targets..."
 	bash $(ROOT)scripts/update-topology-targets.sh
 	@echo "==> Starting softflowd on clients..."

@@ -132,6 +132,7 @@ Expect **12** running containers (5 fabric + 7 collectors) when healthy.
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | `make check` fails on placeholders | `.env` not customized | User must paste OTLP creds |
+| `Permission denied` on `./scripts/*.sh` | Git does not mark shell scripts executable on fresh clone | Fixed in repo: Makefile/scripts invoke `bash scripts/...`. Pull latest `main`. |
 | `make check` fails containerlab | Not installed | macOS: `brew install containerlab`; Linux: [containerlab.dev/install](https://containerlab.dev/install/) |
 | `compute-limits.sh` / memory error | Unusual host RAM detection | Set `MEM_LIMITS=off` in `.env`, re-run `make up` |
 | SRL container **exit 143** | SIGTERM (sleep, `make down`, `clab --reconfigure`, Docker Desktop stop) — **not OOM** | `make -C local stabilize`; never `clab deploy --reconfigure` |

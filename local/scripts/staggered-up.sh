@@ -144,7 +144,7 @@ post_up_config() {
   fi
 
   info "Discovering SRL devices (GROUP=srl)..."
-  ./scripts/run-discovery.sh srl \
+  bash scripts/run-discovery.sh srl \
     || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
 
   info "Updating topology-exporter targets..."
