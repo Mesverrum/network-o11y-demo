@@ -34,6 +34,8 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | gNMI | SR Linux → `gnmic` (OTLP) → Alloy → GC (`gnmi_*`, `job="gnmic"`) |
 | Topology devices | SR Linux SNMP → `topology_exporter` (OTLP) → Alloy → GC (`network_topology_device_info`) |
 | Topology edges | SR Linux LLDP via **gnmic** YANG → Alloy remap → GC (`network_topology_edge_info`) |
+| Mgmt API catalog | `fixtures/srl-mgmt-api-catalog.json` + mock payloads → `mgmt-api-mock` (OTLP) → GC (`srl_mgmt_api_capability_info`; NETCONF/JSON-RPC/gNOI/gRIBI shown even when not enabled on devices) |
+| Flex-style gap-fill (optional) | `make telegraf-poc` — Telegraf `inputs.exec` + SSH/`jq` parse → OTLP (`srl_flex_poc_ssh_up`, `srl_flex_poc_bgp_peers_up`; see `local/telegraf-flex-poc/`) |
 
 NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
 
@@ -154,6 +156,8 @@ make topology-exporter-image
 | `make emit-events` | One-shot: configure syslog+traps, flap links for real device events |
 | `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m |
 | `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP |
+| `make mgmt-api-mock` | OTLP export of SR Linux mgmt API catalog (live + mock for NETCONF/JSON-RPC/gNOI/gRIBI) |
+| `make telegraf-poc` / `telegraf-poc-stop` | Optional Telegraf exec gap-fill PoC (nri-flex analog → OTLP) |
 | `make traps` / `traps-burst` / `traps-loop` | Synthetic SNMPv2c traps → poller `:1620` (`public`; foreground loop default 3m) |
 
 ## Golden path notes (vs older monolith)

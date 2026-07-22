@@ -96,7 +96,7 @@ make traffic        # client1↔client2 UDP/ICMP workloads
 
 From repo root: `make local-up` ≡ `make -C local up`.
 
-**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`, `topology_exporter`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps.
+**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`, `topology_exporter`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps → **mgmt API catalog** OTLP export (`make mgmt-api-mock`).
 
 **Parallel / faster (less safe on 16 GB):** `make up-parallel` or `LAB_STAGGER=0 make up`.
 
@@ -222,6 +222,10 @@ Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
 | gNMI | `{job="gnmic"}` — OTEL metric names often use `:` separators, e.g. `gnmi_bgp_neighbors_…:bgp_neighbor_session_state` |
 | Topology devices | `network_topology_device_info{tester_id="network-lab"}` (OTLP may rename `device_id` → `device`) |
 | Topology edges | `network_topology_edge_info{tester_id="network-lab"}` (gnmic LLDP → Alloy remap) |
+| Mgmt API catalog | `srl_mgmt_api_capability_info{tester_id="network-lab"}` — live APIs (`enabled_in_lab="true"`) plus **mock** entries for documented APIs not turned on in the lab (NETCONF, JSON-RPC, gNOI, gRIBI). Catalog: `local/fixtures/srl-mgmt-api-catalog.json`; samples: `local/fixtures/srl-mock/`. Re-export: `make -C local mgmt-api-mock`. |
+| Flex gap-fill (optional) | `srl_flex_poc_ssh_up` / `srl_flex_poc_bgp_peers_up` from `make -C local telegraf-poc` (SSH + jq parse → OTLP; nri-flex analog — `local/telegraf-flex-poc/`) |
+
+**SR Linux management plane (lab vs platform):** devices expose northbound APIs on **`network-instance mgmt`** (ContainerLab `clab` bridge). **Enabled here:** gNMI `:57400` (gnmic), SNMP, syslog, traps, sFlow. **Not enabled but catalogued with mock fixtures:** NETCONF `:830`, JSON-RPC HTTPS `/jsonrpc`, gNOI/gRIBI (gRPC, same port as gNMI). See `local/fixtures/README.md`.
 
 Dashboards under [`grafana/dashboards/`](grafana/dashboards/) were authored for the **AWS** lab (`integrations/snmp`, gNMI). Many panels will be empty against the local ktranslate path until queries are retargeted. Folder in GC (if imported): **Network Lab** (`network-lab`).
 

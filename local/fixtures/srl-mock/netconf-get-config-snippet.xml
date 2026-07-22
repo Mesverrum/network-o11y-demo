@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mock NETCONF <get-config> excerpt — Nokia SR Linux YANG (lab fabric does not enable NETCONF server). -->
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="mock-1">
+  <data>
+    <system xmlns="urn:nokia.com:srlinux:system">
+      <grpc-server>
+        <name>mgmt</name>
+        <admin-state>enable</admin-state>
+        <port>57400</port>
+        <network-instance>mgmt</network-instance>
+      </grpc-server>
+      <snmp>
+        <network-instance>mgmt</network-instance>
+      </snmp>
+    </system>
+  </data>
+</rpc-reply>

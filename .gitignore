@@ -58,6 +58,7 @@ ansible/playbooks/*.retry
 
 # Local lab built binaries
 local/join-app/join-app
+local/mgmt-api-mock/mgmt-api-mock
 
 # Agent/debug scratch scripts (underscore prefix) and one-off personal imports
 local/scripts/_*

@@ -135,6 +135,8 @@ _post-up-config:
 	bash $(ROOT)scripts/syslog-config.sh || echo "WARNING: syslog config failed — check sr_cli syntax"
 	@echo "==> Configuring SR Linux SNMP traps → ktranslate_snmp_srl..."
 	bash $(ROOT)scripts/snmp-trap-config.sh || echo "WARNING: snmp trap config failed — check sr_cli syntax"
+	@echo "==> Exporting SR Linux mgmt API catalog (live + mock)..."
+	bash $(ROOT)scripts/mgmt-api-mock.sh emit || echo "WARNING: mgmt-api-mock export failed — check go + alloy OTLP"
 
 .PHONY: sync-clab-workdir
 sync-clab-workdir: ## Mirror topology + fabric configs to ext4 when repo is on /mnt/c
@@ -276,6 +278,30 @@ join-app-stop: ## Stop Clos join demo on clients
 .PHONY: join-app-status
 join-app-status: ## Show Clos join demo status
 	bash $(ROOT)scripts/join-app.sh status
+
+.PHONY: mgmt-api-mock
+mgmt-api-mock: ## Export SR Linux mgmt API catalog + mock samples (OTLP)
+	bash $(ROOT)scripts/mgmt-api-mock.sh emit
+
+.PHONY: mgmt-api-mock-build
+mgmt-api-mock-build: ## Build mgmt-api-mock binary only
+	bash $(ROOT)scripts/mgmt-api-mock.sh build
+
+.PHONY: telegraf-poc
+telegraf-poc: ## Start Telegraf exec gap-fill PoC (Flex analog → OTLP)
+	bash $(ROOT)scripts/telegraf-flex-poc.sh start
+
+.PHONY: telegraf-poc-stop
+telegraf-poc-stop: ## Stop Telegraf flex PoC container
+	bash $(ROOT)scripts/telegraf-flex-poc.sh stop
+
+.PHONY: telegraf-poc-status
+telegraf-poc-status: ## Show Telegraf flex PoC status / recent logs
+	bash $(ROOT)scripts/telegraf-flex-poc.sh status
+
+.PHONY: telegraf-poc-build
+telegraf-poc-build: ## Build Telegraf flex PoC image only
+	bash $(ROOT)scripts/telegraf-flex-poc.sh build
 
 .PHONY: join-app-build
 join-app-build: ## Build join-app binary only

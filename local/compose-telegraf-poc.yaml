@@ -1,0 +1,22 @@
+# Optional Telegraf Flex-style gap-fill PoC — not part of default `make up`.
+# Start with: make telegraf-poc
+
+services:
+  telegraf_flex_poc:
+    build:
+      context: ./telegraf-flex-poc
+    image: srl-local/telegraf-flex-poc:latest
+    container_name: telegraf_flex_poc
+    restart: unless-stopped
+    depends_on:
+      - alloy
+    environment:
+      - LAB_TESTER_ID=${LAB_TESTER_ID:-network-lab}
+      - SRL_SSH_USER=${SRL_SSH_USER:-admin}
+      - SRL_SSH_PASSWORD=${SRL_SSH_PASSWORD:-NokiaSrl1!}
+    volumes:
+      - ./telegraf-flex-poc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf-flex-poc/scripts:/scripts:ro
+    networks:
+      - clab
+      - default
