@@ -1,5 +1,7 @@
 # Local lab — Docker + ContainerLab + Compose (laptop)
 
+> **AI agents:** follow **[AGENTS.md](../AGENTS.md)** → *Agent playbook — run the local lab on the operator's stack* before running commands.
+
 Speakable Clos on a 16 GB laptop: **1 spine, 2 leaves, 2 clients**. Runs on
 **macOS** (Docker Desktop) or **Linux** (WSL2 / native).
 
@@ -239,4 +241,15 @@ Compose joins ContainerLab’s management bridge named `clab` (ContainerLab 0.72
 
 ## Agent / LLM notes
 
-Persistent guidance for coding agents lives in the repo root [`AGENTS.md`](../AGENTS.md) and [`.cursor/rules/`](../.cursor/rules/). Update those when local lab behavior changes.
+**Primary doc for coding agents:** repo root [`AGENTS.md`](../AGENTS.md) → section **Agent playbook — run the local lab on the operator's stack**. That playbook covers platform detection, credential setup on any Grafana Cloud stack, exact `make check` → `make up` sequence, success criteria (PromQL), and troubleshooting without `clab deploy --reconfigure`.
+
+Cursor rules: [`.cursor/rules/local-lab.mdc`](../.cursor/rules/local-lab.mdc) (applies when editing `local/**`).
+
+**Agent quick checklist:**
+
+1. `cd local` → copy `.env.example` + `groups/srl.env.sample` → user provides `GC_OTLP_*`
+2. `make generate` → (`chown` on Linux/WSL if needed) → `make check` → `make up`
+3. Verify `kentik_snmp_DeviceMetrics` for spine1/leaf1/leaf2 on **user's** stack
+4. On failure: `make stabilize` — not `clab deploy --reconfigure`
+
+Update `AGENTS.md`, `.cursor/rules/`, and this README when local lab behavior changes.

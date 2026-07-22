@@ -3,6 +3,8 @@
 **Audience:** Teammates new to networking, ktranslate, or this demo repo.  
 **Goal:** Enough context to understand what the lab does, why network teams care, and how Grafana Cloud fits in.
 
+**AI coding agents:** operational bring-up steps live in **[AGENTS.md](../AGENTS.md)** → **Agent playbook — run the local lab on the operator's stack**. Use this primer for terminology and architecture context only.
+
 ---
 
 ## 1. What problem are we solving?

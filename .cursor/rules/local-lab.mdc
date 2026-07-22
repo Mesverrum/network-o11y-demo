@@ -6,6 +6,8 @@ alwaysApply: false
 
 # local/ lab conventions
 
+**New operator / AI agent:** follow the **Agent playbook** in repo root [`AGENTS.md`](../../AGENTS.md) (section *Agent playbook — run the local lab on the operator's stack*) before running commands. Never assume a specific Grafana Cloud stack; always use the operator's `GC_OTLP_*` in `local/.env`.
+
 ## Topology
 
 1 spine + 2 leaves + 2 clients (`ixrd2l`). Configs in `local/configs/fabric/`. Lab name `srl-local`; Docker mgmt network **`clab`** (`CLAB_NETWORK=clab`).
@@ -14,7 +16,7 @@ alwaysApply: false
 
 `compose-base.yaml` + `compose-groups.generated.yaml` + `compose-limits.generated.yaml` (via `make up`).
 
-Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_syslog`, `topology_exporter`.
+Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `topology_exporter`.
 
 - Groups: `groups/srl.env` → `make generate` → poller/discovery configs under `config/` + `state/`
 - Discovery: `make discover GROUP=srl` (not `--snmp_discovery_on_start`)

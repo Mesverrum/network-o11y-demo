@@ -1,5 +1,7 @@
 # AGENTS.md — guidance for LLM coding agents
 
+**New operator on any Grafana Cloud stack?** Start with [**Agent playbook**](#agent-playbook--run-the-local-lab-on-the-operators-stack) below.
+
 Keep this file accurate as the lab evolves. When you change architecture, collectors, metric names, or bring-up steps, **update this file and `.cursor/rules/` in the same change**.
 
 ## What this repo is
@@ -12,6 +14,149 @@ Companion demo for the blog series **Network Observability Without the Lock-in**
 | **AWS / EKS** | [`terraform/`](terraform/), [`k8s/`](k8s/) | Full Clos on Clabbernetes; NetBox + Ansible stages |
 
 Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work belongs under `local/`. Leave AWS manifests alone unless the user explicitly asks for EKS changes.
+
+## Agent playbook — run the local lab on the operator's stack
+
+**Audience:** LLM coding agents helping a new teammate bring up `local/` on **their own** Grafana Cloud stack (macOS, WSL2, or native Linux). Follow this section before improvising.
+
+### Read order
+
+1. This section (playbook)
+2. [`local/README.md`](local/README.md) — operator commands and platform notes
+3. [`docs/network-observability-primer.md`](docs/network-observability-primer.md) — optional; networking/ktranslate context for the user
+
+### Hard rules for agents
+
+| Do | Do not |
+|----|--------|
+| Work under `local/` only | Port EKS/Clabbernetes networking into `local/` |
+| Ask the user for **their** Grafana Cloud OTLP creds if `.env` is missing or placeholder | Assume `networko11ydev`, `marcnetterfield1`, or any stack baked into the repo |
+| Run `make check` before `make up` | Commit `local/.env`, `local/groups/*.env`, `local/config/`, or `local/state/` |
+| Use `make stabilize` when SRL nodes stop | Run `clab deploy --reconfigure` unless the user explicitly asks |
+| Use `python3 local/scripts/retarget-otlp-gc.py --write` (env vars) on any OS | Rely on `retarget-otlp-networko11ydev.py` / `marcnetterfield1` on Mac (Windows CredMgr only) |
+
+### Detect platform
+
+```bash
+uname -s          # Darwin = macOS, Linux = WSL or native
+docker info       # must succeed before bring-up
+```
+
+| Platform | How agents run commands | Extra setup |
+|----------|-------------------------|-------------|
+| **macOS** | Native terminal in repo `local/` | `brew install containerlab yq gettext`; Docker Desktop **10–12 GB** RAM; disable Resource Saver during lab |
+| **WSL2** | Bash in WSL (`cd .../local`) | `sudo apt install yq gettext-base`; `sudo chown -R 1000:1000 config state` after `make generate` |
+| **Windows host only** | `wsl -e bash -lc 'cd /mnt/c/.../network-o11y-demo/local && <cmd>'` | Same as WSL2; repo on `/mnt/c` is OK — `clab.sh` mirrors fabric to ext4 automatically |
+| **Native Linux** | Bash in `local/` | `chown` only if preflight warns about uid ≠ 1000 on `config/` / `state/` |
+
+**Apple Silicon:** images are `linux/amd64`; first `make up` may take **~15 min** under emulation. This is expected.
+
+### Credentials — ask the user if any are missing
+
+The operator must supply values from **their** Grafana Cloud stack:
+
+- **Grafana Cloud → Connections → OpenTelemetry** → OTLP endpoint URL, instance ID, access policy token
+- Map to `local/.env`:
+  - `GC_OTLP_URL` — e.g. `https://otlp-gateway-prod-<region>.grafana.net/otlp`
+  - `GC_OTLP_ACCOUNT` — stack instance / OTLP account id (numeric)
+  - `GC_OTLP_KEY` — `glc_…` token (metrics:write, logs:write, traces:write)
+
+Optional:
+
+- `LAB_TESTER_ID` — label for topology/entity metrics (default `network-lab`; set to operator name on shared stacks)
+- `KTRANS_HOST` — overrides hostname tag on all telemetry (else auto from machine hostname)
+
+**Merge helper (any OS):**
+
+```bash
+export GRAFANA_URL=https://<stack>.grafana.net
+export GC_OTLP_URL=... GC_OTLP_ACCOUNT=... GC_OTLP_KEY=...
+python3 local/scripts/retarget-otlp-gc.py --write
+```
+
+Restart Alloy after OTLP changes: `docker compose -f local/compose-base.yaml … up -d --force-recreate alloy` or `make -C local up`.
+
+### First-time bring-up (exact sequence)
+
+```bash
+cd local
+cp .env.example .env
+cp groups/srl.env.sample groups/srl.env
+# Edit .env: GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (and optional LAB_TESTER_ID)
+
+make generate
+# Linux/WSL only, if preflight warns:
+# sudo chown -R 1000:1000 config state
+
+make check          # must pass (docker, containerlab, yq, envsubst, non-placeholder .env)
+make up             # staggered ~10 min (default LAB_STAGGER_SECS=25)
+make status
+make traffic        # client1↔client2 UDP/ICMP workloads
+```
+
+From repo root: `make local-up` ≡ `make -C local up`.
+
+**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`, `topology_exporter`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps.
+
+**Parallel / faster (less safe on 16 GB):** `make up-parallel` or `LAB_STAGGER=0 make up`.
+
+### Success criteria (verify in the operator's Grafana Cloud)
+
+Use Grafana Explore → Prometheus (or Grafana Cloud MCP if authenticated to **their** stack).
+
+```promql
+count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+```
+
+Expect **three** devices: `spine1`, `leaf1`, `leaf2`.
+
+```promql
+sum by (device_name) (rate(network_io_by_flow[5m]))
+```
+
+```promql
+count by (device_id) (network_topology_device_info{tester_id="<LAB_TESTER_ID or network-lab>"})
+```
+
+**Local sanity checks:**
+
+```bash
+make -C local status
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'spine|leaf|client|ktranslate|alloy|gnmic|topology'
+```
+
+Expect **12** running containers (5 fabric + 7 collectors) when healthy.
+
+### Troubleshooting (agent decision tree)
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `make check` fails on placeholders | `.env` not customized | User must paste OTLP creds |
+| `make check` fails containerlab | Not installed | macOS: `brew install containerlab`; Linux: [containerlab.dev/install](https://containerlab.dev/install/) |
+| `compute-limits.sh` / memory error | Unusual host RAM detection | Set `MEM_LIMITS=off` in `.env`, re-run `make up` |
+| SRL container **exit 143** | SIGTERM (sleep, `make down`, `clab --reconfigure`, Docker Desktop stop) — **not OOM** | `make -C local stabilize`; never `clab deploy --reconfigure` |
+| BGP/EVPN/SNMP missing after deploy on `/mnt/c` | drvfs postdeploy failure | `make -C local fabric-apply` or `make stabilize` (ext4 mirror via `clab.sh`) |
+| `leaf1` stuck / yang reload | Fabric boot race | Wait; or `docker restart leaf1` then `make stabilize` |
+| No flows in Grafana | softflowd not pointed at collector | `make -C local softflowd` (especially after compose recreate) |
+| No metrics at all | OTLP misconfig or Alloy down | Check `docker logs alloy --tail 50`; verify `GC_OTLP_*`; recreate alloy |
+| Discovery permission error | `config/` / `state/` ownership | `sudo chown -R 1000:1000 config state` (Linux/WSL) |
+| GHCR pull denied (topology_exporter) | Image auth | `make -C local topology-exporter-image` |
+
+**Recovery command of first resort:** `make -C local stabilize` (starts stopped SRL nodes, applies fabric, discover, sidecar configs — no full clab redeploy).
+
+### Optional next steps (only if user asks)
+
+| Goal | Command |
+|------|---------|
+| App↔network join demo traces | `make -C local join-app` |
+| Latency fault talk-track | `make -C local join-fault` / `join-fault-stop` |
+| Synthetic traps + link flaps | `make -C local events-loop` |
+| Import join dashboard | `python3 local/scripts/build-network-join-demo.py` then import script with user's `GRAFANA_URL` + token |
+| NetBox-driven discovery | `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, `make netbox-sync && make up` |
+
+### Grafana Cloud MCP
+
+If MCP is available, authenticate to the **operator's** stack (same as `GRAFANA_URL` / `GC_OTLP_*`). Use it to run verification PromQL and generate Explore deeplinks — do not assume a specific stack name in docs or queries.
 
 ## Local lab (current phase)
 

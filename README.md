@@ -19,6 +19,8 @@ A companion demo environment for the blog series **Network Observability Without
 
 For a reduced Clos you can run on a **16 GB laptop** (Docker Desktop + ContainerLab), see **[local/README.md](local/README.md)**. New teammates should start with **[docs/network-observability-primer.md](docs/network-observability-primer.md)** (terminology, telemetry types, pain points, Grafana Cloud value). That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path with **ktranslate**, Alloy, gnmic, and topology-exporter. The AWS/EKS deployment below is unchanged.
 
+**Using an AI coding agent?** Start with **[AGENTS.md](AGENTS.md)** → section **Agent playbook — run the local lab on the operator's stack** (credentials, platform detection, verification, troubleshooting).
+
 ### Clone and run (first time)
 
 | Platform | Prerequisites |
@@ -45,7 +47,7 @@ make status
 make traffic     # ongoing client1↔client2 workloads
 ```
 
-**macOS:** set OTLP credentials directly in `.env` (the `retarget-otlp-*.py` helpers are Windows-only). Apple Silicon runs amd64 images under emulation — expect a slower first `make up`. See `local/README.md` → **macOS quick reference**.
+**macOS:** set OTLP credentials in `.env` or `python3 scripts/retarget-otlp-gc.py --write`. Apple Silicon runs amd64 images under emulation — expect a slower first `make up`. See `local/README.md` → **macOS quick reference**.
 
 **Your own Grafana Cloud stack:** paste **Connections → OpenTelemetry** URL, instance ID, and access policy token into `GC_OTLP_*` in `.env`. Metrics will appear under your stack within a few minutes of `make up`.
 

@@ -15,3 +15,4 @@ alwaysApply: true
 - **WSL `/mnt/c`:** clab postdeploy fails on drvfs — `make -C local fabric-apply` or `make stabilize`. macOS/native Linux skip ext4 mirror. Never `clab deploy --reconfigure` unless the user asks.
 - **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` — default sample uses CIDR discovery.
 - **Memory:** read and update root `AGENTS.md` (+ these rules) when architecture or bring-up changes.
+- **New teammate + AI agent:** start at `AGENTS.md` → **Agent playbook**; then `local/README.md`. Do not assume any default Grafana Cloud stack.
