@@ -89,18 +89,13 @@ if [[ -f "${DEVICES_PREV}" ]] && cmp -s "${DEVICES_PREV}" "${DEVICES_OUT}"; then
   exit 0
 fi
 
-# Signal the long-running poller to re-read its config (which @-includes the
-# devices file we just published). ktranslate's SNMP input handles SIGUSR2
-# as "reload and restart the main loop" — SIGHUP has no handler and would
-# kill the container, so use USR2.
-#
-# Fail soft: if the poller isn't running (first bootstrap, operator paused it,
-# host just rebooted) we don't want to fail the whole discovery run.
+# Restart the poller so it re-reads the @-included devices file. SIGUSR2 reload
+# does not reliably pick up a first publish after bootstrap seeds {}.
 POLLER_SERVICE="ktranslate_snmp_${GROUP}"
 if docker compose "${COMPOSE_ARGS[@]}" ps --status running --services 2>/dev/null \
      | grep -qx "${POLLER_SERVICE}"; then
-  docker compose "${COMPOSE_ARGS[@]}" kill -s USR2 "${POLLER_SERVICE}"
-  echo "sent SIGUSR2 to ${POLLER_SERVICE}"
+  docker compose "${COMPOSE_ARGS[@]}" restart "${POLLER_SERVICE}"
+  echo "restarted ${POLLER_SERVICE} (${DEVICE_COUNT} device(s))"
 else
   echo "poller ${POLLER_SERVICE} not running; new devices will be picked up on next start" >&2
 fi
