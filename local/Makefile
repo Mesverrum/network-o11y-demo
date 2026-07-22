@@ -19,6 +19,11 @@ export CLAB_NETWORK ?= clab
 KTRANS_HOST := $(shell $(ROOT)scripts/host-id.sh 2>/dev/null)
 export KTRANS_HOST
 
+# Staggered bring-up (fabric + collectors) reduces simultaneous load on WSL laptops.
+LAB_STAGGER ?= 1
+LAB_STAGGER_SECS ?= 25
+export LAB_STAGGER LAB_STAGGER_SECS
+
 COMPOSE := docker compose --env-file .env \
   -f compose-base.yaml \
   -f compose-groups.generated.yaml \
@@ -87,10 +92,10 @@ discover: ## Run one-shot SNMP discovery (GROUP=srl)
 	@cd $(ROOT) && ./scripts/run-discovery.sh $(GROUP)
 
 .PHONY: up
-up: check generate bootstrap limits ## Deploy fabric + telemetry + discover SRL + softflowd + syslog
-	@echo "==> Deploying ContainerLab topology..."
-	cd $(ROOT) && (command -v containerlab >/dev/null && containerlab deploy -t topology.clab.yml \
-	  || clab deploy -t topology.clab.yml)
+up: check generate bootstrap limits ## Staggered deploy (default): fabric + collectors + discover
+ifeq ($(LAB_STAGGER),0)
+	@echo "==> Deploying ContainerLab topology (parallel)..."
+	@bash $(ROOT)scripts/clab.sh deploy
 	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
 	@sleep 60
 	@echo "==> Applying fabric config (postdeploy workaround for /mnt/c)..."
@@ -98,6 +103,20 @@ up: check generate bootstrap limits ## Deploy fabric + telemetry + discover SRL 
 	@echo "==> deployment.host = $(KTRANS_HOST)"
 	@echo "==> Starting telemetry compose stack..."
 	cd $(ROOT) && $(COMPOSE) up -d
+	@$(MAKE) -C $(ROOT) --no-print-directory _post-up-config
+else
+	@cd $(ROOT) && ./scripts/staggered-up.sh
+endif
+	@echo ""
+	@echo "Lab is up. Next: make status && make traffic && make emit-events"
+	@echo "Grafana: count by (device_name, service_name) (kentik_snmp_DeviceMetrics)"
+
+.PHONY: up-parallel
+up-parallel: ## Legacy parallel bring-up (LAB_STAGGER=0)
+	@$(MAKE) LAB_STAGGER=0 up
+
+.PHONY: _post-up-config
+_post-up-config:
 	@echo "==> Syncing NetBox Cloud inventory..."
 	@if grep -q '^DISCOVERY_SOURCE=netbox' "$(ROOT)groups/srl.env" 2>/dev/null; then \
 	  bash $(ROOT)scripts/netbox-bootstrap.sh; \
@@ -110,16 +129,44 @@ up: check generate bootstrap limits ## Deploy fabric + telemetry + discover SRL 
 	bash $(ROOT)scripts/update-topology-targets.sh
 	@echo "==> Starting softflowd on clients..."
 	bash $(ROOT)scripts/softflowd.sh
+	@echo "==> Configuring SR Linux sFlow → ktranslate_sflow..."
+	@bash $(ROOT)scripts/sflow-config.sh || echo "WARNING: sflow config failed — check sr_cli syntax"
 	@echo "==> Configuring SR Linux syslog → ktranslate_syslog..."
 	bash $(ROOT)scripts/syslog-config.sh || echo "WARNING: syslog config failed — check sr_cli syntax"
 	@echo "==> Configuring SR Linux SNMP traps → ktranslate_snmp_srl..."
 	bash $(ROOT)scripts/snmp-trap-config.sh || echo "WARNING: snmp trap config failed — check sr_cli syntax"
+
+.PHONY: sync-clab-workdir
+sync-clab-workdir: ## Mirror topology + fabric configs to ext4 when repo is on /mnt/c
+	bash $(ROOT)scripts/sync-clab-workdir.sh
+
+.PHONY: fabric-up
+fabric-up: sync-clab-workdir ## Deploy SRL fabric only (no o11y/NetBox); uses ext4 workdir on /mnt/c
+	@bash $(ROOT)scripts/clab.sh deploy
+	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
+	@sleep 60
+	@bash $(ROOT)scripts/apply-fabric-config.sh
 	@echo ""
-	@echo "Lab is up. Next: make status && make traffic && make emit-events"
-	@echo "Grafana: count by (device_name, service_name) (kentik_snmp_DeviceMetrics)"
+	@echo "Fabric is up. Try: docker exec spine1 sr_cli -ec 'show network-instance summary'"
+	@echo "Client ping: docker exec client2 ping -c 2 172.17.0.1"
+	@bash $(ROOT)scripts/fabric-watch.sh start || true
+
+.PHONY: fabric-stabilize
+fabric-stabilize: ## Start stopped SRL nodes (or redeploy); no collectors
+	bash $(ROOT)scripts/fabric-stabilize.sh
+
+.PHONY: fabric-watch fabric-watch-stop fabric-watch-status
+fabric-watch: ## Background: recover SRL if containers stop (poll 60s)
+	bash $(ROOT)scripts/fabric-watch.sh start
+
+fabric-watch-stop: ## Stop fabric-watch background loop
+	bash $(ROOT)scripts/fabric-watch.sh stop
+
+fabric-watch-status: ## Show fabric-watch status / recent log
+	bash $(ROOT)scripts/fabric-watch.sh status
 
 .PHONY: fabric-apply
-fabric-apply: ## Apply configs/fabric/*.cfg via sr_cli (WSL /mnt/c postdeploy workaround)
+fabric-apply: sync-clab-workdir ## Apply configs/fabric/*.cfg via sr_cli (WSL /mnt/c postdeploy workaround)
 	bash $(ROOT)scripts/apply-fabric-config.sh
 
 .PHONY: stabilize
@@ -128,17 +175,16 @@ stabilize: ## Recover lab without clab --reconfigure (start SRL, apply config, d
 
 .PHONY: down
 down: ## Destroy fabric + stop compose
+	@bash $(ROOT)scripts/fabric-watch.sh stop || true
 	@echo "==> Stopping compose..."
 	cd $(ROOT) && $(COMPOSE) down || true
 	@echo "==> Destroying ContainerLab topology..."
-	cd $(ROOT) && (command -v containerlab >/dev/null && containerlab destroy -t topology.clab.yml --cleanup \
-	  || clab destroy -t topology.clab.yml --cleanup) || true
+	@bash $(ROOT)scripts/clab.sh destroy || true
 
 .PHONY: status
 status: ## Show clab nodes, compose, and a quick ping check
 	@echo "── ContainerLab ──"
-	@cd $(ROOT) && (containerlab inspect -t topology.clab.yml 2>/dev/null \
-	  || clab inspect -t topology.clab.yml 2>/dev/null || docker ps --filter label=clab-node-name)
+	@bash $(ROOT)scripts/clab.sh inspect 2>/dev/null || docker ps --filter label=clab-node-name
 	@echo ""
 	@echo "── Compose ──"
 	@cd $(ROOT) && $(COMPOSE) ps
@@ -178,6 +224,10 @@ topology-targets: ## Rewrite topology-exporter target hosts from live clab mgmt 
 .PHONY: softflowd
 softflowd: ## (Re)start softflowd on clients
 	bash $(ROOT)scripts/softflowd.sh
+
+.PHONY: sflow
+sflow: ## (Re)apply spine sFlow → ktranslate_sflow:6343
+	bash $(ROOT)scripts/sflow-config.sh
 
 .PHONY: syslog
 syslog: ## (Re)apply syslog remote-server on SR Linux nodes

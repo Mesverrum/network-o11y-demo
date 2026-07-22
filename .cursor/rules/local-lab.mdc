@@ -30,7 +30,9 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 - `update-snmp-targets.sh` — /32 mgmt IPs into `groups/srl.env` TARGETS + regenerate
 - `update-topology-targets.sh` — rewrite topology-exporter `host:` lines + sync `tester_id`
 - `netbox-bootstrap.sh` / `make netbox-sync` / `make netbox-sync-mgmt` — populate NetBox Cloud + mgmt IPs for SNMP discovery
-- `apply-fabric-config.sh` / `make fabric-apply` — load `configs/fabric/*.cfg` when clab postdeploy fails on `/mnt/c`
+- `lab-path.sh` / `sync-clab-workdir.sh` / `clab.sh` — when repo is on `/mnt/c`, mirror fabric to ext4 (`CLAB_EXT4_ROOT`) for clab deploy
+- `apply-fabric-config.sh` / `make fabric-apply` / `make fabric-up` — load `configs/fabric/*.cfg` (full fabric on ext4 workdir)
+- `staggered-up.sh` — default `make up` path: fabric nodes then collectors one-by-one (`LAB_STAGGER_SECS`, logs RAM)
 - `stabilize-lab.sh` / `make stabilize` — recover without `clab deploy --reconfigure` (start SRL, apply fabric, discover)
 - `enable-snmp-srl.sh` — minimal SNMP-only fallback (superseded by `fabric-apply` when full cfg is needed)
 - `softflowd.sh` — clients → `ktranslate_flow:9995`
@@ -45,13 +47,13 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 
 ## Operator commands
 
-`make -C local up|down|status|stabilize|fabric-apply|traffic|traffic-stop|traffic-status|join-app|join-app-stop|join-app-status|join-fault|join-fault-stop|join-fault-status|events-loop|events-stop|events-status|logs|generate|discover|topology-exporter-image|topology-targets|netbox-sync|netbox-sync-mgmt` or root `make local-up`. Agents may use `wsl -e bash -lc '...'` from Windows.
+`make -C local up|up-parallel|down|status|stabilize|fabric-up|fabric-apply|sync-clab-workdir|traffic|traffic-stop|traffic-status|join-app|join-app-stop|join-app-status|join-fault|join-fault-stop|join-fault-status|events-loop|events-stop|events-status|logs|generate|discover|topology-exporter-image|topology-targets|netbox-sync|netbox-sync-mgmt` or root `make local-up`. Agents may use `wsl -e bash -lc '...'` from Windows.
 
 **Agent rule:** never `clab deploy --reconfigure` unless the user explicitly requests it. Use `make stabilize` to recover stopped SRL nodes.
 
 ## WSL /mnt/c postdeploy
 
-ContainerLab postdeploy cannot commit SR Linux config when the repo lives under `/mnt/c/...` (drvfs permission error on `config.tmp`). Symptoms: postdeploy ERRO in clab logs; SNMP/BGP/EVPN missing after deploy. Fix: `make fabric-apply` or `make stabilize`. Long-term: clone repo to `~/projects/` on ext4.
+ContainerLab postdeploy cannot commit SR Linux config when startup-config/labdir are on drvfs (`/mnt/c/...`). `scripts/clab.sh` detects drvfs and deploys from `CLAB_EXT4_ROOT` (default `~/.cache/network-o11y-demo/clab`). Symptoms if bypassed: postdeploy ERRO; SNMP/BGP/EVPN missing. Fix: `make fabric-up`, `make fabric-apply`, or `make stabilize`.
 
 ## Topology metrics
 

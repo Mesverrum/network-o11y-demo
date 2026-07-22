@@ -17,7 +17,7 @@ A companion demo environment for the blog series **Network Observability Without
 
 ## Local lab (WSL laptop)
 
-For a reduced Clos you can run on a **16 GB Windows laptop** (WSL2 + ContainerLab + Docker), see **[local/README.md](local/README.md)**. That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path (credential groups + discovery/polling split) with **ktranslate** for SNMP/NetFlow/syslog, Alloy as an OTLP forwarder into Grafana Cloud, plus gnmic and topology-exporter. The AWS/EKS deployment below is unchanged.
+For a reduced Clos you can run on a **16 GB Windows laptop** (WSL2 + ContainerLab + Docker), see **[local/README.md](local/README.md)**. New teammates should start with **[docs/network-observability-primer.md](docs/network-observability-primer.md)** (terminology, telemetry types, pain points, Grafana Cloud value). That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path with **ktranslate**, Alloy, gnmic, and topology-exporter. The AWS/EKS deployment below is unchanged.
 
 ### Clone and run (first time)
 

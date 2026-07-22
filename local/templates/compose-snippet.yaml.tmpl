@@ -55,7 +55,7 @@
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION}
       # NetBox creds for DISCOVERY_SOURCE=netbox groups; ktranslate reads them at
       # runtime. Harmless (blank, unused) for cidr groups.
-      - NETBOX_HOST=${NETBOX_HOST:-}
+      - NETBOX_API_URL=${NETBOX_API_URL:-}
       - NETBOX_TOKEN=${NETBOX_TOKEN:-}
       # Discovery containers are short-lived; export internal metrics sooner than
       # the default 60s so a quick scan still emits health data to Alloy.

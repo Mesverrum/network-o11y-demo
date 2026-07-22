@@ -145,7 +145,7 @@ otelcol.processor.transform "preprocessing" {
       `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
       `set(datapoint.attributes["link_kind"], "ethernet") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
       `set(datapoint.attributes["direction"], "forward") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
+      `set(datapoint.attributes["tester_id"], "marcnetterfield-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
       `set(metric.name, "network_topology_edge_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
 
       // Neighbor port-id as parallel edge metric (iface-level connected_to talk track)
@@ -154,10 +154,16 @@ otelcol.processor.transform "preprocessing" {
       `set(datapoint.attributes["dst_port"], datapoint.attributes["value"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
       `set(datapoint.attributes["dst_chassis_id"], datapoint.attributes["neighbor_id"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
       `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
+      `set(datapoint.attributes["tester_id"], "marcnetterfield-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
       `set(metric.name, "network_topology_edge_port_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
 
-      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, "network_topology_.*")`,
+      `set(datapoint.attributes["tester_id"], "marcnetterfield-lab") where IsMatch(metric.name, "network_topology_.*")`,
+      // NetBox inventory labels on ktranslate SNMP metrics (device_name = NetBox device)
+      `set(datapoint.attributes["device_role"], "spine") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*")`,
+      `set(datapoint.attributes["device_role"], "leaf") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "leaf.*")`,
+      `set(datapoint.attributes["site"], "network-lab") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
+      `set(datapoint.attributes["platform"], "sr-linux") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*|leaf.*")`,
+      `set(datapoint.attributes["tenant"], "network-o11y-demo") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
       `set(datapoint.attributes["network.protocol.name"], datapoint.attributes["application"]) where metric.name == "network.io.by_flow"`,
       `delete_key(datapoint.attributes, "application") where metric.name == "network.io.by_flow"`,
       `set(datapoint.attributes["network.transport"], datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,

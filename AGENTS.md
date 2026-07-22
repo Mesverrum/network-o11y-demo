@@ -38,6 +38,11 @@ make up
 make traffic
 ```
 
+`make up` **staggers** fabric nodes (spine1 → leaves → clients) and collectors
+(alloy → snmp → flow → syslog → gnmic → topology_exporter) with `LAB_STAGGER_SECS`
+(default 30) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
+`make stabilize` honors `LAB_STAGGER` for collector bring-up.
+
 Optional NetBox Cloud discovery: `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, then `make generate && make netbox-sync && make up`.
 
 From repo root: `make local-up` / `make local-down` / `make local-help`.
@@ -51,7 +56,7 @@ Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
 3. **Alloy comments are `//`**, not `#`.
 4. **`state/devices-*.yaml` is mutable** (discovery writes device lists); never commit `config/` / `state/` / `groups/*.env`. UID 1000 must own `config/` and `state/`.
 5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. Traps → poller `:1620`. One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
-6. **`/mnt/c` + ContainerLab postdeploy:** clab cannot commit `config.tmp` when the lab dir is on Windows drvfs (`/mnt/c/...`). Postdeploy fails; fabric startup-config is **not** applied automatically. `make up` and `make fabric-apply` run `scripts/apply-fabric-config.sh` (SNMP-only by default on `/mnt/c`; set `FULL_FABRIC=1` to attempt full `configs/fabric/*.cfg`, which often fails with `net_inst_mgr`). **Prefer** a native WSL clone (`~/projects/network-o11y-demo`) for full BGP/EVPN via postdeploy. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
+6. **`/mnt/c` + ContainerLab postdeploy:** drvfs breaks SR Linux `config.tmp` commits when clab labdir/startup-config bind-mounts live on `/mnt/c`. `make up` / `make fabric-up` / `make stabilize` auto-mirror `topology.clab.yml` + `configs/fabric/` to ext4 (`CLAB_EXT4_ROOT`, default `~/.cache/network-o11y-demo/clab`) via `scripts/clab.sh`. `make fabric-apply` re-applies configs (defaults to `FULL_FABRIC=1` on ext4 workdir). Compose/o11y can stay on `/mnt/c`. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
 7. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.
 
 ### Metrics to expect in Grafana Cloud
@@ -74,9 +79,12 @@ Topology dashboards (adapted for this lab):
 |-----|-------|
 | `lab-topology-graph` | Network Topology (topology-exporter) |
 | `lab-topology-health` | Topology Exporter Health |
+| `lab-ktranslate-flow` | Network Flow Summary (ktranslate) — `network_io_by_flow_bytes` from softflowd + spine sFlow |
 | `lab-network-join-demo` | Network join demo (SIG model) — flows + LLDP subway + SNMP errors/CPU |
 
-JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`. Skip `topology-schedule` (long-running mutator harness only).
+JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`, `local/.dash-payloads/ktranslate-import/lab-ktranslate-flow.json`. Skip `topology-schedule` (long-running mutator harness only).
+
+**Flow dashboard:** UID `lab-ktranslate-flow`, folder `network-lab`. Adapted from the ktranslate **02. Network Flow Summary** pattern (Commvault/marcnetterfield1). Rebuild/import: `python3 local/scripts/build-ktranslate-flow-dashboard.py` then `python3 local/scripts/import-ktranslate-flow-dashboard.py` (prefers `gcx --context networko11ydev`). Source export: `gcx --context commvault dashboards get be8hpir89dds0a`.
 
 **Join demo:** UID `lab-network-join-demo`, folder `network-lab`. Section **0** pairs Tempo `clos-join-demo` spans with softflowd flows on shared `$peer_addr`/`$peer_port` (default `172.17.0.2:8080`). Rebuild/import: `python3 local/scripts/build-network-join-demo.py` then `python3 local/scripts/import-network-join-demo-gcx.py` (or `import-network-join-demo.sh` with `GRAFANA_URL` + `GRAFANA_TOKEN`). After compose recreate, `make -C local softflowd` (collector IP drift).
 

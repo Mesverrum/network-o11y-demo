@@ -27,7 +27,7 @@ done
 
 if (( need_deploy )); then
   info "SRL containers missing — deploying topology (no --reconfigure)..."
-  clab deploy -t topology.clab.yml 2>/dev/null || containerlab deploy -t topology.clab.yml
+  bash "${ROOT}/scripts/clab.sh" deploy
 else
   info "Starting stopped SRL nodes (if any)..."
   for n in "${SRL[@]}"; do
@@ -43,10 +43,21 @@ sleep 45
 bash "${ROOT}/scripts/apply-fabric-config.sh"
 
 info "Telemetry compose stack..."
-docker compose --env-file .env \
-  -f compose-base.yaml \
-  -f compose-groups.generated.yaml \
-  -f compose-limits.generated.yaml up -d
+STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
+COMPOSE=(docker compose --env-file .env
+  -f compose-base.yaml
+  -f compose-groups.generated.yaml
+  -f compose-limits.generated.yaml)
+
+if [[ "${LAB_STAGGER:-1}" == "1" ]]; then
+  for svc in alloy ktranslate_snmp_srl ktranslate_flow ktranslate_syslog gnmic topology_exporter; do
+    info "Starting ${svc}..."
+    "${COMPOSE[@]}" up -d "${svc}"
+    sleep "${STAGGER_SECS}"
+  done
+else
+  "${COMPOSE[@]}" up -d
+fi
 
 if grep -q '^DISCOVERY_SOURCE=netbox' "${ROOT}/groups/srl.env" 2>/dev/null; then
   bash "${ROOT}/scripts/netbox-bootstrap.sh" || {
@@ -61,6 +72,7 @@ fi
 ./scripts/run-discovery.sh srl || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
 bash "${ROOT}/scripts/update-topology-targets.sh"
 bash "${ROOT}/scripts/softflowd.sh"
+bash "${ROOT}/scripts/sflow-config.sh" || info "sflow config skipped"
 bash "${ROOT}/scripts/syslog-config.sh" || info "syslog config skipped"
 bash "${ROOT}/scripts/snmp-trap-config.sh" || info "trap config skipped"
 

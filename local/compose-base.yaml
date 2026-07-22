@@ -87,6 +87,41 @@ services:
       - clab
       - default
 
+  ktranslate_sflow:
+    image: ${KTRANSLATE_IMAGE:-quay.io/kentik/ktranslate:latest}
+    container_name: ktranslate_sflow
+    restart: unless-stopped
+    environment:
+      - OTEL_SERVICE_NAME=ktranslate-sflow${KTRANS_HOST:+-}${KTRANS_HOST}
+      - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    depends_on:
+      - alloy
+    command:
+      - --format=otel
+      - --format_metric=otel
+      - --otel.protocol=grpc
+      - --otel.endpoint=http://alloy:4317/
+      - --nf.source=sflow
+      - --nf.port=6343
+      - --metalisten=0.0.0.0:9994
+      - --dns=127.0.0.1:53
+      - --sinks=otel
+      - --metrics=jchf
+      - --tee_logs=true
+      - --service_name=flow-sflow
+      - --flow_only=true
+      - --max_flows_per_message=100
+      - --rollup_interval=60
+      - --rollup_top_k=100
+      - --rollups=s_sum,bytes_by_flow,in_bytes+out_bytes,src_addr,dst_addr,l4_src_port,l4_dst_port,protocol,custom_str.application,device_name,custom_str.src_host,custom_str.dst_host,src_geo,dst_geo
+      - --rollup_keep_undefined=true
+    ports:
+      - "6343:6343/udp"
+      - "9994:9994"
+    networks:
+      - clab
+      - default
+
   ktranslate_syslog:
     image: ${KTRANSLATE_IMAGE:-quay.io/kentik/ktranslate:latest}
     container_name: ktranslate_syslog

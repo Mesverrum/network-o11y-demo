@@ -67,21 +67,21 @@ output:
     heartbeat_cycles: 1
 
 targets:
-  - host: 172.20.20.2
-    port: 161
-    site: srl-local
-    labels:
-      role: spine
-      tester_id: network-lab
-  - host: 172.20.20.6
-    port: 161
-    site: srl-local
-    labels:
-      role: leaf
-      tester_id: network-lab
   - host: 172.20.20.3
     port: 161
     site: srl-local
     labels:
+      role: spine
+      tester_id: marcnetterfield-lab
+  - host: 172.20.20.2
+    port: 161
+    site: srl-local
+    labels:
       role: leaf
-      tester_id: network-lab
+      tester_id: marcnetterfield-lab
+  - host: 172.20.20.5
+    port: 161
+    site: srl-local
+    labels:
+      role: leaf
+      tester_id: marcnetterfield-lab
