@@ -1,6 +1,7 @@
-# Local lab — WSL2 + ContainerLab + Docker Compose
+# Local lab — Docker + ContainerLab + Compose (laptop)
 
-Speakable Clos on a 16 GB laptop: **1 spine, 2 leaves, 2 clients**.
+Speakable Clos on a 16 GB laptop: **1 spine, 2 leaves, 2 clients**. Runs on
+**macOS** (Docker Desktop) or **Linux** (WSL2 / native).
 
 Collector stack follows the **[KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path**:
 credential groups under `groups/`, discovery/polling split, Alloy OTLP forwarder
@@ -36,15 +37,20 @@ NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.net
 
 **Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Edges come from **gnmic** (`lldp_neighbors` subscribe), not SNMP topology-exporter.
 
-## Prerequisites (WSL2 Ubuntu)
+## Prerequisites
 
-1. [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the **WSL2 backend**, or Docker Engine inside WSL
-2. [ContainerLab](https://containerlab.dev/install/) (`containerlab` or `clab`)
-3. `yq` (Mike Farah) and `envsubst`: `sudo apt install yq gettext-base`
-4. ~10–12 GB RAM available to Docker (three SR Linux `ixrd2l` nodes + collectors)
-5. Grafana Cloud stack — OTLP credentials from **Connections → OpenTelemetry**
+| | **macOS** | **WSL2 / Linux** |
+|---|-----------|------------------|
+| Docker | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) — allocate **10–12 GB** RAM in Settings → Resources | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL2 backend) or Docker Engine in WSL |
+| ContainerLab | `brew install containerlab` ([install docs](https://containerlab.dev/install/)) | [ContainerLab](https://containerlab.dev/install/) (`containerlab` or `clab`) |
+| CLI tools | `brew install yq gettext` (`envsubst` from gettext) | `sudo apt install yq gettext-base` |
+| Grafana Cloud | OTLP credentials from **Connections → OpenTelemetry** (`GC_OTLP_URL`, account, key) | same |
 
-## First-time setup
+**Apple Silicon (M1/M2/M3):** SR Linux and several images are `linux/amd64`. Docker runs them under emulation — expect slower first boot and longer `make up` (~15 min). A 16 GB Mac with 10+ GB for Docker is recommended.
+
+**Windows + WSL only:** if the repo lives on `/mnt/c/...`, see [WSL `/mnt/c` and fabric config](#wsl-mntc-and-fabric-config) below. macOS and native Linux clones use the repo directory directly (no ext4 mirror needed).
+
+## First-time setup (all platforms)
 
 ```bash
 cd local
@@ -54,22 +60,29 @@ cp .env.example .env
 
 cp groups/srl.env.sample groups/srl.env
 make generate
-sudo chown -R 1000:1000 config state   # discovery writes as uid 1000
 ```
+
+**Linux / WSL only** (discovery writes as uid 1000):
+
+```bash
+sudo chown -R 1000:1000 config state
+```
+
+On macOS, `chown` is usually not required unless discovery fails with permission errors on `config/` or `state/`.
 
 ## Bring-up
 
 ```bash
 make check
-make up          # staggered: spine→leaves→clients→collectors (30s pauses)
+make up          # staggered: spine→leaves→clients→collectors (25s pauses)
 make status
 make traffic     # ongoing UDP+ICMP workloads (steady/burst/reverse) client1↔client2
 ```
 
 `make up` (default) staggers fabric nodes and telemetry collectors with
-`LAB_STAGGER_SECS` pauses and logs WSL/Windows RAM between steps — tuned from
+`LAB_STAGGER_SECS` pauses and logs host RAM between steps — tuned from
 the Jul 2026 stability ladder. Use `make up-parallel` or `LAB_STAGGER=0` for
-the old all-at-once path.
+the old all-at-once path. Expect **~10 minutes** for a cold `make up`.
 
 `make up` prints `deployment.host`, starts the stack, rewrites `groups/srl.env`
 TARGETS from ContainerLab mgmt `/32`s, then runs `make discover GROUP=srl`.
@@ -158,10 +171,32 @@ Upstream docs: [KtransToGrafana README](https://github.com/Mesverrum/KtransToGra
 
 ## Memory tips
 
-- Cap Docker Desktop memory around **10–12 GB** so Windows stays usable
-- `make up` writes `compose-limits.generated.yaml` from host RAM (set `MEM_LIMITS=off` to skip)
-- If nodes OOM, destroy the lab (`make down`) and close other heavy apps before `make up` again
+- Give Docker **10–12 GB** RAM (Docker Desktop → Settings → Resources on Mac/Windows)
+- `make up` writes `compose-limits.generated.yaml` from host/Docker RAM (`scripts/compute-limits.sh` supports Linux, macOS, and Docker Desktop)
+- Set `MEM_LIMITS=off` in `.env` if limit generation fails on an unusual host
+- If nodes OOM, run `make down`, free RAM, then `make up` again
 - First pull of `ghcr.io/nokia/srlinux:24.10.1` is large (~1.3 GiB)
+
+## macOS quick reference
+
+```bash
+# One-time
+brew install containerlab yq gettext
+# Docker Desktop: 10–12 GB RAM, disable aggressive "Resource Saver" while lab runs
+
+cd local && cp .env.example .env && cp groups/srl.env.sample groups/srl.env
+# Set GC_OTLP_* in .env (paste from Grafana Cloud → OpenTelemetry)
+make check && make generate && make up
+make status && make traffic
+```
+
+**Credentials:** set `GC_OTLP_URL`, `GC_OTLP_ACCOUNT`, and `GC_OTLP_KEY` directly in
+`.env` (Grafana Cloud → **Connections → OpenTelemetry**). Or export them and run
+`python3 scripts/retarget-otlp-gc.py --write`. Stack-specific helpers
+(`retarget-otlp-networko11ydev.py`, etc.) use Windows Credential Manager only.
+
+**Recovery:** `make stabilize` (no `clab deploy --reconfigure` — that SIGTERM-stops
+all nodes). `make fabric-watch` keeps SRL containers up if Docker restarts.
 
 ## WSL `/mnt/c` and fabric config
 

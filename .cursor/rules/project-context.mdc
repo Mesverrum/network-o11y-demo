@@ -5,13 +5,13 @@ alwaysApply: true
 
 # network-o11y-demo — agent context
 
-- **Two paths:** `local/` (WSL + ContainerLab + Compose, laptop) vs `terraform/` + `k8s/` (AWS EKS). Prefer `local/` unless the user asks for EKS.
+- **Two paths:** `local/` (Docker Desktop + ContainerLab + Compose on macOS or WSL2/Linux) vs `terraform/` + `k8s/` (AWS EKS). Prefer `local/` unless the user asks for EKS.
 - **Do not** port Clabbernetes/EKS networking hacks into the local lab.
-- **Local collectors:** ktranslate (SNMP + NetFlow + syslog), **gnmic** (incl. LLDP neighbors), **topology_exporter** (OTLP) → Alloy → Grafana Cloud. Ktranslate pattern: Mesverrum/KtransToGrafana.
+- **Local collectors:** ktranslate (SNMP + NetFlow + syslog), **gnmic** (incl. LLDP neighbors), **topology_exporter** (OTLP) → Alloy → Grafana Cloud. Ktranslate pattern: Mesverrum/KtransToGrafana. **Laptop:** macOS or WSL2/Linux — see `local/README.md` (macOS quick reference).
 - **Local metrics:** `kentik_snmp_*`, `network_io_by_flow`, `gnmi_*` / `service_name="gnmic"`, `network_topology_device_info` / `network_topology_edge_info` (`tester_id` from `LAB_TESTER_ID`, default `network-lab`) — not AWS `integrations/snmp` dashboards as-is.
 - **OTLP sink:** operator's Grafana Cloud stack (`GC_OTLP_*` in `local/.env`). Helper: `local/scripts/retarget-otlp-gc.py`.
 - **Clos join app:** `make -C local join-app` — OTel HTTP on client1→client2 EVPN; Tempo `clos-join-demo` joins softflowd on port 8080; `clos_join_entity_info` / `clos_join_edge_info` overlay service+hosts on the subway nodeGraph. Talk-track latency: `make join-fault` / `join-fault-stop` (tc netem on client eth1). Identity tabs: `entity_demo_*` + dashboard `demo_model` variable (hostname / poison / mac_alias / address / iface).
 - **Secrets:** never commit `local/.env`, `local/groups/*.env`, `local/state/`, or Grafana/AWS credential files.
-- **WSL `/mnt/c`:** clab postdeploy fails on drvfs — `make -C local fabric-apply` or `make stabilize`. Never `clab deploy --reconfigure` unless the user asks.
+- **WSL `/mnt/c`:** clab postdeploy fails on drvfs — `make -C local fabric-apply` or `make stabilize`. macOS/native Linux skip ext4 mirror. Never `clab deploy --reconfigure` unless the user asks.
 - **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` — default sample uses CIDR discovery.
 - **Memory:** read and update root `AGENTS.md` (+ these rules) when architecture or bring-up changes.

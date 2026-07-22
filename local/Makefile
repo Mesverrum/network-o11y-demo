@@ -1,4 +1,4 @@
-# Makefile — local WSL / ContainerLab / Docker lab
+# Makefile — local Docker + ContainerLab lab (macOS or WSL/Linux)
 #
 # Collector pattern follows Mesverrum/KtransToGrafana golden path:
 #   groups/*.env → make generate → compose-groups.generated.yaml
@@ -32,7 +32,7 @@ COMPOSE := docker compose --env-file .env \
 .PHONY: help
 help: ## Show this help
 	@echo ""
-	@echo "Local network-o11y lab (WSL + ContainerLab + KtransToGrafana golden path)"
+	@echo "Local network-o11y lab (Docker + ContainerLab + KtransToGrafana golden path)"
 	@echo "========================================================================="
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \

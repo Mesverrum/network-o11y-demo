@@ -8,7 +8,7 @@ Companion demo for the blog series **Network Observability Without the Lock-in**
 
 | Path | Location | Audience |
 |------|----------|----------|
-| **Local lab (preferred for laptops)** | [`local/`](local/) | WSL2 + ContainerLab + Docker Compose; 16 GB–friendly |
+| **Local lab (preferred for laptops)** | [`local/`](local/) | Docker Desktop + ContainerLab + Compose (macOS or WSL2/Linux); 16 GB–friendly |
 | **AWS / EKS** | [`terraform/`](terraform/), [`k8s/`](k8s/) | Full Clos on Clabbernetes; NetBox + Ansible stages |
 
 Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work belongs under `local/`. Leave AWS manifests alone unless the user explicitly asks for EKS changes.
@@ -26,21 +26,27 @@ Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work b
 - **Topology exporter image:** GHCR may require auth; build local pin with `make -C local topology-exporter-image` (`srl-local/network-topology-exporter:v1.0.0` from GitHub release binary)
 - **Deferred:** Ansible, full 2-spine/3-leaf Clos, local LGTM stack
 
-### Bring-up (WSL)
+### Bring-up (macOS or WSL/Linux)
 
 ```bash
-cd /mnt/c/Users/<you>/projects/network-o11y-demo/local   # Windows path via /mnt/c/...
+cd local
 cp .env.example .env          # set GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
 cp groups/srl.env.sample groups/srl.env
 make generate
-sudo chown -R 1000:1000 config state
+# Linux/WSL only: sudo chown -R 1000:1000 config state
 make up
 make traffic
 ```
 
-`make up` **staggers** fabric nodes (spine1 → leaves → clients) and collectors
-(alloy → snmp → flow → syslog → gnmic → topology_exporter) with `LAB_STAGGER_SECS`
-(default 30) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
+**macOS:** `brew install containerlab yq gettext`; Docker Desktop **10–12 GB** RAM.
+Set OTLP creds in `.env` or `python3 scripts/retarget-otlp-gc.py --write`. Apple Silicon
+uses amd64 emulation — slower but supported. See `local/README.md` → macOS quick reference.
+
+**WSL (Windows):** path via `/mnt/c/Users/<you>/projects/network-o11y-demo/local` is fine;
+`clab.sh` mirrors fabric to ext4 when on drvfs.
+
+`make up` **staggers** fabric sr_cli readiness and collectors with `LAB_STAGGER_SECS`
+(default 25) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
 `make stabilize` honors `LAB_STAGGER` for collector bring-up.
 
 Optional NetBox Cloud discovery: `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, then `make generate && make netbox-sync && make up`.

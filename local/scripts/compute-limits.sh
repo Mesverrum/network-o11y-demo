@@ -108,7 +108,9 @@ clamp_mb() {
 }
 
 read_available_mb() {
-  local avail total
+  local avail total docker_b
+
+  # Linux / WSL
   if [[ -r /proc/meminfo ]]; then
     avail=$(awk '/^MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
     if [[ -n "${avail}" && "${avail}" -gt 0 ]]; then
@@ -117,12 +119,30 @@ read_available_mb() {
     fi
     total=$(awk '/^MemTotal:/ {print int($2/1024)}' /proc/meminfo)
     if [[ -n "${total}" && "${total}" -gt 0 ]]; then
-      # Conservative fallback when MemAvailable is missing.
       echo $(( total * 80 / 100 ))
       return 0
     fi
   fi
-  echo "ERROR: could not determine host memory (expected /proc/meminfo on Linux)" >&2
+
+  # Docker Desktop VM budget (macOS / Windows) — best proxy for compose limits
+  if command -v docker >/dev/null 2>&1; then
+    docker_b=$(docker info --format '{{.MemTotal}}' 2>/dev/null || true)
+    if [[ "${docker_b}" =~ ^[0-9]+$ && "${docker_b}" -gt 0 ]]; then
+      echo $(( docker_b / 1024 / 1024 ))
+      return 0
+    fi
+  fi
+
+  # macOS host RAM (conservative — not all RAM is given to Docker)
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    total=$(sysctl -n hw.memsize 2>/dev/null || true)
+    if [[ "${total}" =~ ^[0-9]+$ && "${total}" -gt 0 ]]; then
+      echo $(( total / 1024 / 1024 * 50 / 100 ))
+      return 0
+    fi
+  fi
+
+  echo "ERROR: could not determine host memory (set MEM_LIMITS=off in .env to skip)" >&2
   exit 1
 }
 

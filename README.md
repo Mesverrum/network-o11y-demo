@@ -15,31 +15,39 @@ A companion demo environment for the blog series **Network Observability Without
 
 ---
 
-## Local lab (WSL laptop)
+## Local lab (laptop — macOS or WSL/Linux)
 
-For a reduced Clos you can run on a **16 GB Windows laptop** (WSL2 + ContainerLab + Docker), see **[local/README.md](local/README.md)**. New teammates should start with **[docs/network-observability-primer.md](docs/network-observability-primer.md)** (terminology, telemetry types, pain points, Grafana Cloud value). That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path with **ktranslate**, Alloy, gnmic, and topology-exporter. The AWS/EKS deployment below is unchanged.
+For a reduced Clos you can run on a **16 GB laptop** (Docker Desktop + ContainerLab), see **[local/README.md](local/README.md)**. New teammates should start with **[docs/network-observability-primer.md](docs/network-observability-primer.md)** (terminology, telemetry types, pain points, Grafana Cloud value). That path follows the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path with **ktranslate**, Alloy, gnmic, and topology-exporter. The AWS/EKS deployment below is unchanged.
 
 ### Clone and run (first time)
 
-**Prerequisites:** WSL2 Ubuntu, Docker (Desktop with WSL backend or Engine in WSL), [ContainerLab](https://containerlab.dev/install/), `yq`, `envsubst` (`sudo apt install yq gettext-base`), and a Grafana Cloud stack with OTLP credentials (**Connections → OpenTelemetry**).
+| Platform | Prerequisites |
+|----------|----------------|
+| **macOS** | Docker Desktop (10–12 GB RAM), `brew install containerlab yq gettext`, Grafana Cloud OTLP creds |
+| **WSL2 / Linux** | Docker, [ContainerLab](https://containerlab.dev/install/), `yq`, `envsubst` (`sudo apt install yq gettext-base`), OTLP creds |
 
 ```bash
 git clone https://github.com/YOUR_ORG/network-o11y-demo.git
 cd network-o11y-demo/local
 
 cp .env.example .env
-# Edit .env: GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (from your Grafana Cloud stack)
+# Edit .env: GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (from your Grafana Cloud stack → OpenTelemetry)
 # Optional: LAB_TESTER_ID=network-lab  (topology/entity label; else KTRANS_HOST or hostname)
 
 cp groups/srl.env.sample groups/srl.env
 make generate
-sudo chown -R 1000:1000 config state   # discovery writes as uid 1000
+# Linux/WSL only:
+sudo chown -R 1000:1000 config state
 
 make check
-make up          # clab → compose → SNMP targets → discover → softflowd → syslog
+make up          # staggered fabric + collectors (~10 min)
 make status
 make traffic     # ongoing client1↔client2 workloads
 ```
+
+**macOS:** set OTLP credentials directly in `.env` (the `retarget-otlp-*.py` helpers are Windows-only). Apple Silicon runs amd64 images under emulation — expect a slower first `make up`. See `local/README.md` → **macOS quick reference**.
+
+**Your own Grafana Cloud stack:** paste **Connections → OpenTelemetry** URL, instance ID, and access policy token into `GC_OTLP_*` in `.env`. Metrics will appear under your stack within a few minutes of `make up`.
 
 From the repo root you can also use `make local-up` / `make local-down` / `make local-help`.
 
@@ -590,7 +598,7 @@ tofu destroy
 ```
 .
 ├── README.md
-├── local/                  ← WSL laptop lab (ContainerLab + Compose); see local/README.md
+├── local/                  ← Laptop lab (macOS / WSL / Linux + ContainerLab); see local/README.md
 ├── scripts/
 │   ├── access.sh           ← Open SSH port forwards locally (NetBox, Alloy, gnmic)
 │   ├── setup-env.sh        ← Load AWS credentials into env

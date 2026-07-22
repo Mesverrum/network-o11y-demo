@@ -1,5 +1,5 @@
 ---
-description: Local WSL lab — topology, compose, CRLF, clab network, scripts
+description: Local laptop lab — topology, compose, CRLF, clab network, scripts (macOS + WSL)
 globs: local/**
 alwaysApply: false
 ---
@@ -30,7 +30,7 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 - `update-snmp-targets.sh` — /32 mgmt IPs into `groups/srl.env` TARGETS + regenerate
 - `update-topology-targets.sh` — rewrite topology-exporter `host:` lines + sync `tester_id`
 - `netbox-bootstrap.sh` / `make netbox-sync` / `make netbox-sync-mgmt` — populate NetBox Cloud + mgmt IPs for SNMP discovery
-- `lab-path.sh` / `sync-clab-workdir.sh` / `clab.sh` — when repo is on `/mnt/c`, mirror fabric to ext4 (`CLAB_EXT4_ROOT`) for clab deploy
+- `lab-path.sh` / `sync-clab-workdir.sh` / `clab.sh` — when repo is on WSL `/mnt/c`, mirror fabric to ext4 (`CLAB_EXT4_ROOT`) for clab deploy; macOS/native Linux use repo dir directly
 - `apply-fabric-config.sh` / `make fabric-apply` / `make fabric-up` — load `configs/fabric/*.cfg` (full fabric on ext4 workdir)
 - `staggered-up.sh` — default `make up` path: fabric nodes then collectors one-by-one (`LAB_STAGGER_SECS`, logs RAM)
 - `stabilize-lab.sh` / `make stabilize` — recover without `clab deploy --reconfigure` (start SRL, apply fabric, discover)

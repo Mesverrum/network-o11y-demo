@@ -29,12 +29,29 @@ fi
 if command -v envsubst >/dev/null 2>&1; then
   _ok "envsubst is installed"
 else
-  _fail "envsubst is missing — install with: sudo apt install gettext-base"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    _fail "envsubst is missing — install with: brew install gettext"
+  else
+    _fail "envsubst is missing — install with: sudo apt install gettext-base"
+  fi
 fi
 if command -v yq >/dev/null 2>&1; then
   _ok "yq is installed"
 else
-  _fail "yq is missing — install with: sudo apt install yq"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    _fail "yq is missing — install with: brew install yq"
+  else
+    _fail "yq is missing — install with: sudo apt install yq"
+  fi
+fi
+if command -v containerlab >/dev/null 2>&1 || command -v clab >/dev/null 2>&1; then
+  _ok "containerlab is installed"
+else
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    _fail "containerlab is missing — install with: brew install containerlab"
+  else
+    _fail "containerlab is missing — see https://containerlab.dev/install/"
+  fi
 fi
 
 # --- Base runtime files copied from .sample ---

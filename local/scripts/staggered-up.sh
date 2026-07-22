@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Staggered lab bring-up: fabric nodes and collectors one at a time with settle
-# pauses so WSL/Docker is not hit by simultaneous SR Linux boots + compose pulls.
+# pauses so Docker is not hit by simultaneous SR Linux boots + compose pulls.
 #
 # Tuned from state/stability-ladder (Jul 2026). Override:
 #   LAB_STAGGER_SECS=25  pause between steps (default)
@@ -27,19 +27,28 @@ die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
 log_resources() {
-  local wsl_avail wsl_used nctr load win
-  wsl_avail=$(awk '/^MemAvailable:/{print int($2/1024)}' /proc/meminfo)
-  wsl_used=$(awk '/^MemTotal:/{t=$2} /^MemAvailable:/{print int((t-$2)/1024)}' /proc/meminfo)
-  nctr=$(docker ps -q 2>/dev/null | wc -l)
-  load=$(cut -d' ' -f1-3 /proc/loadavg)
-  win="na"
-  local ps="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
-  if [[ -x "$ps" ]]; then
-    win=$("$ps" -NoProfile -Command \
-      '[math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB,2)' 2>/dev/null \
-      | tr -d '\r' || echo "na")
+  local wsl_avail wsl_used nctr load host_gb
+  if [[ -r /proc/meminfo ]]; then
+    wsl_avail=$(awk '/^MemAvailable:/{print int($2/1024)}' /proc/meminfo)
+    wsl_used=$(awk '/^MemTotal:/{t=$2} /^MemAvailable:/{print int((t-$2)/1024)}' /proc/meminfo)
+  else
+    wsl_avail=0
+    wsl_used=0
   fi
-  info "resources: win_free_gb=${win} wsl_used_mb=${wsl_used} wsl_avail_mb=${wsl_avail} docker_running=${nctr} load=${load}"
+  nctr=$(docker ps -q 2>/dev/null | wc -l)
+  load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null || echo "n/a n/a n/a")
+  host_gb="na"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    host_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.1f", $1/1024/1024/1024}' || echo "na")
+  else
+    local ps="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+    if [[ -x "$ps" ]]; then
+      host_gb=$("$ps" -NoProfile -Command \
+        '[math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB,2)' 2>/dev/null \
+        | tr -d '\r' || echo "na")
+    fi
+  fi
+  info "resources: host_free_gb=${host_gb} wsl_used_mb=${wsl_used} wsl_avail_mb=${wsl_avail} docker_running=${nctr} load=${load}"
 }
 
 stagger_wait() {
