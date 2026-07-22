@@ -18,12 +18,13 @@ Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work b
 - **Topology:** 1 spine (`spine1`) + 2 leaves (`leaf1`, `leaf2`) + 2 clients (`client1`, `client2`); all SR Linux `ixrd2l`
 - **Talk track:** eBGP underlay + EVPN MAC-VRF; clients `172.17.0.1` / `172.17.0.2`
 - **Collectors:** `ktranslate_snmp_srl` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors), **`topology_exporter`**
+- **NetBox Cloud (optional):** `scripts/netbox-populate.py` + `update-netbox-mgmt-ips.py` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** discovery (`groups/srl.env.sample`). See `local/netbox/README.md`.
 - **ktranslate model:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path — `groups/*.env` → `make generate` → discovery/polling split (`discover_srl` profile + read-only poller). No root `snmp.yaml` + `snmp_discovery_on_start`
 - **SRL SNMP profile:** `local/snmp-profiles/nokia/nokia-srlinux.yml` bind-mounted into poller/discover at `/etc/ktranslate/profiles/kentik_snmp/nokia/`; `mibs_enabled` includes `IF-MIB` + `TIMETRA-{SYSTEM,CHASSIS,BGP}-MIB`. Discovery should set `mib_profile: nokia-srlinux.yml` (sysObjectID `1.3.6.1.4.1.6527.1.20.*`)
 - **Alloy role:** OTLP receive + Docker log scrape (lab containers except ktranslate) → preprocess → OTLP HTTP to Grafana Cloud. ktranslate already tees its own logs (and device syslog/traps) over OTLP via `--tee_logs=true`.
 - **Topology:** `topology_exporter` discovers devices via SNMP (`network_topology_device_info`). LLDP edges via **gnmic** `/system/lldp/.../neighbor` → Alloy remaps `…lldp_interface_neighbor_system_name` → `network_topology_edge_info` (stock SRL SNMP has no LLDP rem-table; LLDP protocol itself is enabled)
-- **Deferred:** NetBox (optional via group `DISCOVERY_SOURCE=netbox`), Ansible, full 2-spine/3-leaf Clos, local LGTM stack
 - **Topology exporter image:** GHCR may require auth; build local pin with `make -C local topology-exporter-image` (`srl-local/network-topology-exporter:v1.0.0` from GitHub release binary)
+- **Deferred:** Ansible, full 2-spine/3-leaf Clos, local LGTM stack
 
 ### Bring-up (WSL)
 
@@ -37,6 +38,13 @@ make up
 make traffic
 ```
 
+`make up` **staggers** fabric nodes (spine1 → leaves → clients) and collectors
+(alloy → snmp → flow → syslog → gnmic → topology_exporter) with `LAB_STAGGER_SECS`
+(default 30) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
+`make stabilize` honors `LAB_STAGGER` for collector bring-up.
+
+Optional NetBox Cloud discovery: `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, then `make generate && make netbox-sync && make up`.
+
 From repo root: `make local-up` / `make local-down` / `make local-help`.
 
 Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
@@ -48,6 +56,8 @@ Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
 3. **Alloy comments are `//`**, not `#`.
 4. **`state/devices-*.yaml` is mutable** (discovery writes device lists); never commit `config/` / `state/` / `groups/*.env`. UID 1000 must own `config/` and `state/`.
 5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. Traps → poller `:1620`. One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
+6. **`/mnt/c` + ContainerLab postdeploy:** drvfs breaks SR Linux `config.tmp` commits when clab labdir/startup-config bind-mounts live on `/mnt/c`. `make up` / `make fabric-up` / `make stabilize` auto-mirror `topology.clab.yml` + `configs/fabric/` to ext4 (`CLAB_EXT4_ROOT`, default `~/.cache/network-o11y-demo/clab`) via `scripts/clab.sh`. `make fabric-apply` re-applies configs (defaults to `FULL_FABRIC=1` on ext4 workdir). Compose/o11y can stay on `/mnt/c`. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
+7. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.
 
 ### Metrics to expect in Grafana Cloud
 
@@ -69,9 +79,12 @@ Topology dashboards (adapted for this lab):
 |-----|-------|
 | `lab-topology-graph` | Network Topology (topology-exporter) |
 | `lab-topology-health` | Topology Exporter Health |
+| `lab-ktranslate-flow` | Network Flow Summary (ktranslate) — `network_io_by_flow_bytes` from softflowd + spine sFlow |
 | `lab-network-join-demo` | Network join demo (SIG model) — flows + LLDP subway + SNMP errors/CPU |
 
-JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`. Skip `topology-schedule` (long-running mutator harness only).
+JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`, `local/.dash-payloads/ktranslate-import/lab-ktranslate-flow.json`. Skip `topology-schedule` (long-running mutator harness only).
+
+**Flow dashboard:** UID `lab-ktranslate-flow`, folder `network-lab`. Adapted from the ktranslate **02. Network Flow Summary** pattern (Commvault/marcnetterfield1). Rebuild/import: `python3 local/scripts/build-ktranslate-flow-dashboard.py` then `python3 local/scripts/import-ktranslate-flow-dashboard.py` (prefers `gcx --context networko11ydev`). Source export: `gcx --context commvault dashboards get be8hpir89dds0a`.
 
 **Join demo:** UID `lab-network-join-demo`, folder `network-lab`. Section **0** pairs Tempo `clos-join-demo` spans with softflowd flows on shared `$peer_addr`/`$peer_port` (default `172.17.0.2:8080`). Rebuild/import: `python3 local/scripts/build-network-join-demo.py` then `python3 local/scripts/import-network-join-demo-gcx.py` (or `import-network-join-demo.sh` with `GRAFANA_URL` + `GRAFANA_TOKEN`). After compose recreate, `make -C local softflowd` (collector IP drift).
 

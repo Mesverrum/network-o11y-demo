@@ -9,6 +9,8 @@ with official netflow remapping, and `deployment.host` tagging. Clos extras
 
 The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 
+**New to networking or ktranslate?** See **[docs/network-observability-primer.md](../docs/network-observability-primer.md)** — terminology, telemetry types, pain points, and how this stack maps to Grafana Cloud.
+
 ## Talk-track topology
 
 ```
@@ -30,7 +32,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | Topology devices | SR Linux SNMP → `topology_exporter` (OTLP) → Alloy → GC (`network_topology_device_info`) |
 | Topology edges | SR Linux LLDP via **gnmic** YANG → Alloy remap → GC (`network_topology_edge_info`) |
 
-NetBox is optional (set `DISCOVERY_SOURCE=netbox` on a group + `NETBOX_*` in `.env`).
+NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
 
 **Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Edges come from **gnmic** (`lldp_neighbors` subscribe), not SNMP topology-exporter.
 
@@ -59,10 +61,15 @@ sudo chown -R 1000:1000 config state   # discovery writes as uid 1000
 
 ```bash
 make check
-make up          # clab → compose → snmp TARGETS → discover srl → softflowd → syslog
+make up          # staggered: spine→leaves→clients→collectors (30s pauses)
 make status
 make traffic     # ongoing UDP+ICMP workloads (steady/burst/reverse) client1↔client2
 ```
+
+`make up` (default) staggers fabric nodes and telemetry collectors with
+`LAB_STAGGER_SECS` pauses and logs WSL/Windows RAM between steps — tuned from
+the Jul 2026 stability ladder. Use `make up-parallel` or `LAB_STAGGER=0` for
+the old all-at-once path.
 
 `make up` prints `deployment.host`, starts the stack, rewrites `groups/srl.env`
 TARGETS from ContainerLab mgmt `/32`s, then runs `make discover GROUP=srl`.
@@ -86,6 +93,8 @@ topk(20, network_io_by_flow_bytes)
 ```
 
 **Network join demo dashboard** (SIG UX: conversations + Clos LLDP subway + packet-relevant SNMP): UID `lab-network-join-demo` in folder `network-lab`. Payload: `.dash-payloads/network-join-demo.json`. Import: `python3 scripts/build-network-join-demo.py` then `python3 scripts/import-network-join-demo-gcx.py` (set `GCX_BIN` + `GCX_CONTEXT`, or `GRAFANA_URL` + `GRAFANA_TOKEN` in `.env` and use `scripts/import-network-join-demo.sh`). OTLP: set `GC_OTLP_*` in `.env` (helper: `python3 scripts/retarget-otlp-gc.py --write`). If flows vanish after recreate: `make softflowd`. **Identity tab** (`demo_model` variable): parallel `entity_demo_*` datasets for hostname / poison / mac_alias / address / iface / edge_attrs / vrf.
+
+**Flow dashboard** (ktranslate NetFlow/sFlow): UID `lab-ktranslate-flow` in folder `network-lab`. Panels use `network_io_by_flow_bytes` with exporter/src/dst/protocol variables (same layout as marcnetterfield1 **02. Network Flow Summary**). Rebuild/import: `python3 scripts/build-ktranslate-flow-dashboard.py` then `python3 scripts/import-ktranslate-flow-dashboard.py` (`gcx --context networko11ydev` preferred).
 
 **Clos join app (app↔network):** `make join-app` deploys a tiny OTel Go HTTP client on `client1` and server on `client2` (`172.17.0.1`→`172.17.0.2:8080` over EVPN). Traces land in Tempo as `service.name=clos-join-demo` with `network.peer.*` / `server.address` join keys; softflowd should show `network_peer_port="8080"`. Source: `join-app/`. Stop: `make join-app-stop`. Talk track: dashboard **Investigation** row → `make join-fault` (netem 200 ms/1 % on client `eth1`) → watch app p95 climb → `make join-fault-stop`.
 
@@ -113,7 +122,14 @@ make topology-exporter-image
 | `make discover GROUP=srl` | One-shot SNMP discovery → `state/devices-srl.yaml` + poller reload |
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
-| `make snmp-targets` | Refresh `groups/srl.env` TARGETS after clab IP changes |
+| `make snmp-targets` | Refresh `groups/srl.env` TARGETS (cidr discovery only) |
+| `make netbox-populate` | Seed NetBox Cloud with local lab topology |
+| `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
+| `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
+| `make fabric-up` | Deploy SRL fabric only (ext4 workdir on `/mnt/c`; no collectors) |
+| `make fabric-apply` | (Re)apply `configs/fabric/*.cfg` after edits or failed postdeploy |
+| `make sync-clab-workdir` | Mirror topology + fabric configs to ext4 when repo is on `/mnt/c` |
+| `make stabilize` | Recover without `clab --reconfigure`: start SRL, fabric, discover |
 | `make topology-targets` | Refresh topology-exporter SNMP hosts after clab IP changes |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
@@ -146,6 +162,41 @@ Upstream docs: [KtransToGrafana README](https://github.com/Mesverrum/KtransToGra
 - `make up` writes `compose-limits.generated.yaml` from host RAM (set `MEM_LIMITS=off` to skip)
 - If nodes OOM, destroy the lab (`make down`) and close other heavy apps before `make up` again
 - First pull of `ghcr.io/nokia/srlinux:24.10.1` is large (~1.3 GiB)
+
+## WSL `/mnt/c` and fabric config
+
+When the repo lives under `/mnt/c/Users/...`, ContainerLab **postdeploy cannot commit**
+SR Linux startup config (`config.tmp` permission error on drvfs).
+
+**Automatic fix:** `make up`, `make fabric-up`, and `make stabilize` detect drvfs and
+mirror `topology.clab.yml` + `configs/fabric/` to native ext4 (default
+`~/.cache/network-o11y-demo/clab`) before `clab deploy`. Postdeploy can then commit
+full BGP/EVPN startup config. Override with `CLAB_EXT4_ROOT` in `.env`.
+
+```bash
+make sync-clab-workdir   # preview ext4 mirror path
+make fabric-up           # fabric only (no collectors / NetBox)
+make fabric-apply        # re-apply after editing configs/fabric/*.cfg
+make stabilize           # full recovery without clab --reconfigure
+```
+
+If you still see missing BGP/EVPN after deploy, run `FULL_FABRIC=1 make fabric-apply`.
+**Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it
+SIGTERM-stops all nodes (exit code 143), which is not OOM. For editors/IDEs tied to
+Windows paths, you can keep the repo on `/mnt/c`; only clab’s deploy workdir moves to ext4.
+Alternatively, clone the whole repo to `~/projects/network-o11y-demo` on ext4.
+
+**Keeping fabric alive:** SRL nodes sometimes receive SIGTERM (exit 143) from Docker/WSL
+(e.g. Docker Desktop resource saver, disk pressure on `C:`). Use the background watchdog:
+
+```bash
+make fabric-watch          # poll every 60s, auto fabric-stabilize
+make fabric-watch-status
+make fabric-stabilize      # one-shot recovery without collectors
+```
+
+`make fabric-up` starts `fabric-watch` automatically. In Docker Desktop, disable
+**Resource Saver** and avoid stopping the engine while the lab should run.
 
 ## Network name
 

@@ -123,10 +123,10 @@ for env_file in "${GROUP_FILES[@]}"; do
   [[ "${src}" == "netbox" ]] && NETBOX_GROUPS=$((NETBOX_GROUPS+1))
 done
 if [[ "${NETBOX_GROUPS}" -gt 0 ]]; then
-  if [[ -f .env ]] && grep -qE '^NETBOX_HOST=.+' .env && grep -qE '^NETBOX_TOKEN=.+' .env; then
-    _ok "${NETBOX_GROUPS} netbox group(s); NETBOX_HOST/NETBOX_TOKEN set in .env"
+  if [[ -f .env ]] && grep -qE '^NETBOX_API_URL=.+' .env && grep -qE '^NETBOX_TOKEN=.+' .env; then
+    _ok "${NETBOX_GROUPS} netbox group(s); NETBOX_API_URL/NETBOX_TOKEN set in .env"
   else
-    _fail "${NETBOX_GROUPS} group(s) use DISCOVERY_SOURCE=netbox but NETBOX_HOST/NETBOX_TOKEN are not both set in .env"
+    _fail "${NETBOX_GROUPS} group(s) use DISCOVERY_SOURCE=netbox but NETBOX_API_URL/NETBOX_TOKEN are not both set in .env"
   fi
 fi
 

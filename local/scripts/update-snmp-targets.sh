@@ -14,6 +14,11 @@ info() { echo "==> $*"; }
 
 [[ -f "$GROUP_ENV" ]] || die "missing ${GROUP_ENV} — cp groups/srl.env.sample groups/srl.env"
 
+if grep -q '^DISCOVERY_SOURCE=netbox' "$GROUP_ENV"; then
+  info "DISCOVERY_SOURCE=netbox — skipping TARGETS rewrite (use: make netbox-sync-mgmt)"
+  exit 0
+fi
+
 CLAB_NET="${CLAB_NETWORK:-clab}"
 docker network inspect "$CLAB_NET" >/dev/null 2>&1 \
   || die "docker network ${CLAB_NET} not found — check CLAB_NETWORK / clab deploy"

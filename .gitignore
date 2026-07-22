@@ -12,6 +12,7 @@ values.local.yaml
 local/.env
 local/groups/*.env
 !local/groups/*.env.sample
+!local/groups/*.env.*.sample
 local/config/
 local/state/
 local/compose-groups.generated.yaml
@@ -19,6 +20,7 @@ local/compose-limits.generated.yaml
 local/snmp.yaml
 local/.dash-payloads/
 local/.ref-KtransToGrafana/
+local/clab-srl-local/
 
 # Terraform state and working files
 **/.terraform/
