@@ -2,9 +2,9 @@
 # One-click decommission for network-o11y-demo (macOS / native Linux).
 #   ./oneclick/decommission.sh          (or: make teardown)
 # Thin bootstrapper: runs the shared oneclick/lab-linux.sh 'decommission' inside
-# the Linux env (OrbStack VM on macOS, host on native Linux), then handles the
-# host-side extras (delete VM, remove Grafana dashboards). Idempotent; prompts
-# before destructive extras; roadblocks exit 2 so you fix + re-run.
+# the Linux env (OrbStack VM on macOS, host on native Linux) — which also does the
+# Grafana teardown (dashboards + plugins-we-installed) — then handles the host-side
+# extra (delete VM). Idempotent; prompts before destructive steps; roadblocks exit 2.
 set -uo pipefail
 SELF="./oneclick/decommission.sh"; ACTION=decommission
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
@@ -17,28 +17,16 @@ run_teardown() { # runs lab-linux.sh decommission in the right Linux env
   orb -m "$VM_NAME" bash -lc "bash ~/$VM_REPO/oneclick/lab-linux.sh decommission"
 }
 
-remove_dashboards() { # host-side gcx (macOS) — remove the network-lab folder if asked
-  if [[ -x "$GCX_BIN" ]] && gcx_ok; then
-    if confirm "Remove the '$GRAFANA_FOLDER' dashboards from Grafana Cloud?"; then
-      step "Deleting dashboards + folder"
-      for uid in net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health \
-                 net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo; do
-        "$GCX_BIN" api "/api/dashboards/uid/$uid" -X DELETE >/dev/null 2>&1 || true
-      done
-      "$GCX_BIN" api "/api/folders/$GRAFANA_FOLDER" -X DELETE >/dev/null 2>&1 || true
-      ok "dashboards/folder removed (installed panel plugins left in place)"
-    else skip "dashboards kept in Grafana Cloud"; fi
-  else warn "gcx not authenticated — left Grafana Cloud dashboards untouched (remove manually if desired)"; fi
-  warn "Metrics already ingested are retained per your stack's retention; nothing is deleted from the TSDB."
-}
-
 decom_local() {
   hdr "Tear down local lab"
+  # lab-linux.sh 'decommission' also runs the Grafana teardown: it asks about the
+  # network-lab dashboards, and (only for plugins THIS deploy installed) asks
+  # before removing each — plugins that pre-existed the deploy are never touched.
   if [[ "$(uname -s)" != "Darwin" ]]; then
     step "Running lab-linux.sh decommission (native Linux)"; run_teardown; local rc=$?
     [[ $rc -eq 2 ]] && { final_report "resolve the roadblock above, then re-run $SELF"; exit 2; }
     [[ $rc -eq 0 ]] && ok "lab torn down" || warn "teardown exited $rc"
-    remove_dashboards; return
+    return
   fi
   if ! have orb; then skip "OrbStack not installed — nothing local to remove"; return; fi
   if ! orb list 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then skip "VM '$VM_NAME' not present"
@@ -52,7 +40,6 @@ decom_local() {
       step "Deleting VM '$VM_NAME'"; orb delete "$VM_NAME" >/dev/null 2>&1 && ok "VM deleted" || warn "could not delete VM (orb delete $VM_NAME)"
     else skip "VM kept (re-deploy will be fast)"; fi
   fi
-  remove_dashboards
 }
 
 decom_aws() {

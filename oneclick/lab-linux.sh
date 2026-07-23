@@ -147,8 +147,10 @@ grafana(){
   python3 scripts/build-topology-dashboards.py >/dev/null 2>&1 || true
   python3 scripts/build-network-join-demo.py   >/dev/null 2>&1 || true
   python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1 || true
+  mkdir -p state
   GRAFANA_URL="$GRAFANA_URL" GRAFANA_TOKEN="$GRAFANA_TOKEN" \
   GC_PLUGINS_TOKEN="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" \
+  PLUGIN_STATE="state/oneclick-plugins-installed" \
   python3 - <<'PY'
 import json, os, sys, glob, urllib.request, urllib.error, re
 base=os.environ["GRAFANA_URL"].rstrip("/"); tok=os.environ["GRAFANA_TOKEN"]
@@ -173,14 +175,32 @@ for f in FILES:
     if 200<=c<300: n+=1
     else: print(f"  ! dashboard {os.path.basename(f)}: HTTP {c}")
 print(f"  imported {n}/{len(FILES)} dashboards into folder network-lab")
-# plugins (Cloud API)
+# plugins (Cloud API) — install ONLY if missing; record just the ones WE install
+# so teardown never removes a plugin that was already present before this deploy.
 if not ptok: print("PLUGIN_SCOPE_MISSING"); sys.exit(3)
-need_scope=False
+ic,ib=req(base+"/api/plugins",tok,method="GET")   # in-stack list of installed plugins
+installed=set()
+if 200<=ic<300:
+    try: installed={p.get("id") for p in json.loads(ib)}
+    except Exception: pass
+pstate=os.environ.get("PLUGIN_STATE",""); tracked=[]; need_scope=False
 for p in PLUGINS:
+    if p in installed:
+        print(f"  plugin {p}: already installed — left as-is (will NOT be removed on teardown)")
+        continue
     c,b=req(f"https://grafana.com/api/instances/{slug}/plugins",ptok,{"plugin":p})
-    if 200<=c<300 or c==409: print(f"  plugin {p}: ok")
-    elif c in (401,403): print(f"  plugin {p}: HTTP {c} (token lacks stack-plugins:write)"); need_scope=True
-    else: print(f"  plugin {p}: HTTP {c} {b[:120].decode(errors='replace')}")
+    if 200<=c<300 or c==409:
+        print(f"  plugin {p}: installed by this deploy (teardown will ASK before removing)"); tracked.append(p)
+    elif c in (401,403):
+        print(f"  plugin {p}: HTTP {c} (token lacks stack-plugins:write)"); need_scope=True
+    else:
+        print(f"  plugin {p}: HTTP {c} {b[:120].decode(errors='replace')}")
+if tracked and pstate:
+    existing=set()
+    if os.path.exists(pstate):
+        existing={l.strip() for l in open(pstate) if l.strip()}
+    with open(pstate,"w") as fh:
+        for x in sorted(existing|set(tracked)): fh.write(x+"\n")
 sys.exit(3 if need_scope else 0)
 PY
   local rc=$?
@@ -192,15 +212,47 @@ PY
 }
 
 teardown(){
-  step "Tear down lab"; cd "$LDIR"
+  step "Tear down lab"; cd "$LDIR" || return 0
   make traffic-stop  >/dev/null 2>&1 || true
   make join-app-stop >/dev/null 2>&1 || true
   if docker ps -q | grep -q .; then make down >/dev/null 2>&1 && ok "lab torn down" || roadblock "make down failed" "cd $LDIR && make down" "Stuck containers: docker rm -f \$(docker ps -aq)"
   else skip "no lab containers running"; fi
 }
 
+confirm(){ if [ -t 0 ]; then read -r -p "  $1 [y/N] " _a; [[ "$_a" =~ ^[Yy] ]]; else warn "non-interactive: keeping (re-run interactively to remove)"; return 1; fi; }
+
+grafana_teardown(){
+  cd "$LDIR" || return 0
+  set -a; [ -f .env ] && . ./.env; set +a
+  local base="${GRAFANA_URL:-}" tok="${GRAFANA_TOKEN:-}" sf="state/oneclick-plugins-installed" slug ptok
+  slug="$(printf '%s' "$base" | sed -E 's#https?://([^.]+)\..*#\1#')"; ptok="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}"
+  step "Grafana Cloud teardown"
+  if [[ -n "$base" && "$tok" == glsa_* ]] && confirm "Remove the network-lab dashboards + folder from Grafana Cloud?"; then
+    for uid in net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health \
+               net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo; do
+      curl -s -o /dev/null -X DELETE "$base/api/dashboards/uid/$uid" -H "Authorization: Bearer $tok" || true
+    done
+    curl -s -o /dev/null -X DELETE "$base/api/folders/network-lab" -H "Authorization: Bearer $tok" || true
+    ok "dashboards + folder removed"
+  else skip "dashboards kept in Grafana Cloud"; fi
+  # Plugins: ONLY the ones THIS deploy installed (recorded in $sf). Plugins that
+  # were already present before deploy are never listed here, so never removed.
+  if [[ -s "$sf" ]]; then
+    local keep=""
+    while IFS= read -r p; do
+      [[ -z "$p" ]] && continue
+      if [[ -n "$ptok" ]] && confirm "Remove panel plugin '$p' that THIS deploy installed? (it may now be used by other dashboards)"; then
+        local code; code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "https://grafana.com/api/instances/$slug/plugins/$p" -H "Authorization: Bearer $ptok")"
+        case "$code" in 2*) ok "removed plugin $p";; *) warn "plugin $p removal HTTP $code (kept)"; keep+="$p"$'\n';; esac
+      else skip "kept plugin $p"; keep+="$p"$'\n'; fi
+    done < "$sf"
+    printf '%s' "$keep" > "$sf"
+  else skip "no plugins were installed by this deploy — pre-existing plugins left untouched"; fi
+  warn "Ingested metrics are retained per your stack's retention; nothing is deleted from the TSDB."
+}
+
 case "$ACTION" in
   deploy)        install_toolchain; prep_config; bringup; grafana; ok "lab-linux: deploy complete" ;;
-  decommission)  teardown; ok "lab-linux: decommission complete" ;;
+  decommission)  teardown; grafana_teardown; ok "lab-linux: decommission complete" ;;
   *) echo "usage: lab-linux.sh deploy|decommission"; exit 1 ;;
 esac

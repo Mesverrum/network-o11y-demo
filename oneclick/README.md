@@ -92,6 +92,15 @@ plugins can be installed (an OAuth user session cannot install plugins):
 If a token is missing the script roadblocks with the exact portal steps, then
 resumes on re-run.
 
+### Plugin lifecycle (safe teardown)
+Deploy records **only the plugins it actually installs** (in
+`local/state/oneclick-plugins-installed`):
+- A plugin that was **already installed** before deploy is left as-is and is
+  **never removed** on teardown (it may be used by other dashboards).
+- A plugin the deploy **installed itself** is remembered, and on
+  `decommission`/`teardown` you're **asked per-plugin** whether to remove it
+  (default: keep) — in case something else started using it after deploy.
+
 ## AWS deployment
 
 Drives the repo's existing automation: `make infra` (OpenTofu: VPC/EKS/bastion)

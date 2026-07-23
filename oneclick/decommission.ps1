@@ -1,7 +1,8 @@
 # One-click DECOMMISSION for Windows (WSL2). Run from PowerShell:
 #     .\oneclick\decommission.ps1
-# Tears down what deploy.ps1 created. Prompts before destructive extras
-# (unregistering the distro, removing dashboards). Roadblocks exit 2 to re-run.
+# Tears down what deploy.ps1 created by running lab-linux.sh 'decommission' inside
+# WSL (which also does the Grafana teardown: dashboards + only the plugins THIS
+# deploy installed, asking first). Prompts before unregistering the distro.
 $ErrorActionPreference = 'Stop'
 $script:Self   = '.\oneclick\decommission.ps1'
 $script:Action = 'decommission'
@@ -14,7 +15,7 @@ function Decom-Local {
   if ($distros -notcontains $script:Distro) { Skip "distro '$($script:Distro)' not present"; }
   elseif (WslQ "test -d ~/$($script:VmRepo)/local") {
     Sync-Lab
-    Step "Stopping lab (traffic, join-app, make down) via lab-linux.sh"
+    Step "Tearing down lab + Grafana (dashboards + only plugins we installed) via lab-linux.sh"
     $rc = Wsl "bash ~/$($script:VmRepo)/oneclick/lab-linux.sh decommission"
     if ($rc -eq 2) { Write-Host "`nResolve the roadblock above, then re-run." -ForegroundColor Yellow; Final-Report "stopped at a roadblock"; exit 2 }
     elseif ($rc -eq 0) { Ok "lab torn down" } else { Fail "teardown returned exit $rc" }
@@ -23,17 +24,6 @@ function Decom-Local {
   if (($distros -contains $script:Distro) -and (Confirm-Yes "Also UNREGISTER the WSL distro '$($script:Distro)' (deletes repo, images, tools)?")) {
     Step "wsl --unregister $($script:Distro)"; wsl.exe --unregister $script:Distro; if ($LASTEXITCODE -eq 0) { Ok "distro unregistered" } else { Warn "could not unregister distro" }
   } else { Skip "WSL distro kept (re-deploy will be fast)" }
-
-  # optional: remove dashboards from Grafana Cloud (via gcx inside WSL)
-  if ((WslQ 'command -v gcx') -and (WslQ 'gcx config check')) {
-    if (Confirm-Yes "Remove the '$($script:GFolder)' dashboards from Grafana Cloud?") {
-      Step "Deleting dashboards + folder"
-      $uids = 'net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo'
-      Wsl "for u in $uids; do gcx api /api/dashboards/uid/`$u -X DELETE >/dev/null 2>&1; done; gcx api /api/folders/$($script:GFolder) -X DELETE >/dev/null 2>&1; true" | Out-Null
-      Ok "dashboards/folder removed (installed panel plugins left in place)"
-    } else { Skip "dashboards kept in Grafana Cloud" }
-  } else { Warn "gcx not authenticated in WSL - left Grafana Cloud dashboards untouched" }
-  Warn "Metrics already ingested are retained per your stack's retention; nothing is deleted from the TSDB."
 }
 
 function Decom-Aws {
