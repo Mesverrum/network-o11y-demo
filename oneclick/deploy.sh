@@ -10,10 +10,10 @@ SELF="./oneclick/deploy.sh"; ACTION=deploy
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 # ===========================================================================
-# LOCAL — macOS bootstrap (OrbStack VM) + shared lab-linux.sh, OR native Linux
+# LOCAL - macOS bootstrap (OrbStack VM) + shared lab-linux.sh, OR native Linux
 # ===========================================================================
 preflight_local() {
-  hdr "Pre-flight — local"
+  hdr "Pre-flight - local"
   if [[ "$(uname -s)" != "Darwin" ]]; then
     have docker || warn "docker not found; lab-linux.sh will install it"
     ok "native Linux detected (no VM needed)"; NATIVE_LINUX=1; return
@@ -58,7 +58,7 @@ seed_creds() {
   local creds_ok="grep -qE '^GC_OTLP_KEY=glc_' .env && ! grep -E '^GC_OTLP_(URL|ACCOUNT|KEY)=' .env | grep -qE 'REPLACE_ME|YOUR-REGION|glc_REPLACE_ME'"
   if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then
     ( cd "$REPO_ROOT/local" && { [ -f .env ] || cp .env.example .env; sed -i 's/\r$//' .env 2>/dev/null || true; eval "$creds_ok"; } ) 2>/dev/null && skip "OTLP credentials present" \
-      || roadblock "Grafana Cloud OTLP credentials required" "Edit $REPO_ROOT/local/.env" "Set GC_OTLP_URL / GC_OTLP_ACCOUNT / GC_OTLP_KEY (glc_… token)."
+      || roadblock "Grafana Cloud OTLP credentials required" "Edit $REPO_ROOT/local/.env" "Set GC_OTLP_URL / GC_OTLP_ACCOUNT / GC_OTLP_KEY (glc_... token)."
     return
   fi
   vm "cd ~/$VM_REPO/local && { [ -f .env ] || cp .env.example .env; sed -i 's/\r\$//' .env; }" >/dev/null 2>&1 || true
@@ -72,14 +72,14 @@ seed_creds() {
     ok "credentials copied from Mac repo"
   else
     roadblock "Grafana Cloud OTLP credentials required" \
-      "Grafana Cloud → Connections → Add new connection → OpenTelemetry (OTLP)." \
+      "Grafana Cloud -> Connections -> Add new connection -> OpenTelemetry (OTLP)." \
       "Either put GC_OTLP_URL/ACCOUNT/KEY in this Mac's local/.env and re-run," \
-      "or edit the VM copy:  orb -m $VM_NAME  →  nano ~/$VM_REPO/local/.env"
+      "or edit the VM copy:  orb -m $VM_NAME  ->  nano ~/$VM_REPO/local/.env"
   fi
 }
 
 run_lab() { # $1 = deploy
-  hdr "Lab $1 — shared oneclick/lab-linux.sh"
+  hdr "Lab $1 - shared oneclick/lab-linux.sh"
   step "Running lab-linux.sh $1 (uid-aware toolchain + bring-up)"
   if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then bash "$REPO_ROOT/oneclick/lab-linux.sh" "$1"
   else orb -m "$VM_NAME" bash -lc "bash ~/$VM_REPO/oneclick/lab-linux.sh $1"; fi
@@ -91,10 +91,10 @@ run_lab() { # $1 = deploy
 deploy_local() { preflight_local; ensure_repo; seed_creds; run_lab deploy; }
 
 # ===========================================================================
-# AWS — drives the repo's automation (not session-validated)
+# AWS - drives the repo's automation (not session-validated)
 # ===========================================================================
 deploy_aws() {
-  hdr "Pre-flight — AWS / EKS"
+  hdr "Pre-flight - AWS / EKS"
   warn "The AWS path uses the repo's terraform + 'make all' (not validated in this session)."
   have aws || roadblock "AWS CLI required" "Install: brew install awscli" "Configure: aws configure"
   aws sts get-caller-identity >/dev/null 2>&1 || roadblock "AWS credentials not working" "Run: aws configure" "Verify: aws sts get-caller-identity"
@@ -110,7 +110,7 @@ deploy_aws() {
 }
 
 main() {
-  hdr "network-o11y-demo — one-click DEPLOY"
+  hdr "network-o11y-demo - one-click DEPLOY"
   state_init; choose_target
   say "Target: ${C_B}$TARGET${C_RESET}"
   case "$TARGET" in local) deploy_local ;; aws) deploy_aws ;; esac

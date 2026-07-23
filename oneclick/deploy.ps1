@@ -1,6 +1,6 @@
 # One-click DEPLOY for Windows (WSL2). Run from PowerShell:
 #     .\oneclick\deploy.ps1
-# Windows uses WSL2 (ContainerLab runs natively in WSL2's Linux kernel — no
+# Windows uses WSL2 (ContainerLab runs natively in WSL2's Linux kernel - no
 # OrbStack). This is a thin bootstrapper: it prepares WSL and then runs
 # oneclick/lab-linux.sh INSIDE the distro (shared with native Linux). Idempotent
 # and resumable; roadblocks print remediation and exit so you fix + re-run.

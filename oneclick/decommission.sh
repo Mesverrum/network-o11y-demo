@@ -2,8 +2,8 @@
 # One-click decommission for network-o11y-demo (macOS / native Linux).
 #   ./oneclick/decommission.sh          (or: make teardown)
 # Thin bootstrapper: runs the shared oneclick/lab-linux.sh 'decommission' inside
-# the Linux env (OrbStack VM on macOS, host on native Linux) — which also does the
-# Grafana teardown (dashboards + plugins-we-installed) — then handles the host-side
+# the Linux env (OrbStack VM on macOS, host on native Linux) - which also does the
+# Grafana teardown (dashboards + plugins-we-installed) - then handles the host-side
 # extra (delete VM). Idempotent; prompts before destructive steps; roadblocks exit 2.
 set -uo pipefail
 SELF="./oneclick/decommission.sh"; ACTION=decommission
@@ -21,14 +21,14 @@ decom_local() {
   hdr "Tear down local lab"
   # lab-linux.sh 'decommission' also runs the Grafana teardown: it asks about the
   # network-lab dashboards, and (only for plugins THIS deploy installed) asks
-  # before removing each — plugins that pre-existed the deploy are never touched.
+  # before removing each - plugins that pre-existed the deploy are never touched.
   if [[ "$(uname -s)" != "Darwin" ]]; then
     step "Running lab-linux.sh decommission (native Linux)"; run_teardown; local rc=$?
     [[ $rc -eq 2 ]] && { final_report "resolve the roadblock above, then re-run $SELF"; exit 2; }
     [[ $rc -eq 0 ]] && ok "lab torn down" || warn "teardown exited $rc"
     return
   fi
-  if ! have orb; then skip "OrbStack not installed — nothing local to remove"; return; fi
+  if ! have orb; then skip "OrbStack not installed - nothing local to remove"; return; fi
   if ! orb list 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then skip "VM '$VM_NAME' not present"
   else
     if vm_q "test -d ~/$VM_REPO/local"; then
@@ -54,7 +54,7 @@ decom_aws() {
 }
 
 main() {
-  hdr "network-o11y-demo — one-click DECOMMISSION"
+  hdr "network-o11y-demo - one-click DECOMMISSION"
   state_init
   TARGET="$(state_get TARGET)"; [[ -z "$TARGET" ]] && choose_target
   say "Target: ${C_B}$TARGET${C_RESET}"
