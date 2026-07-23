@@ -43,14 +43,20 @@ NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.net
 
 ## Prerequisites
 
-| | **macOS** | **WSL2 / Linux** |
+> **macOS:** ContainerLab does **not** run natively on macOS (no darwin binary;
+> it needs a Linux kernel). On a Mac, run the whole lab inside a Linux VM —
+> see **[docs/macos-orbstack-setup.md](../docs/macos-orbstack-setup.md)** for the
+> OrbStack path (install VM → toolchain → clone to ext4 → bring-up → gotchas).
+> Docker Desktop alone is not sufficient.
+
+| | **macOS (inside OrbStack Linux VM)** | **WSL2 / Linux** |
 |---|-----------|------------------|
-| Docker | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) — allocate **10–12 GB** RAM in Settings → Resources | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL2 backend) or Docker Engine in WSL |
-| ContainerLab | `brew install containerlab` ([install docs](https://containerlab.dev/install/)) | [ContainerLab](https://containerlab.dev/install/) (`containerlab` or `clab`) |
-| CLI tools | `brew install yq gettext` (`envsubst` from gettext) | `sudo apt install yq gettext-base` |
+| Docker | Docker Engine **inside** the VM (`apt install docker.io docker-compose-v2`); give the VM **10–12 GB** RAM | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL2 backend) or Docker Engine in WSL |
+| ContainerLab | inside the VM: `bash -c "$(curl -sL https://get.containerlab.dev)"` — **no** macOS-host binary ([macOS guide](https://containerlab.dev/macos/)) | [ContainerLab](https://containerlab.dev/install/) (`containerlab` or `clab`) |
+| CLI tools | inside the VM: `apt install make gettext-base` + mikefarah `yq` binary | `sudo apt install yq gettext-base` |
 | Grafana Cloud | OTLP credentials from **Connections → OpenTelemetry** (`GC_OTLP_URL`, account, key) | same |
 
-**Apple Silicon (M1/M2/M3):** SR Linux and several images are `linux/amd64`. Docker runs them under emulation — expect slower first boot and longer `make up` (~15 min). A 16 GB Mac with 10+ GB for Docker is recommended.
+**Apple Silicon (M1/M2/M3):** SR Linux and several images are `linux/amd64`. Docker runs them under emulation — expect slower first boot and longer `make up` (~15 min). A 16 GB Mac with 10+ GB for the VM is recommended.
 
 **Windows + WSL only:** if the repo lives on `/mnt/c/...`, see [WSL `/mnt/c` and fabric config](#wsl-mntc-and-fabric-config) below. macOS and native Linux clones use the repo directory directly (no ext4 mirror needed).
 
@@ -185,14 +191,26 @@ Upstream docs: [KtransToGrafana README](https://github.com/Mesverrum/KtransToGra
 
 ## macOS quick reference
 
-```bash
-# One-time
-brew install containerlab yq gettext
-# Docker Desktop: 10–12 GB RAM, disable aggressive "Resource Saver" while lab runs
+ContainerLab has no macOS binary — run the lab inside an **OrbStack Linux VM**.
+Full walkthrough + gotchas: **[docs/macos-orbstack-setup.md](../docs/macos-orbstack-setup.md)**.
 
-cd local && cp .env.example .env && cp groups/srl.env.sample groups/srl.env
+```bash
+# One-time (on the Mac host)
+brew install --cask orbstack        # open once, approve admin prompt, enable Linux + Docker
+orb create ubuntu
+
+# Inside the VM (orb -m ubuntu): install toolchain, then clone to native disk
+sudo apt-get install -y docker.io docker-compose-v2 make gettext-base curl
+sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"
+bash -c "$(curl -sL https://get.containerlab.dev)"
+sudo curl -sL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 && sudo chmod +x /usr/local/bin/yq
+git clone https://github.com/Mesverrum/network-o11y-demo.git && cd network-o11y-demo/local
+
+cp .env.example .env && cp groups/srl.env.sample groups/srl.env
+sed -i 's/\r$//' .env groups/srl.env    # sample files may carry CRLF
 # Set GC_OTLP_* in .env (paste from Grafana Cloud → OpenTelemetry)
-make check && make generate && make up
+make generate && make check && make up
+sudo make discover GROUP=srl            # uid 501↔1000 mapping: run discovery as root on OrbStack
 make status && make traffic
 ```
 
