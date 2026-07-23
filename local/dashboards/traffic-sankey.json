@@ -1,0 +1,234 @@
+{
+  "uid": "net-o11y-traffic-sankey",
+  "title": "Network O11y — Traffic Sankey",
+  "description": "Sankey flow diagrams of SR Linux Clos fabric traffic. Uses label_replace() to map gNMI interface names to connected device names.",
+  "tags": [
+    "network-o11y-demo"
+  ],
+  "schemaVersion": 41,
+  "version": 0,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Spine ↔ Leaf Traffic",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "netsage-sankey-panel",
+      "title": "Spine → Leaf",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "linkColor": "multi",
+        "nodeColor": "#7EB26D",
+        "nodeWidth": 20,
+        "nodePadding": 10,
+        "layoutIterations": 32
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (device_name, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(kentik_snmp_ifHCOutOctets{device_name=~\".+\", if_Description=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"device_name\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"if_Description\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"if_Description\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"if_Description\", \"ethernet-1/3\"  ))",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "source": 0,
+              "destination": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "source": "Source",
+              "destination": "Destination",
+              "Value": "bps"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "netsage-sankey-panel",
+      "title": "Leaf → Spine",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "linkColor": "multi",
+        "nodeColor": "#7EB26D",
+        "nodeWidth": 20,
+        "nodePadding": 10,
+        "layoutIterations": 32
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (device_name, destination) (  label_replace(    label_replace(      label_replace(        rate(kentik_snmp_ifHCOutOctets{device_name=~\".+\", if_Description=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,        \"device_name\", \"$1\", \"job\", \"integrations/snmp/(.*)\"      ),      \"destination\", \"spine1\", \"if_Description\", \"ethernet-1/49\"    ),    \"destination\", \"spine2\", \"if_Description\", \"ethernet-1/50\"  ))",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "source": 0,
+              "destination": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "source": "Source",
+              "destination": "Destination",
+              "Value": "bps"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "netsage-sankey-panel",
+      "title": "Spine ↔ Leaf (Aggregate)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "linkColor": "multi",
+        "nodeColor": "#7EB26D",
+        "nodeWidth": 20,
+        "nodePadding": 10,
+        "layoutIterations": 32
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (device_name, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(kentik_snmp_ifHCOutOctets{device_name=~\".+\", if_Description=~\"ethernet-1/[123]\"}[$__rate_interval]) * 8,          \"device_name\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"leaf1\", \"if_Description\", \"ethernet-1/1\"      ),      \"destination\", \"leaf2\", \"if_Description\", \"ethernet-1/2\"    ),    \"destination\", \"leaf3\", \"if_Description\", \"ethernet-1/3\"  ))) + on(device_name, destination) (sum by (device_name, destination) (  label_replace(    label_replace(      label_replace(        label_replace(          rate(kentik_snmp_ifHCOutOctets{device_name=~\".+\", if_Description=~\"ethernet-1/(49|50)\"}[$__rate_interval]) * 8,          \"device_name\", \"$1\", \"job\", \"integrations/snmp/(.*)\"        ),        \"destination\", \"$1\", \"device_name\", \"(leaf.*)\"      ),      \"device_name\", \"spine1\", \"if_Description\", \"ethernet-1/49\"    ),    \"device_name\", \"spine2\", \"if_Description\", \"ethernet-1/50\"  )))",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "source": 0,
+              "destination": 1,
+              "Value": 2
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "refresh": 1,
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "fiscalYearStartMonth": 0
+}
