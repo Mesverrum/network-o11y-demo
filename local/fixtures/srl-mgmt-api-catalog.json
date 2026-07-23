@@ -1,0 +1,101 @@
+{
+  "platform": "nokia-srlinux",
+  "release": "24.10",
+  "description": "Northbound management APIs for Nokia SR Linux. enabled_in_lab reflects this ContainerLab stack; mock=true entries ship fixture samples via srl_mgmt_api_mock OTLP export.",
+  "apis": [
+    {
+      "name": "gnmi",
+      "transport": "grpc",
+      "port": 57400,
+      "network_instance": "mgmt",
+      "enabled_in_lab": true,
+      "lab_collector": "gnmic",
+      "mock": false,
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/gnmi/gnmi-intro.html"
+    },
+    {
+      "name": "snmp",
+      "transport": "udp",
+      "port": 161,
+      "network_instance": "mgmt",
+      "enabled_in_lab": true,
+      "lab_collector": "ktranslate_snmp_srl",
+      "mock": false,
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/snmp/snmp-intro.html"
+    },
+    {
+      "name": "syslog",
+      "transport": "udp",
+      "port": 1514,
+      "network_instance": "mgmt",
+      "enabled_in_lab": true,
+      "lab_collector": "ktranslate_syslog",
+      "mock": false,
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/system-logging/system-logging-overview.html"
+    },
+    {
+      "name": "snmp-traps",
+      "transport": "udp",
+      "port": 162,
+      "network_instance": "mgmt",
+      "enabled_in_lab": true,
+      "lab_collector": "ktranslate_snmp_srl",
+      "mock": false,
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/snmp/snmp-traps.html"
+    },
+    {
+      "name": "sflow",
+      "transport": "udp",
+      "port": 6343,
+      "network_instance": "mgmt",
+      "enabled_in_lab": true,
+      "lab_collector": "ktranslate_sflow",
+      "mock": false,
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/sflow/sflow-overview.html"
+    },
+    {
+      "name": "netconf",
+      "transport": "ssh",
+      "port": 830,
+      "network_instance": "mgmt",
+      "enabled_in_lab": false,
+      "lab_collector": "",
+      "mock": true,
+      "sample_fixture": "fixtures/srl-mock/netconf-get-config-snippet.xml",
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/netconf/netconf-overview.html"
+    },
+    {
+      "name": "json-rpc",
+      "transport": "https",
+      "port": 443,
+      "path": "/jsonrpc",
+      "network_instance": "mgmt",
+      "enabled_in_lab": false,
+      "lab_collector": "",
+      "mock": true,
+      "sample_fixture": "fixtures/srl-mock/jsonrpc-get-system-state.json",
+      "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/jsonrpc/jsonrpc-overview.html"
+    },
+    {
+      "name": "gnoi",
+      "transport": "grpc",
+      "port": 57400,
+      "network_instance": "mgmt",
+      "enabled_in_lab": false,
+      "lab_collector": "",
+      "mock": true,
+      "sample_fixture": "fixtures/srl-mock/gnoi-ping-mock.json",
+      "docs_url": "https://github.com/openconfig/gnoi"
+    },
+    {
+      "name": "gribi",
+      "transport": "grpc",
+      "port": 57400,
+      "network_instance": "mgmt",
+      "enabled_in_lab": false,
+      "lab_collector": "",
+      "mock": true,
+      "docs_url": "https://github.com/openconfig/gribi"
+    }
+  ]
+}

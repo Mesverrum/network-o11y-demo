@@ -1,0 +1,24 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": [
+    {
+      "path": "/system/information",
+      "data": {
+        "hostname": "spine1",
+        "chassis-type": "7220 IXR-D2L",
+        "part-number": "mock-lab-fixture",
+        "serial-number": "MOCK-SRL-0001",
+        "system-description": "Nokia SR Linux — mock JSON-RPC response (mgmt API not enabled in local lab)",
+        "version": "24.10.1",
+        "product-name": "Nokia SR Linux Software",
+        "current-date-time": "2026-07-22T05:00:00Z"
+      }
+    }
+  ],
+  "_mock": {
+    "api": "json-rpc",
+    "method": "get",
+    "note": "Representative JSON-RPC 2.0 response per Nokia SR Linux JSON-RPC book; not collected live in this lab."
+  }
+}

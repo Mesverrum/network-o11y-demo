@@ -164,6 +164,10 @@ post_up_config() {
   info "Configuring SNMP traps → ktranslate_snmp_srl..."
   bash "${ROOT}/scripts/snmp-trap-config.sh" \
     || echo "WARNING: snmp trap config failed — check sr_cli syntax"
+
+  info "Exporting SR Linux mgmt API catalog (live + mock)..."
+  bash "${ROOT}/scripts/mgmt-api-mock.sh" emit \
+    || echo "WARNING: mgmt-api-mock export failed — check go + alloy OTLP"
 }
 
 main() {

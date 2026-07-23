@@ -99,6 +99,8 @@ Think of four questions network ops asks every day:
 
 **In this lab:** SNMP via **ktranslate** (`kentik_snmp_*` metrics). gNMI via **gnmic** (`gnmi_*` metrics).
 
+**Gap-fill (optional):** When a MIB or YANG path does not exist yet, teams sometimes **SSH to devices and parse CLI output** (historically [New Relic nri-flex](https://github.com/newrelic/nri-flex), in Prometheus land often **Telegraf `inputs.exec`** + jq). This repo includes an opt-in PoC: `make -C local telegraf-poc` → SSH + JSON parse → `srl_flex_poc_*` over OTLP. Prefer extending SNMP profiles or gnmic subscriptions when possible.
+
 ### Logs (syslog and traps)
 
 Devices emit **syslog** for operational events: link down, BGP neighbor lost, config change, auth failure.
@@ -262,6 +264,8 @@ join-app ──traces/metrics─────────────────
 | Clone from scratch | [README.md](../README.md) — “Local lab → Clone and run” |
 | Understand agents/automation context | [AGENTS.md](../AGENTS.md) |
 | See app↔network join story | `make -C local join-app`; dashboard UID `lab-network-join-demo` |
+| See platform mgmt API coverage (incl. APIs not enabled in lab) | `local/fixtures/` + `srl_mgmt_api_capability_info` (`make -C local mgmt-api-mock`) |
+| Flex-style gap-fill when SNMP/gNMI lag | `local/telegraf-flex-poc/` + `make -C local telegraf-poc` |
 | Full production-shaped path | EKS + NetBox path in root README |
 
 **Suggested 30-minute walkthrough for a new teammate:**

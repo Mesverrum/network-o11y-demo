@@ -1,0 +1,15 @@
+{
+  "source": "gnoi.ping.Ping",
+  "mock": true,
+  "responses": [
+    {
+      "time": "2026-07-22T05:00:00.010Z",
+      "bytes": 64,
+      "sequence": 1,
+      "ttl": 64,
+      "source": "10.0.2.1",
+      "destination": "192.168.11.0"
+    }
+  ],
+  "_note": "Illustrative gNOI Ping stream; gNOI shares the SR Linux gRPC server but is not subscribed in this lab."
+}
