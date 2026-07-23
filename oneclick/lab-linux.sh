@@ -133,32 +133,62 @@ bringup(){
   else warn "go missing — skipping join-app"; fi
 }
 
-dashboards(){
-  if [[ "${LAB_SKIP_DASHBOARDS:-}" == "1" ]]; then skip "dashboards (handled by the host bootstrapper)"; return; fi
-  step "Grafana Cloud dashboards (best-effort)"
+grafana(){
+  # Token-based (no OAuth, no gcx dependency), identical on all platforms:
+  #   dashboards  -> in-stack Grafana API with a service-account token (glsa_)
+  #   plugins     -> grafana.com Cloud API with a stack-plugins:write CAP token (glc_)
+  step "Grafana Cloud — dashboards + panel plugins (token auth)"
   cd "$LDIR" || exit 1
-  if ! command -v gcx >/dev/null; then warn "gcx not installed in Linux env — telemetry still queryable in Explore. Install gcx + 'gcx login … --oauth' to import curated dashboards."; return; fi
-  gcx config check >/dev/null 2>&1 || roadblock "gcx is not authenticated" "gcx login mystack --server https://<your-stack>.grafana.net --oauth" "Verify: gcx config check"
+  set -a; [ -f .env ] && . ./.env; set +a
+  [[ -n "${GRAFANA_URL:-}" && "${GRAFANA_TOKEN:-}" == glsa_* ]] || roadblock \
+    "A Grafana service-account token is required for dashboard import" \
+    "Grafana → Administration → Users and access → Service accounts → add a token (Editor or Admin)." \
+    "Put in $LDIR/.env:  GRAFANA_URL=https://<stack>.grafana.net   and   GRAFANA_TOKEN=glsa_…"
   python3 scripts/build-topology-dashboards.py >/dev/null 2>&1 || true
   python3 scripts/build-network-join-demo.py   >/dev/null 2>&1 || true
   python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1 || true
-  gcx api /api/folders -d '{"uid":"network-lab","title":"network-lab"}' >/dev/null 2>&1 || true
-  local n=0
-  for f in dashboards/*.json .dash-payloads/topology/*.json .dash-payloads/network-join-demo.json; do
-    [[ -f "$f" ]] || continue
-    python3 - "$f" <<'PY' && n=$((n+1))
-import json,subprocess,sys,tempfile,os
-d=json.load(open(sys.argv[1])); d=d.get("dashboard",d); d.pop("id",None)
-t=tempfile.NamedTemporaryFile("w",suffix=".json",delete=False)
-json.dump({"dashboard":d,"folderUid":"network-lab","overwrite":True},t); t.close()
-r=subprocess.run(["gcx","api","/api/dashboards/db","-d","@"+t.name,"-o","json"],capture_output=True,text=True)
-os.unlink(t.name); sys.exit(0 if r.returncode==0 else 1)
+  GRAFANA_URL="$GRAFANA_URL" GRAFANA_TOKEN="$GRAFANA_TOKEN" \
+  GC_PLUGINS_TOKEN="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" \
+  python3 - <<'PY'
+import json, os, sys, glob, urllib.request, urllib.error, re
+base=os.environ["GRAFANA_URL"].rstrip("/"); tok=os.environ["GRAFANA_TOKEN"]
+ptok=os.environ.get("GC_PLUGINS_TOKEN",""); slug=re.sub(r"^https?://([^.]+)\..*",r"\1",base)
+PLUGINS=["andrewbmchugh-flow-panel","netsage-sankey-panel"]
+FILES=sorted(glob.glob("dashboards/*.json")+glob.glob(".dash-payloads/topology/*.json")+glob.glob(".dash-payloads/network-join-demo.json"))
+def req(url,tok_,body=None,method="POST"):
+    data=None if body is None else json.dumps(body).encode()
+    r=urllib.request.Request(url,data=data,method=method,
+        headers={"Authorization":"Bearer "+tok_,"Content-Type":"application/json","Accept":"application/json"})
+    try:
+        with urllib.request.urlopen(r) as resp: return resp.status,resp.read()
+    except urllib.error.HTTPError as e: return e.code,e.read()
+    except Exception as e: return 0,str(e).encode()
+# folder
+req(base+"/api/folders",tok,{"uid":"network-lab","title":"network-lab"})
+# dashboards
+n=0
+for f in FILES:
+    d=json.load(open(f)); d=d.get("dashboard",d); d.pop("id",None)
+    c,_=req(base+"/api/dashboards/db",tok,{"dashboard":d,"folderUid":"network-lab","overwrite":True})
+    if 200<=c<300: n+=1
+    else: print(f"  ! dashboard {os.path.basename(f)}: HTTP {c}")
+print(f"  imported {n}/{len(FILES)} dashboards into folder network-lab")
+# plugins (Cloud API)
+if not ptok: print("PLUGIN_SCOPE_MISSING"); sys.exit(3)
+need_scope=False
+for p in PLUGINS:
+    c,b=req(f"https://grafana.com/api/instances/{slug}/plugins",ptok,{"plugin":p})
+    if 200<=c<300 or c==409: print(f"  plugin {p}: ok")
+    elif c in (401,403): print(f"  plugin {p}: HTTP {c} (token lacks stack-plugins:write)"); need_scope=True
+    else: print(f"  plugin {p}: HTTP {c} {b[:120].decode(errors='replace')}")
+sys.exit(3 if need_scope else 0)
 PY
-  done
-  [[ "$n" -gt 0 ]] && ok "imported $n dashboards into folder network-lab" || warn "no dashboards imported"
-  local miss=""
-  for p in andrewbmchugh-flow-panel netsage-sankey-panel; do gcx api /api/plugins -o json 2>/dev/null | grep -q "\"$p\"" || miss+=" $p"; done
-  [[ -n "$miss" ]] && warn "panel plugins not installed:$miss (Fabric Map / Sankey blank until installed via Administration → Plugins)" || ok "panel plugins installed"
+  local rc=$?
+  if [[ $rc -eq 3 ]]; then roadblock \
+    "Panel-plugin install needs a Grafana Cloud token with 'stack-plugins:write'" \
+    "Grafana Cloud portal → Access Policies → create a policy with scope 'stack-plugins:write' → create a token." \
+    "Put in $LDIR/.env:  GC_STACK_TOKEN=glc_…   (or add the stack-plugins:write scope to your existing OTLP access policy)"
+  elif [[ $rc -ne 0 ]]; then warn "dashboard/plugin step returned $rc (see lines above)"; else ok "dashboards imported + plugins installed"; fi
 }
 
 teardown(){
@@ -170,7 +200,7 @@ teardown(){
 }
 
 case "$ACTION" in
-  deploy)        install_toolchain; prep_config; bringup; dashboards; ok "lab-linux: deploy complete" ;;
+  deploy)        install_toolchain; prep_config; bringup; grafana; ok "lab-linux: deploy complete" ;;
   decommission)  teardown; ok "lab-linux: decommission complete" ;;
   *) echo "usage: lab-linux.sh deploy|decommission"; exit 1 ;;
 esac

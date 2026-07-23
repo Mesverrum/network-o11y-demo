@@ -64,8 +64,8 @@ seed_creds() {
   vm "cd ~/$VM_REPO/local && { [ -f .env ] || cp .env.example .env; sed -i 's/\r\$//' .env; }" >/dev/null 2>&1 || true
   if vm_q "cd ~/$VM_REPO/local && { $creds_ok; }"; then skip "OTLP credentials present in VM"; return; fi
   if [[ -f "$REPO_ROOT/local/.env" ]] && ( cd "$REPO_ROOT/local" && eval "$creds_ok" ) 2>/dev/null; then
-    step "Copying GC_OTLP_* from this Mac's local/.env into the VM"
-    for k in GC_OTLP_URL GC_OTLP_ACCOUNT GC_OTLP_KEY LAB_TESTER_ID; do
+    step "Copying Grafana Cloud creds/tokens from this Mac's local/.env into the VM"
+    for k in GC_OTLP_URL GC_OTLP_ACCOUNT GC_OTLP_KEY LAB_TESTER_ID GRAFANA_URL GRAFANA_TOKEN GC_STACK_TOKEN; do
       local v; v="$(grep -E "^$k=" "$REPO_ROOT/local/.env" | head -1 | cut -d= -f2- | tr -d '\r')"
       [[ -n "$v" ]] && orb -m "$VM_NAME" bash -lc "cd ~/$VM_REPO/local && grep -v '^$k=' .env > .env.t && printf '%s\n' '$k=$v' >> .env.t && mv .env.t .env"
     done
@@ -82,42 +82,13 @@ run_lab() { # $1 = deploy
   hdr "Lab $1 — shared oneclick/lab-linux.sh"
   step "Running lab-linux.sh $1 (uid-aware toolchain + bring-up)"
   if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then bash "$REPO_ROOT/oneclick/lab-linux.sh" "$1"
-  else orb -m "$VM_NAME" bash -lc "LAB_SKIP_DASHBOARDS=1 bash ~/$VM_REPO/oneclick/lab-linux.sh $1"; fi
+  else orb -m "$VM_NAME" bash -lc "bash ~/$VM_REPO/oneclick/lab-linux.sh $1"; fi
   local rc=$?
   if [[ $rc -eq 2 ]]; then REPORT_FAIL+=("lab $1 (roadblock above)"); final_report "resolve the roadblock above, then re-run $SELF"; exit 2
   elif [[ $rc -ne 0 ]]; then err "lab-linux.sh $1 exited $rc"; REPORT_FAIL+=("lab $1"); else ok "lab $1 complete"; fi
 }
 
-dashboards_host() {
-  [[ "${NATIVE_LINUX:-0}" == "1" ]] && return   # native Linux: lab-linux.sh already imported dashboards
-  hdr "Grafana Cloud dashboards (from the Mac host)"
-  if ! [[ -x "$GCX_BIN" ]]; then warn "gcx not installed on the Mac — telemetry is still in Explore. Install gcx + 'gcx login … --oauth' for the curated dashboards."; REPORT_FAIL+=("dashboards (no gcx)"); return; fi
-  gcx_ok || roadblock "gcx is not authenticated to your Grafana stack" "gcx login mystack --server https://<your-stack>.grafana.net --oauth" "Verify: gcx config check"
-  ok "gcx authenticated"
-  local missing=""
-  for p in andrewbmchugh-flow-panel netsage-sankey-panel; do "$GCX_BIN" api /api/plugins -o json 2>/dev/null | grep -q "\"$p\"" || missing+=" $p"; done
-  [[ -n "$missing" ]] && warn "panel plugins not installed:$missing (Fabric Map / Sankey blank until installed — Administration → Plugins)" || ok "panel plugins installed"
-  step "Building + importing dashboards into folder '$GRAFANA_FOLDER'"
-  orb -m "$VM_NAME" bash -lc "cd ~/$VM_REPO/local && python3 scripts/build-topology-dashboards.py >/dev/null 2>&1; python3 scripts/build-network-join-demo.py >/dev/null 2>&1; python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1" || true
-  local tmp; tmp="$(mktemp -d)"
-  orb -m "$VM_NAME" bash -lc "cd ~/$VM_REPO/local && tar cf - dashboards/*.json .dash-payloads/topology/*.json .dash-payloads/network-join-demo.json 2>/dev/null" | tar -C "$tmp" -xf - 2>/dev/null || true
-  "$GCX_BIN" api /api/folders -d "{\"uid\":\"$GRAFANA_FOLDER\",\"title\":\"$GRAFANA_FOLDER\"}" >/dev/null 2>&1 || true
-  local n=0
-  while IFS= read -r f; do
-    python3 - "$f" "$GRAFANA_FOLDER" "$GCX_BIN" <<'PY' && n=$((n+1))
-import json,subprocess,sys,tempfile,os
-f,folder,gcx=sys.argv[1:4]
-d=json.load(open(f)); d=d.get("dashboard",d); d.pop("id",None)
-t=tempfile.NamedTemporaryFile("w",suffix=".json",delete=False); json.dump({"dashboard":d,"folderUid":folder,"overwrite":True},t); t.close()
-r=subprocess.run([gcx,"api","/api/dashboards/db","-d","@"+t.name,"-o","json"],capture_output=True,text=True)
-os.unlink(t.name); sys.exit(0 if r.returncode==0 else 1)
-PY
-  done < <(find "$tmp" -name '*.json'); rm -rf "$tmp"
-  [[ "$n" -gt 0 ]] && ok "imported $n dashboards" || warn "no dashboards imported"
-  "$GCX_BIN" metrics query 'count(kentik_snmp_CPU)' -d grafanacloud-prom -o json 2>/dev/null | grep -q '"value"' && ok "verified: SNMP metrics present in Grafana Cloud" || warn "no kentik_snmp_CPU yet (give it ~60s)"
-}
-
-deploy_local() { preflight_local; ensure_repo; seed_creds; run_lab deploy; dashboards_host; }
+deploy_local() { preflight_local; ensure_repo; seed_creds; run_lab deploy; }
 
 # ===========================================================================
 # AWS — drives the repo's automation (not session-validated)

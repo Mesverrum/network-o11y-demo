@@ -60,24 +60,37 @@ or `%USERPROFILE%\.network-o11y-demo\oneclick.state` (Windows).
 only do the platform-specific setup, then hand off to the shared
 **`lab-linux.sh`** which runs *inside* the Linux env and does all the real work:
 
-**Bootstrapper (per platform):**
-- macOS: install/verify OrbStack + an arm64 Ubuntu VM; clone the repo to the VM's
-  ext4 disk; sync this checkout's `lab-linux.sh` into the VM; seed `GC_OTLP_*`
-  from the Mac's `local/.env` (else roadblock). Then dashboards are imported from
-  the Mac host (which has the authenticated `gcx`).
-- Windows: preflight WSL2 + distro; clone to WSL ext4; sync `lab-linux.sh`; seed
-  creds. Dashboards import runs inside WSL (best-effort, if `gcx` is there).
-- native Linux: runs `lab-linux.sh` directly against this checkout.
+**Bootstrapper (per platform):** prepares the Linux env, clones the repo to
+native ext4, syncs this checkout's `lab-linux.sh` in, seeds `.env`, then runs it.
+- macOS: install/verify OrbStack + an arm64 Ubuntu VM; copy `.env` values from the
+  Mac's `local/.env`; run `lab-linux.sh` in the VM.
+- Windows: preflight WSL2 + distro; copy `.env` values; run `lab-linux.sh` in WSL.
+- native Linux: run `lab-linux.sh` directly against this checkout.
 
-**`lab-linux.sh` (shared, uid-aware):** install toolchain (docker, compose,
-ContainerLab, mikefarah yq, make, gettext, go) → seed config + creds + patch Alloy
-(topology-health scrape + `tester_id`) → `make generate`/`check` → build the
-topology-exporter image → `make up`/`stabilize` → discovery (as-you on uid 1000,
-via `sudo` on OrbStack's uid 501) → `make traffic` → `make join-app` → (unless
-`LAB_SKIP_DASHBOARDS=1`) import dashboards + verify.
+**`lab-linux.sh` (shared, uid-aware — the single routine for all 3):** install
+toolchain (docker, compose, ContainerLab, mikefarah yq, make, gettext, go) → seed
+config + creds + patch Alloy (topology-health scrape + `tester_id`) →
+`make generate`/`check` → build the topology-exporter image → `make up`/`stabilize`
+→ discovery (as-you on uid 1000, via `sudo` on OrbStack's uid 501) → `make traffic`
+→ `make join-app` → **Grafana Cloud step (token-based, no OAuth):** import the
+`network-lab` dashboards via the in-stack API and install the panel plugins via the
+Cloud API.
 
-One Linux routine, three ways in — so behavior stays identical across macOS,
-Windows, and native Linux.
+One Linux routine, three ways in — identical behavior across macOS, Windows, and
+native Linux.
+
+### Grafana Cloud tokens (set in `local/.env`)
+Token auth is used everywhere so the exact same code runs on all platforms **and**
+plugins can be installed (an OAuth user session cannot install plugins):
+
+| Var | Type | Used for |
+|-----|------|----------|
+| `GC_OTLP_URL` / `GC_OTLP_ACCOUNT` / `GC_OTLP_KEY` | OTLP CAP token (`glc_`) | telemetry ingest (Alloy) |
+| `GRAFANA_URL` + `GRAFANA_TOKEN` | service-account token (`glsa_`) | dashboard import (in-stack API) |
+| `GC_STACK_TOKEN` | CAP token with `stack-plugins:write` (`glc_`) | panel-plugin install (Cloud API); falls back to `GC_OTLP_KEY` if that policy has the scope |
+
+If a token is missing the script roadblocks with the exact portal steps, then
+resumes on re-run.
 
 ## AWS deployment
 

@@ -44,7 +44,7 @@ function Copy-Creds {
   $winEnv = Join-Path $script:RepoRoot 'local\.env'
   if (-not (Test-Path $winEnv)) { return }
   $kv = @{}
-  Get-Content $winEnv | ForEach-Object { if ($_ -match '^(GC_OTLP_URL|GC_OTLP_ACCOUNT|GC_OTLP_KEY|LAB_TESTER_ID)=(.*)$') { $kv[$Matches[1]] = $Matches[2].Trim() } }
+  Get-Content $winEnv | ForEach-Object { if ($_ -match '^(GC_OTLP_URL|GC_OTLP_ACCOUNT|GC_OTLP_KEY|LAB_TESTER_ID|GRAFANA_URL|GRAFANA_TOKEN|GC_STACK_TOKEN)=(.*)$') { $kv[$Matches[1]] = $Matches[2].Trim() } }
   if (-not ($kv['GC_OTLP_KEY'] -like 'glc_*')) { return }
   Step "Seeding WSL .env with GC_OTLP_* from Windows local\.env"
   Wsl "cd ~/$($script:VmRepo)/local && [ -f .env ] || cp .env.example .env" | Out-Null
