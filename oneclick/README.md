@@ -1,20 +1,44 @@
 # One-click deploy / decommission
 
-Two scripts that stand up (or tear down) the whole demo in one go, with
-pre-flight checks, resumable steps, roadblock remediation, and a final report.
+Stand up (or tear down) the whole demo in one command, with pre-flight checks,
+resumable steps, roadblock remediation, and a final report. Each run first asks
+**local** vs **AWS** and remembers the choice.
+
+## Pick your entrypoint by OS
+
+| Host OS | Command | Linux environment it uses |
+|---------|---------|---------------------------|
+| **macOS** | `make deploy` / `make teardown` (or `./oneclick/deploy.sh`) | **OrbStack** Linux VM (ContainerLab has no macOS binary) |
+| **Windows** | `.\oneclick\deploy.ps1` / `.\oneclick\decommission.ps1` (PowerShell) | **WSL2** distro (ContainerLab runs natively in WSL2) |
+| **native Linux** | `bash oneclick/lab-linux.sh deploy` / `… decommission` | the host itself |
+
+Why the split: **ContainerLab needs a Linux kernel.** On macOS there's no native
+binary, so the lab runs inside an OrbStack VM; on Windows, WSL2 already provides a
+real Linux kernel, so ContainerLab runs there directly (no OrbStack). The shared
+Linux bring-up logic lives in **`lab-linux.sh`**, which the macOS and Windows
+bootstrappers run inside their respective Linux env.
 
 ```bash
-make deploy                   # bring everything up   (= ./oneclick/deploy.sh)
-make teardown                 # tear everything down   (= ./oneclick/decommission.sh)
-
-# or call the scripts directly:
-./oneclick/deploy.sh
-./oneclick/decommission.sh
+# macOS / Linux
+make deploy            # = ./oneclick/deploy.sh (asks local vs AWS)
+make teardown          # = ./oneclick/decommission.sh
+```
+```powershell
+# Windows (PowerShell)
+.\oneclick\deploy.ps1
+.\oneclick\decommission.ps1
 ```
 
-Both first ask whether you want a **local** (OrbStack Linux VM on this Mac) or an
-**AWS** (EKS / Clabbernetes) deployment, and remember the choice in
-`~/.config/network-o11y-demo/oneclick.state`.
+State is remembered in `~/.config/network-o11y-demo/oneclick.state` (macOS/Linux)
+or `%USERPROFILE%\.network-o11y-demo\oneclick.state` (Windows).
+
+### Key per-platform differences the scripts handle for you
+- **uid:** OrbStack maps your Mac user to **501**, so discovery runs via `sudo`;
+  WSL/native Linux run as **1000** (matches ktranslate), so discovery runs as you.
+- **Docker:** installed inside the VM (macOS) / provided by Docker Desktop-WSL
+  integration or `docker.io`+systemd (Windows) / native (Linux).
+- **repo location:** cloned to the Linux env's native disk (ext4) to avoid the
+  `/mnt/c` (drvfs) ContainerLab config-commit issues on Windows.
 
 ## How they behave
 
