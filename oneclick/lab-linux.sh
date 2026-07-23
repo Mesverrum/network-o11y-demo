@@ -205,13 +205,13 @@ grafana(){
   python3 scripts/build-network-join-demo.py   >/dev/null 2>&1 || true
   python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1 || true
   mkdir -p "$OC_STATE"
-  GRAFANA_URL="$GRAFANA_URL" GRAFANA_TOKEN="$GRAFANA_TOKEN" \
+  GRAFANA_URL="${GRAFANA_URL:-}" GRAFANA_TOKEN="${GRAFANA_TOKEN:-}" \
   GC_PLUGINS_TOKEN="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" \
   PLUGIN_STATE="$OC_STATE/plugins-installed" \
   SKIP_DASHBOARDS="$sd" SKIP_PLUGINS="$sp" \
   python3 - <<'PY'
 import json, os, sys, glob, urllib.request, urllib.error, re
-base=os.environ["GRAFANA_URL"].rstrip("/"); tok=os.environ["GRAFANA_TOKEN"]
+base=os.environ.get("GRAFANA_URL","").rstrip("/"); tok=os.environ.get("GRAFANA_TOKEN","")
 ptok=os.environ.get("GC_PLUGINS_TOKEN",""); slug=re.sub(r"^https?://([^.]+)\..*",r"\1",base)
 PLUGINS=["andrewbmchugh-flow-panel","netsage-sankey-panel"]
 FILES=sorted(glob.glob("dashboards/*.json")+glob.glob(".dash-payloads/topology/*.json")+glob.glob(".dash-payloads/network-join-demo.json"))
@@ -270,7 +270,13 @@ PY
     "Panel-plugin install needs a Grafana Cloud token with 'stack-plugins:write'" \
     "Grafana Cloud portal -> Access Policies -> create a policy with scope 'stack-plugins:write' -> create a token." \
     "Put in $LDIR/.env:  GC_STACK_TOKEN=glc_...   (or add the stack-plugins:write scope to your existing OTLP access policy)"
-  elif [[ $rc -ne 0 ]]; then warn "dashboard/plugin step returned $rc (see lines above)"; else ok "dashboards imported + plugins installed"; fi
+  elif [[ $rc -ne 0 ]]; then warn "dashboard/plugin step returned $rc (see lines above)"
+  else
+    local dmsg pmsg
+    dmsg=$([[ -n "$sd" ]] && echo "dashboards skipped" || echo "dashboards imported")
+    pmsg=$([[ -n "$sp" ]] && echo "plugins skipped"    || echo "plugins installed")
+    ok "Grafana Cloud step done ($dmsg + $pmsg)"
+  fi
 }
 
 teardown(){
