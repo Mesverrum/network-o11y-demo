@@ -4,8 +4,12 @@ Two scripts that stand up (or tear down) the whole demo in one go, with
 pre-flight checks, resumable steps, roadblock remediation, and a final report.
 
 ```bash
-./oneclick/deploy.sh          # bring everything up
-./oneclick/decommission.sh    # tear everything down
+make deploy                   # bring everything up   (= ./oneclick/deploy.sh)
+make teardown                 # tear everything down   (= ./oneclick/decommission.sh)
+
+# or call the scripts directly:
+./oneclick/deploy.sh
+./oneclick/decommission.sh
 ```
 
 Both first ask whether you want a **local** (OrbStack Linux VM on this Mac) or an
