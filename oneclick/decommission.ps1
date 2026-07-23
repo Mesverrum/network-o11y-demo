@@ -14,9 +14,16 @@ function Decom-Local {
   $distros = @(Get-WslDistros)
   if ($distros -notcontains $script:Distro) { Skip "distro '$($script:Distro)' not present"; }
   elseif (WslQ "test -d ~/$($script:VmRepo)/local") {
+    # gather the yes/no answers HERE (clean prompts), then run non-interactively in WSL
+    $rmDash = 0; if (Confirm-Yes "Remove the network-lab dashboards + folder from Grafana Cloud?") { $rmDash = 1 }
+    $rmPlugins = @()
+    foreach ($p in ((WslOut "cat ~/$($script:VmRepo)/local/state/oneclick-plugins-installed 2>/dev/null") -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+      if (Confirm-Yes "Remove panel plugin '$p' that THIS deploy installed? (may be used by other dashboards now)") { $rmPlugins += $p }
+    }
+    $rmP = ($rmPlugins -join ' ')
     Sync-Lab
-    Step "Tearing down lab + Grafana (dashboards + only plugins we installed) via lab-linux.sh"
-    $rc = Wsl "bash ~/$($script:VmRepo)/oneclick/lab-linux.sh decommission"
+    Step "Tearing down (lab + Grafana) via lab-linux.sh in WSL"
+    $rc = Wsl "set -o pipefail; RM_DASHBOARDS=$rmDash RM_PLUGINS='$rmP' bash ~/$($script:VmRepo)/oneclick/lab-linux.sh decommission 2>&1 | cat -s"
     if ($rc -eq 2) { Write-Host "`nResolve the roadblock above, then re-run." -ForegroundColor Yellow; Final-Report "stopped at a roadblock"; exit 2 }
     elseif ($rc -eq 0) { Ok "lab torn down" } else { Fail "teardown returned exit $rc" }
   } else { Skip "repo not present in WSL" }

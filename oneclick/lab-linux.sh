@@ -278,15 +278,15 @@ teardown(){
   else skip "no lab containers running"; fi
 }
 
-confirm(){ if [ -t 0 ]; then read -r -p "  $1 [y/N] " _a; [[ "$_a" =~ ^[Yy] ]]; else warn "non-interactive: keeping (re-run interactively to remove)"; return 1; fi; }
-
 grafana_teardown(){
+  # Non-interactive: the host orchestrator gathers the yes/no answers and passes
+  # RM_DASHBOARDS (0/1) and RM_PLUGINS (space-separated plugin ids to remove).
   cd "$LDIR" || return 0
   set -a; [ -f .env ] && . ./.env; set +a
   local base="${GRAFANA_URL:-}" tok="${GRAFANA_TOKEN:-}" sf="state/oneclick-plugins-installed" slug ptok
   slug="$(printf '%s' "$base" | sed -E 's#https?://([^.]+)\..*#\1#')"; ptok="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}"
   step "Grafana Cloud teardown"
-  if [[ -n "$base" && "$tok" == glsa_* ]] && confirm "Remove the network-lab dashboards + folder from Grafana Cloud?"; then
+  if [[ "${RM_DASHBOARDS:-0}" == 1 && -n "$base" && "$tok" == glsa_* ]]; then
     for uid in net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health \
                net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo; do
       curl -s -o /dev/null -X DELETE "$base/api/dashboards/uid/$uid" -H "Authorization: Bearer $tok" || true
@@ -300,10 +300,10 @@ grafana_teardown(){
     local keep=""
     while IFS= read -r p; do
       [[ -z "$p" ]] && continue
-      if [[ -n "$ptok" ]] && confirm "Remove panel plugin '$p' that THIS deploy installed? (it may now be used by other dashboards)"; then
+      if [[ -n "$ptok" && " ${RM_PLUGINS:-} " == *" $p "* ]]; then
         local code; code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "https://grafana.com/api/instances/$slug/plugins/$p" -H "Authorization: Bearer $ptok")"
         case "$code" in 2*) ok "removed plugin $p";; *) warn "plugin $p removal HTTP $code (kept)"; keep+="$p"$'\n';; esac
-      else skip "kept plugin $p"; keep+="$p"$'\n'; fi
+      else skip "kept plugin $p (installed by this deploy)"; keep+="$p"$'\n'; fi
     done < "$sf"
     printf '%s' "$keep" > "$sf"
   else skip "no plugins were installed by this deploy - pre-existing plugins left untouched"; fi

@@ -9,32 +9,51 @@ set -uo pipefail
 SELF="./oneclick/decommission.sh"; ACTION=decommission
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-run_teardown() { # runs lab-linux.sh decommission in the right Linux env
+# Ask the yes/no teardown questions HERE (on the host) so prompts are clean and
+# ordered; lab-linux.sh then runs non-interactively in the Linux env.
+gather_teardown_answers() {
+  RM_DASHBOARDS=0; RM_PLUGINS=""
+  confirm "Remove the network-lab dashboards + folder from Grafana Cloud?" && RM_DASHBOARDS=1
+  local plist p
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    plist="$(orb -m "$VM_NAME" bash -lc "cat ~/$VM_REPO/local/state/oneclick-plugins-installed 2>/dev/null" 2>/dev/null)"
+  else
+    plist="$(cat "$REPO_ROOT/local/state/oneclick-plugins-installed" 2>/dev/null)"
+  fi
+  for p in $plist; do
+    confirm "Remove panel plugin '$p' that THIS deploy installed? (it may be used by other dashboards now)" && RM_PLUGINS+="$p "
+  done
+}
+
+# Run lab-linux.sh decommission non-interactively; pipe through 'cat -s' so the
+# output prints as one contiguous, de-blanked, correctly-ordered block.
+run_teardown() {
+  local envs="RM_DASHBOARDS=${RM_DASHBOARDS:-0} RM_PLUGINS='${RM_PLUGINS:-}'"
   if [[ "$(uname -s)" != "Darwin" ]]; then
-    bash "$REPO_ROOT/oneclick/lab-linux.sh" decommission; return $?
+    RM_DASHBOARDS="${RM_DASHBOARDS:-0}" RM_PLUGINS="${RM_PLUGINS:-}" bash "$REPO_ROOT/oneclick/lab-linux.sh" decommission 2>&1 | cat -s
+    return "${PIPESTATUS[0]}"
   fi
   tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh" 2>/dev/null || true
-  orb -m "$VM_NAME" bash -lc "bash ~/$VM_REPO/oneclick/lab-linux.sh decommission"
+  orb -m "$VM_NAME" bash -lc "set -o pipefail; $envs bash ~/$VM_REPO/oneclick/lab-linux.sh decommission 2>&1 | cat -s"
 }
 
 decom_local() {
   hdr "Tear down local lab"
-  # lab-linux.sh 'decommission' also runs the Grafana teardown: it asks about the
-  # network-lab dashboards, and (only for plugins THIS deploy installed) asks
-  # before removing each - plugins that pre-existed the deploy are never touched.
   if [[ "$(uname -s)" != "Darwin" ]]; then
-    step "Running lab-linux.sh decommission (native Linux)"; run_teardown; local rc=$?
+    gather_teardown_answers
+    step "Tearing down (lab + Grafana) via lab-linux.sh"; run_teardown; local rc=$?
     [[ $rc -eq 2 ]] && { final_report "resolve the roadblock above, then re-run $SELF"; exit 2; }
-    [[ $rc -eq 0 ]] && ok "lab torn down" || warn "teardown exited $rc"
+    [[ $rc -eq 0 ]] || warn "teardown exited $rc"
     return
   fi
   if ! have orb; then skip "OrbStack not installed - nothing local to remove"; return; fi
   if ! orb list 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then skip "VM '$VM_NAME' not present"
   else
     if vm_q "test -d ~/$VM_REPO/local"; then
-      step "Running lab-linux.sh decommission in the VM"; run_teardown; local rc=$?
-      if [[ $rc -eq 2 ]]; then final_report "resolve the roadblock above, then re-run $SELF"; exit 2
-      elif [[ $rc -eq 0 ]]; then ok "lab torn down"; else warn "teardown exited $rc"; fi
+      gather_teardown_answers
+      step "Tearing down (lab + Grafana) via lab-linux.sh in the VM"; run_teardown; local rc=$?
+      [[ $rc -eq 2 ]] && { final_report "resolve the roadblock above, then re-run $SELF"; exit 2; }
+      [[ $rc -eq 0 ]] || warn "teardown exited $rc"
     else skip "repo not present in VM"; fi
     if confirm "Also DELETE the OrbStack VM '$VM_NAME' (removes repo, images, tools)?"; then
       step "Deleting VM '$VM_NAME'"; orb delete "$VM_NAME" >/dev/null 2>&1 && ok "VM deleted" || warn "could not delete VM (orb delete $VM_NAME)"
