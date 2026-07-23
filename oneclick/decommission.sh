@@ -56,7 +56,11 @@ decom_local() {
       [[ $rc -eq 0 ]] || warn "teardown exited $rc"
     else skip "repo not present in VM"; fi
     if confirm "Also DELETE the OrbStack VM '$VM_NAME' (removes repo, images, tools)?"; then
-      step "Deleting VM '$VM_NAME'"; orb delete "$VM_NAME" >/dev/null 2>&1 && ok "VM deleted" || warn "could not delete VM (orb delete $VM_NAME)"
+      step "Deleting VM '$VM_NAME'"
+      # -f: skip orb's own y/N prompt (we already confirmed above); capture stderr so a
+      # real failure is shown instead of a bare "could not delete".
+      local out; if out="$(orb delete -f "$VM_NAME" 2>&1)"; then ok "VM deleted"
+      else warn "could not delete VM: ${out:-orb delete -f $VM_NAME failed}"; fi
     else skip "VM kept (re-deploy will be fast)"; fi
   fi
 }

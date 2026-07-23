@@ -295,13 +295,17 @@ grafana_teardown(){
   local base="${GRAFANA_URL:-}" tok="${GRAFANA_TOKEN:-}" sf="$OC_STATE/plugins-installed" slug ptok
   slug="$(printf '%s' "$base" | sed -E 's#https?://([^.]+)\..*#\1#')"; ptok="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}"
   step "Grafana Cloud teardown"
-  if [[ "${RM_DASHBOARDS:-0}" == 1 && -n "$base" && "$tok" == glsa_* ]]; then
-    for uid in net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health \
-               net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo; do
-      curl -s -o /dev/null -X DELETE "$base/api/dashboards/uid/$uid" -H "Authorization: Bearer $tok" || true
-    done
-    curl -s -o /dev/null -X DELETE "$base/api/folders/network-lab" -H "Authorization: Bearer $tok" || true
-    ok "dashboards + folder removed"
+  if [[ "${RM_DASHBOARDS:-0}" == 1 ]]; then
+    if [[ -n "$base" && "$tok" == glsa_* ]]; then
+      for uid in net-o11y-topology net-o11y-bgp-status net-o11y-device-details net-o11y-iface-health \
+                 net-o11y-traffic-flows net-o11y-traffic-sankey lab-topology-graph lab-topology-health lab-network-join-demo; do
+        curl -s -o /dev/null -X DELETE "$base/api/dashboards/uid/$uid" -H "Authorization: Bearer $tok" || true
+      done
+      curl -s -o /dev/null -X DELETE "$base/api/folders/network-lab" -H "Authorization: Bearer $tok" || true
+      ok "dashboards + folder removed"
+    else
+      warn "you asked to remove the dashboards but no valid GRAFANA_URL + GRAFANA_TOKEN (glsa_) is set in $LDIR/.env - cannot remove them; left in place. Set them and re-run to remove."
+    fi
   else skip "dashboards kept in Grafana Cloud"; fi
   # Plugins: ONLY the ones THIS deploy installed (recorded in $sf). Plugins that
   # were already present before deploy are never listed here, so never removed.
