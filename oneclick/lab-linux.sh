@@ -133,6 +133,56 @@ bringup(){
   else warn "go missing — skipping join-app"; fi
 }
 
+# --- token validation (runs early, before the long bring-up) -----------------
+# Each PROVIDED token is checked for exactly what it's used for. On a gap the user
+# can continue (with a stated caveat) or replace the token and re-check.
+_env_set(){ local k="$1" v="$2"; grep -v "^$k=" .env > .env.t 2>/dev/null; printf '%s\n' "$k=$v" >> .env.t; mv .env.t .env; }
+_chk_otlp(){    # metrics/logs/traces write to the OTLP gateway
+  [[ -n "${GC_OTLP_URL:-}" && -n "${GC_OTLP_ACCOUNT:-}" && -n "${GC_OTLP_KEY:-}" ]] || return 1
+  local c; c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 -u "$GC_OTLP_ACCOUNT:$GC_OTLP_KEY" \
+    -H 'Content-Type: application/json' -X POST "${GC_OTLP_URL%/}/v1/metrics" -d '{"resourceMetrics":[]}' </dev/null)
+  [[ "$c" =~ ^2 || "$c" == 400 || "$c" == 415 ]]; }   # authed (400/415 = payload, not auth); 401/403 = fail
+_chk_grafana(){ # in-stack dashboards/folders write (create+delete a temp folder)
+  [[ -n "${GRAFANA_URL:-}" && "${GRAFANA_TOKEN:-}" == glsa_* ]] || return 1
+  local u="preflight-tok-$$" c
+  c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 -X POST "${GRAFANA_URL%/}/api/folders" \
+    -H "Authorization: Bearer $GRAFANA_TOKEN" -H 'Content-Type: application/json' -d "{\"uid\":\"$u\",\"title\":\"$u\"}")
+  curl -s -o /dev/null --max-time 25 -X DELETE "${GRAFANA_URL%/}/api/folders/$u" -H "Authorization: Bearer $GRAFANA_TOKEN" >/dev/null 2>&1
+  [[ "$c" =~ ^2 || "$c" == 409 || "$c" == 412 ]]; }
+_chk_plugins(){ # stack-plugins:write — POST a nonexistent plugin: no-scope=403, scoped=400/404 (no side effect)
+  local t="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" slug
+  [[ -n "$t" && -n "${GRAFANA_URL:-}" ]] || return 1
+  slug=$(printf '%s' "$GRAFANA_URL" | sed -E 's#https?://([^.]+)\..*#\1#')
+  local c; c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 -X POST "https://grafana.com/api/instances/$slug/plugins" \
+    -H "Authorization: Bearer $t" -H 'Content-Type: application/json' -d '{"plugin":"__preflight_probe_nonexistent__"}')
+  [[ "$c" != 401 && "$c" != 403 && "$c" != 000 ]]; }
+_validate_one(){ # name checkfn caveat envkey skipflag
+  local name="$1" fn="$2" cap="$3" key="$4" flag="$5" ans nv
+  while true; do
+    if $fn; then ok "token OK — $name"; return 0; fi
+    warn "token check FAILED — $name"
+    warn "  → without it this will NOT happen: $cap"
+    if [ -t 0 ]; then read -r -p "    [c]ontinue anyway / [r]eplace $key / [a]bort? " ans; else ans=c; warn "  non-interactive → continuing"; fi
+    case "${ans:-c}" in
+      r|R) read -r -p "    paste new value for $key: " nv; [[ -n "$nv" ]] && { _env_set "$key" "$nv"; set -a; . ./.env; set +a; }; continue ;;
+      a|A) roadblock "Aborted at token validation ($name)" "Fix $key in $LDIR/.env, then re-run." ;;
+      *)   warn "  continuing — $cap"; [[ -n "$flag" ]] && { mkdir -p state; grep -qx "$flag" state/oneclick-skip 2>/dev/null || echo "$flag" >> state/oneclick-skip; }; return 1 ;;
+    esac
+  done
+}
+validate_tokens(){
+  step "Validating Grafana Cloud tokens (each checked for exactly what it's used for)"
+  cd "$LDIR" || return 0
+  set -a; [ -f .env ] && . ./.env; set +a
+  mkdir -p state; : > state/oneclick-skip
+  _validate_one "GC_OTLP_KEY (telemetry ingest)"        _chk_otlp \
+    "telemetry will NOT reach Grafana Cloud (Explore + every dashboard stay empty)" GC_OTLP_KEY "" || true
+  _validate_one "GRAFANA_TOKEN (dashboard import)"      _chk_grafana \
+    "the network-lab dashboards will NOT be imported" GRAFANA_TOKEN SKIP_DASHBOARDS || true
+  _validate_one "GC_STACK_TOKEN (panel-plugin install)" _chk_plugins \
+    "the Fabric Map + Traffic Sankey plugins will NOT be installed (those panels stay blank)" GC_STACK_TOKEN SKIP_PLUGINS || true
+}
+
 grafana(){
   # Token-based (no OAuth, no gcx dependency), identical on all platforms:
   #   dashboards  -> in-stack Grafana API with a service-account token (glsa_)
@@ -140,10 +190,14 @@ grafana(){
   step "Grafana Cloud — dashboards + panel plugins (token auth)"
   cd "$LDIR" || exit 1
   set -a; [ -f .env ] && . ./.env; set +a
-  [[ -n "${GRAFANA_URL:-}" && "${GRAFANA_TOKEN:-}" == glsa_* ]] || roadblock \
+  local sd="" sp=""
+  if [[ -f state/oneclick-skip ]]; then grep -qx SKIP_DASHBOARDS state/oneclick-skip && sd=1; grep -qx SKIP_PLUGINS state/oneclick-skip && sp=1; fi
+  [[ -n "$sd" ]] && warn "dashboards: skipped (you chose to continue without a valid GRAFANA_TOKEN)"
+  [[ -n "$sp" ]] && warn "plugins: skipped (you chose to continue without a stack-plugins:write token)"
+  if [[ -z "$sd" ]]; then [[ -n "${GRAFANA_URL:-}" && "${GRAFANA_TOKEN:-}" == glsa_* ]] || roadblock \
     "A Grafana service-account token is required for dashboard import" \
     "Grafana → Administration → Users and access → Service accounts → add a token (Editor or Admin)." \
-    "Put in $LDIR/.env:  GRAFANA_URL=https://<stack>.grafana.net   and   GRAFANA_TOKEN=glsa_…"
+    "Put in $LDIR/.env:  GRAFANA_URL=https://<stack>.grafana.net   and   GRAFANA_TOKEN=glsa_…"; fi
   python3 scripts/build-topology-dashboards.py >/dev/null 2>&1 || true
   python3 scripts/build-network-join-demo.py   >/dev/null 2>&1 || true
   python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1 || true
@@ -151,6 +205,7 @@ grafana(){
   GRAFANA_URL="$GRAFANA_URL" GRAFANA_TOKEN="$GRAFANA_TOKEN" \
   GC_PLUGINS_TOKEN="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" \
   PLUGIN_STATE="state/oneclick-plugins-installed" \
+  SKIP_DASHBOARDS="$sd" SKIP_PLUGINS="$sp" \
   python3 - <<'PY'
 import json, os, sys, glob, urllib.request, urllib.error, re
 base=os.environ["GRAFANA_URL"].rstrip("/"); tok=os.environ["GRAFANA_TOKEN"]
@@ -165,18 +220,22 @@ def req(url,tok_,body=None,method="POST"):
         with urllib.request.urlopen(r) as resp: return resp.status,resp.read()
     except urllib.error.HTTPError as e: return e.code,e.read()
     except Exception as e: return 0,str(e).encode()
-# folder
-req(base+"/api/folders",tok,{"uid":"network-lab","title":"network-lab"})
-# dashboards
-n=0
-for f in FILES:
-    d=json.load(open(f)); d=d.get("dashboard",d); d.pop("id",None)
-    c,_=req(base+"/api/dashboards/db",tok,{"dashboard":d,"folderUid":"network-lab","overwrite":True})
-    if 200<=c<300: n+=1
-    else: print(f"  ! dashboard {os.path.basename(f)}: HTTP {c}")
-print(f"  imported {n}/{len(FILES)} dashboards into folder network-lab")
+skip_dash=os.environ.get("SKIP_DASHBOARDS")=="1"; skip_plug=os.environ.get("SKIP_PLUGINS")=="1"
+# dashboards (folder + import)
+if skip_dash:
+    print("  dashboards: skipped (token validation)")
+else:
+    req(base+"/api/folders",tok,{"uid":"network-lab","title":"network-lab"})
+    n=0
+    for f in FILES:
+        d=json.load(open(f)); d=d.get("dashboard",d); d.pop("id",None)
+        c,_=req(base+"/api/dashboards/db",tok,{"dashboard":d,"folderUid":"network-lab","overwrite":True})
+        if 200<=c<300: n+=1
+        else: print(f"  ! dashboard {os.path.basename(f)}: HTTP {c}")
+    print(f"  imported {n}/{len(FILES)} dashboards into folder network-lab")
 # plugins (Cloud API) — install ONLY if missing; record just the ones WE install
 # so teardown never removes a plugin that was already present before this deploy.
+if skip_plug: print("  plugins: skipped (token validation)"); sys.exit(0)
 if not ptok: print("PLUGIN_SCOPE_MISSING"); sys.exit(3)
 ic,ib=req(base+"/api/plugins",tok,method="GET")   # in-stack list of installed plugins
 installed=set()
@@ -252,7 +311,7 @@ grafana_teardown(){
 }
 
 case "$ACTION" in
-  deploy)        install_toolchain; prep_config; bringup; grafana; ok "lab-linux: deploy complete" ;;
+  deploy)        install_toolchain; prep_config; validate_tokens; bringup; grafana; ok "lab-linux: deploy complete" ;;
   decommission)  teardown; grafana_teardown; ok "lab-linux: decommission complete" ;;
   *) echo "usage: lab-linux.sh deploy|decommission"; exit 1 ;;
 esac

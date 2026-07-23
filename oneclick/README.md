@@ -92,6 +92,19 @@ plugins can be installed (an OAuth user session cannot install plugins):
 If a token is missing the script roadblocks with the exact portal steps, then
 resumes on re-run.
 
+### Token validation (early, before the long bring-up)
+Right after config, each provided token is checked for **exactly** what it's used
+for — a side-effect-free probe per token:
+- `GC_OTLP_KEY` → OTLP write (empty metrics POST; 2xx = ok, 401/403 = fail)
+- `GRAFANA_TOKEN` → in-stack write (create + delete a temp folder)
+- `GC_STACK_TOKEN` → `stack-plugins:write` (POST a nonexistent plugin; 403 = no
+  scope, 400/404 = scoped)
+
+If a check fails you get three options: **[c]ontinue** (with a printed caveat of
+what won't work — e.g. "dashboards will not be imported"), **[r]eplace** the token
+(paste a new one, it re-checks on the spot), or **[a]bort**. Continuing records a
+skip so the later steps cleanly no-op the affected capability instead of failing.
+
 ### Plugin lifecycle (safe teardown)
 Deploy records **only the plugins it actually installs** (in
 `local/state/oneclick-plugins-installed`):
