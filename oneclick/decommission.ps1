@@ -17,7 +17,7 @@ function Decom-Local {
     # gather the yes/no answers HERE (clean prompts), then run non-interactively in WSL
     $rmDash = 0; if (Confirm-Yes "Remove the network-lab dashboards + folder from Grafana Cloud?") { $rmDash = 1 }
     $rmPlugins = @()
-    foreach ($p in ((WslOut "cat ~/$($script:VmRepo)/local/state/oneclick-plugins-installed 2>/dev/null") -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+    foreach ($p in ((WslOut "cat ~/.network-o11y-demo-oneclick/plugins-installed 2>/dev/null") -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
       if (Confirm-Yes "Remove panel plugin '$p' that THIS deploy installed? (may be used by other dashboards now)") { $rmPlugins += $p }
     }
     $rmP = ($rmPlugins -join ' ')

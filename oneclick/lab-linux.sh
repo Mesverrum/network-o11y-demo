@@ -13,6 +13,9 @@ set -uo pipefail
 ACTION="${1:-deploy}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LDIR="$REPO_ROOT/local"
+# oneclick's own state lives in $HOME (NOT local/state/, which discovery chowns to
+# uid 1000 for ktranslate; the script user may be 501 and couldn't write there).
+OC_STATE="${OC_STATE:-$HOME/.network-o11y-demo-oneclick}"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then B=$'\033[1m'; D=$'\033[2m'; G=$'\033[32m'; Y=$'\033[33m'; Z=$'\033[0m'; else B=; D=; G=; Y=; Z=; fi
 step(){ printf '%s> %s%s\n' "$B" "$*" "$Z"; }
@@ -166,7 +169,7 @@ _validate_one(){ # name checkfn caveat envkey skipflag
     case "${ans:-c}" in
       r|R) read -r -p "    paste new value for $key: " nv; [[ -n "$nv" ]] && { _env_set "$key" "$nv"; set -a; . ./.env; set +a; }; continue ;;
       a|A) roadblock "Aborted at token validation ($name)" "Fix $key in $LDIR/.env, then re-run." ;;
-      *)   warn "  continuing - $cap"; [[ -n "$flag" ]] && { mkdir -p state; grep -qx "$flag" state/oneclick-skip 2>/dev/null || echo "$flag" >> state/oneclick-skip; }; return 1 ;;
+      *)   warn "  continuing - $cap"; [[ -n "$flag" ]] && { mkdir -p "$OC_STATE"; grep -qx "$flag" "$OC_STATE/skip" 2>/dev/null || echo "$flag" >> "$OC_STATE/skip"; }; return 1 ;;
     esac
   done
 }
@@ -174,7 +177,7 @@ validate_tokens(){
   step "Validating Grafana Cloud tokens (each checked for exactly what it's used for)"
   cd "$LDIR" || return 0
   set -a; [ -f .env ] && . ./.env; set +a
-  mkdir -p state; : > state/oneclick-skip
+  mkdir -p "$OC_STATE"; : > "$OC_STATE/skip"
   _validate_one "GC_OTLP_KEY (telemetry ingest)"        _chk_otlp \
     "telemetry will NOT reach Grafana Cloud (Explore + every dashboard stay empty)" GC_OTLP_KEY "" || true
   _validate_one "GRAFANA_TOKEN (dashboard import)"      _chk_grafana \
@@ -191,7 +194,7 @@ grafana(){
   cd "$LDIR" || exit 1
   set -a; [ -f .env ] && . ./.env; set +a
   local sd="" sp=""
-  if [[ -f state/oneclick-skip ]]; then grep -qx SKIP_DASHBOARDS state/oneclick-skip && sd=1; grep -qx SKIP_PLUGINS state/oneclick-skip && sp=1; fi
+  if [[ -f "$OC_STATE/skip" ]]; then grep -qx SKIP_DASHBOARDS "$OC_STATE/skip" && sd=1; grep -qx SKIP_PLUGINS "$OC_STATE/skip" && sp=1; fi
   [[ -n "$sd" ]] && warn "dashboards: skipped (you chose to continue without a valid GRAFANA_TOKEN)"
   [[ -n "$sp" ]] && warn "plugins: skipped (you chose to continue without a stack-plugins:write token)"
   if [[ -z "$sd" ]]; then [[ -n "${GRAFANA_URL:-}" && "${GRAFANA_TOKEN:-}" == glsa_* ]] || roadblock \
@@ -201,10 +204,10 @@ grafana(){
   python3 scripts/build-topology-dashboards.py >/dev/null 2>&1 || true
   python3 scripts/build-network-join-demo.py   >/dev/null 2>&1 || true
   python3 scripts/retarget-dashboards-local.py >/dev/null 2>&1 || true
-  mkdir -p state
+  mkdir -p "$OC_STATE"
   GRAFANA_URL="$GRAFANA_URL" GRAFANA_TOKEN="$GRAFANA_TOKEN" \
   GC_PLUGINS_TOKEN="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}" \
-  PLUGIN_STATE="state/oneclick-plugins-installed" \
+  PLUGIN_STATE="$OC_STATE/plugins-installed" \
   SKIP_DASHBOARDS="$sd" SKIP_PLUGINS="$sp" \
   python3 - <<'PY'
 import json, os, sys, glob, urllib.request, urllib.error, re
@@ -283,7 +286,7 @@ grafana_teardown(){
   # RM_DASHBOARDS (0/1) and RM_PLUGINS (space-separated plugin ids to remove).
   cd "$LDIR" || return 0
   set -a; [ -f .env ] && . ./.env; set +a
-  local base="${GRAFANA_URL:-}" tok="${GRAFANA_TOKEN:-}" sf="state/oneclick-plugins-installed" slug ptok
+  local base="${GRAFANA_URL:-}" tok="${GRAFANA_TOKEN:-}" sf="$OC_STATE/plugins-installed" slug ptok
   slug="$(printf '%s' "$base" | sed -E 's#https?://([^.]+)\..*#\1#')"; ptok="${GC_STACK_TOKEN:-${GC_OTLP_KEY:-}}"
   step "Grafana Cloud teardown"
   if [[ "${RM_DASHBOARDS:-0}" == 1 && -n "$base" && "$tok" == glsa_* ]]; then

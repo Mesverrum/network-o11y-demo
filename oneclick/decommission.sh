@@ -16,9 +16,9 @@ gather_teardown_answers() {
   confirm "Remove the network-lab dashboards + folder from Grafana Cloud?" && RM_DASHBOARDS=1
   local plist p
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    plist="$(orb -m "$VM_NAME" bash -lc "cat ~/$VM_REPO/local/state/oneclick-plugins-installed 2>/dev/null" 2>/dev/null)"
+    plist="$(orb -m "$VM_NAME" bash -lc 'cat ~/.network-o11y-demo-oneclick/plugins-installed 2>/dev/null' 2>/dev/null)"
   else
-    plist="$(cat "$REPO_ROOT/local/state/oneclick-plugins-installed" 2>/dev/null)"
+    plist="$(cat "$HOME/.network-o11y-demo-oneclick/plugins-installed" 2>/dev/null)"
   fi
   for p in $plist; do
     confirm "Remove panel plugin '$p' that THIS deploy installed? (it may be used by other dashboards now)" && RM_PLUGINS+="$p "
@@ -33,7 +33,7 @@ run_teardown() {
     RM_DASHBOARDS="${RM_DASHBOARDS:-0}" RM_PLUGINS="${RM_PLUGINS:-}" bash "$REPO_ROOT/oneclick/lab-linux.sh" decommission 2>&1 | cat -s
     return "${PIPESTATUS[0]}"
   fi
-  tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh" 2>/dev/null || true
+  tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 || true
   orb -m "$VM_NAME" bash -lc "set -o pipefail; $envs bash ~/$VM_REPO/oneclick/lab-linux.sh decommission 2>&1 | cat -s"
 }
 

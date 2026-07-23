@@ -49,7 +49,7 @@ ensure_repo() {
   else step "Cloning repo into VM"; vm "git clone -q $REPO_URL ~/$VM_REPO" && ok "cloned ~/$VM_REPO" || roadblock "git clone failed in VM" "orb -m $VM_NAME then: git clone $REPO_URL ~/$VM_REPO"; fi
   # Inject THIS checkout's lab-linux.sh into the VM clone (works even before it's merged upstream).
   step "Syncing lab-linux.sh into the VM"
-  tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh && chmod +x ~/$VM_REPO/oneclick/lab-linux.sh" \
+  tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh && chmod +x ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 \
     && ok "lab-linux.sh synced" || roadblock "could not sync lab-linux.sh into the VM" "Check: orb -m $VM_NAME"
 }
 
