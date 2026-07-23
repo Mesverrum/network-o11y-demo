@@ -54,20 +54,30 @@ or `%USERPROFILE%\.network-o11y-demo\oneclick.state` (Windows).
 - **Report:** ends with what was deployed/decommissioned, what wasn't, and how to
   access each component (VM, Grafana Cloud, AWS).
 
-## Local deployment — what `deploy.sh` does
+## Local deployment — how it's structured
 
-1. Install/verify OrbStack + an arm64 Ubuntu VM.
-2. Install the VM toolchain (docker, docker-compose, ContainerLab, mikefarah yq,
-   make, gettext, go).
-3. Clone the repo into the VM's native disk; seed `.env` + `groups/srl.env`
-   (strip CRLF); copy `GC_OTLP_*` from this Mac's `local/.env` if present, else
-   roadblock for you to paste them.
-4. Patch Alloy for the topology-health scrape + `tester_id` (until PR #5 merges).
-5. `make generate` → `make check` → build topology-exporter image →
-   `make up` / `make stabilize` → `sudo make discover` (uid fix) → `make traffic`
-   → `make join-app`.
-6. If `gcx` is authenticated: import the `network-lab` dashboards, check the panel
-   plugins, and verify SNMP metrics are landing in Grafana Cloud.
+`deploy.sh` (macOS) and `deploy.ps1` (Windows) are **thin bootstrappers**. They
+only do the platform-specific setup, then hand off to the shared
+**`lab-linux.sh`** which runs *inside* the Linux env and does all the real work:
+
+**Bootstrapper (per platform):**
+- macOS: install/verify OrbStack + an arm64 Ubuntu VM; clone the repo to the VM's
+  ext4 disk; sync this checkout's `lab-linux.sh` into the VM; seed `GC_OTLP_*`
+  from the Mac's `local/.env` (else roadblock). Then dashboards are imported from
+  the Mac host (which has the authenticated `gcx`).
+- Windows: preflight WSL2 + distro; clone to WSL ext4; sync `lab-linux.sh`; seed
+  creds. Dashboards import runs inside WSL (best-effort, if `gcx` is there).
+- native Linux: runs `lab-linux.sh` directly against this checkout.
+
+**`lab-linux.sh` (shared, uid-aware):** install toolchain (docker, compose,
+ContainerLab, mikefarah yq, make, gettext, go) → seed config + creds + patch Alloy
+(topology-health scrape + `tester_id`) → `make generate`/`check` → build the
+topology-exporter image → `make up`/`stabilize` → discovery (as-you on uid 1000,
+via `sudo` on OrbStack's uid 501) → `make traffic` → `make join-app` → (unless
+`LAB_SKIP_DASHBOARDS=1`) import dashboards + verify.
+
+One Linux routine, three ways in — so behavior stays identical across macOS,
+Windows, and native Linux.
 
 ## AWS deployment
 

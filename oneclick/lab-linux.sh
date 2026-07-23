@@ -134,6 +134,7 @@ bringup(){
 }
 
 dashboards(){
+  if [[ "${LAB_SKIP_DASHBOARDS:-}" == "1" ]]; then skip "dashboards (handled by the host bootstrapper)"; return; fi
   step "Grafana Cloud dashboards (best-effort)"
   cd "$LDIR" || exit 1
   if ! command -v gcx >/dev/null; then warn "gcx not installed in Linux env — telemetry still queryable in Explore. Install gcx + 'gcx login … --oauth' to import curated dashboards."; return; fi

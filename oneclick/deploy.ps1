@@ -36,6 +36,7 @@ function Ensure-Repo {
   Hdr "Repo (in WSL, on native ext4)"
   if (WslQ "test -d ~/$($script:VmRepo)/.git") { Wsl "cd ~/$($script:VmRepo) && git pull -q || true" | Out-Null; Skip "repo present (pulled latest)" }
   else { Step "Cloning repo into WSL"; if ((Wsl "git clone -q $RepoUrl ~/$($script:VmRepo)") -eq 0) { Ok "cloned ~/$($script:VmRepo)" } else { Roadblock "git clone failed in WSL" @("wsl -d $($script:Distro)","git clone $RepoUrl ~/$($script:VmRepo)") } }
+  Step "Syncing lab-linux.sh into WSL"; Sync-Lab; Ok "lab-linux.sh synced"
 }
 
 function Copy-Creds {

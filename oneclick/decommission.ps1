@@ -13,6 +13,7 @@ function Decom-Local {
   $distros = @(Get-WslDistros)
   if ($distros -notcontains $script:Distro) { Skip "distro '$($script:Distro)' not present"; }
   elseif (WslQ "test -d ~/$($script:VmRepo)/local") {
+    Sync-Lab
     Step "Stopping lab (traffic, join-app, make down) via lab-linux.sh"
     $rc = Wsl "bash ~/$($script:VmRepo)/oneclick/lab-linux.sh decommission"
     if ($rc -eq 2) { Write-Host "`nResolve the roadblock above, then re-run." -ForegroundColor Yellow; Final-Report "stopped at a roadblock"; exit 2 }

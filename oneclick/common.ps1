@@ -46,6 +46,15 @@ function Wsl  ([string]$cmd){ wsl.exe -d $script:Distro -- bash -lc $cmd; return
 function WslQ ([string]$cmd){ wsl.exe -d $script:Distro -- bash -lc $cmd *> $null; return ($LASTEXITCODE -eq 0) }
 function WslOut([string]$cmd){ (wsl.exe -d $script:Distro -- bash -lc $cmd) 2>$null }
 
+# Inject THIS checkout's lab-linux.sh into the WSL clone (so it works even before
+# the scripts are merged upstream). Uses wslpath to avoid stdin-encoding issues.
+function Sync-Lab {
+  $labWin = Join-Path $script:RepoRoot 'oneclick\lab-linux.sh'
+  if (-not (Test-Path $labWin)) { return }
+  $labWsl = (wsl.exe -d $script:Distro -- wslpath -u "$labWin").Trim()
+  Wsl "mkdir -p ~/$($script:VmRepo)/oneclick && tr -d '\r' < '$labWsl' > ~/$($script:VmRepo)/oneclick/lab-linux.sh && chmod +x ~/$($script:VmRepo)/oneclick/lab-linux.sh" | Out-Null
+}
+
 function Confirm-Yes([string]$q){ $a=Read-Host "  $q [y/N]"; return ($a -match '^[Yy]') }
 
 function Choose-Target {
