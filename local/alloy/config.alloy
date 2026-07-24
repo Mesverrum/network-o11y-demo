@@ -1,5 +1,5 @@
 // Alloy — OTLP forwarder for the local lab (KtransToGrafana golden path).
-// Receives OTLP from ktranslate (SNMP / NetFlow / syslog) + gnmic + topology,
+// Receives OTLP from ktranslate (SNMP / NetFlow / syslog) + gnmic (+ optional topology_exporter),
 // scrapes docker stdout for non-ktranslate lab containers, runs pipeline
 // processors, exports to Grafana Cloud.
 //
@@ -55,7 +55,7 @@ discovery.relabel "lab_logs" {
   // Keep Clos nodes + telemetry sidecars (compose names / clab short names).
   rule {
     source_labels = ["container"]
-    regex         = "^(alloy|gnmic|topology_exporter|spine1|leaf1|leaf2|client1|client2)$"
+    regex         = "^(alloy|gnmic|topology_exporter|spine1|leaf1|leaf2|client1|client2)$" // topology_exporter when LAB_TOPOLOGY_EXPORTER=1
     action        = "keep"
   }
 
@@ -293,21 +293,6 @@ otelcol.auth.basic "grafana_cloud" {
   password = env("GC_OTLP_KEY")
 }
 
-// --- Topology-exporter health metrics ----------------------------------------
-// The exporter publishes discovery/otlp/walker health counters on its Prometheus
-// :9100 endpoint but only pushes the graph metrics (device/edge_info) over OTLP.
-// Scrape :9100 and route through the preprocessing transform (so network_topology_.*
-// gets tester_id stamped) out the existing Grafana Cloud OTLP exporter — no extra
-// Prometheus remote_write credentials needed. Powers the "Topology Exporter Health"
-// dashboard.
-prometheus.scrape "topology_health" {
-  targets         = [{ __address__ = "topology_exporter:9100", "job" = "network-topology-exporter" }]
-  forward_to      = [otelcol.receiver.prometheus.topology_health.receiver]
-  scrape_interval = "30s"
-}
-
-otelcol.receiver.prometheus "topology_health" {
-  output {
-    metrics = [otelcol.processor.transform.preprocessing.input]
-  }
-}
+// Topology-exporter :9100 health scrape is optional (LAB_TOPOLOGY_EXPORTER=1).
+// When enabled, append the prometheus.scrape "topology_health" block from
+// local/scripts/topology-health-scrape.alloy snippet after `make topology-up`.

@@ -32,13 +32,34 @@ make teardown          # = ./oneclick/decommission.sh
 State is remembered in `~/.config/network-o11y-demo/oneclick.state` (macOS/Linux)
 or `%USERPROFILE%\.network-o11y-demo\oneclick.state` (Windows).
 
+### Execution logs
+
+Every run writes a timestamped log (console output is still shown live):
+
+| Layer | Log directory | Latest pointer |
+|-------|---------------|----------------|
+| **Windows bootstrap** (`deploy.ps1` / `decommission.ps1`) | `%USERPROFILE%\.network-o11y-demo\logs\` | `latest.path` |
+| **WSL / VM lab** (`lab-linux.sh`) | `~/.network-o11y-demo-oneclick/logs/` | `latest.path` |
+| **macOS bootstrap** (`deploy.sh` / `decommission.sh`) | `~/.config/network-o11y-demo/logs/` | `latest.path` |
+
+Filenames look like `deploy-20260724-140512.log`. The final report prints both paths on Windows (bootstrap + WSL). Long steps (`make up`, discovery, etc.) are no longer silenced in `lab-linux.sh` — they stream into the WSL log.
+
+```powershell
+# Windows: tail the last bootstrap log
+Get-Content (Get-Content $env:USERPROFILE\.network-o11y-demo\logs\latest.path) -Wait
+```
+
+```bash
+# WSL: tail the last lab-linux log
+tail -f "$(cat ~/.network-o11y-demo-oneclick/logs/latest.path)"
+```
+
 ### Key per-platform differences the scripts handle for you
 - **uid:** OrbStack maps your Mac user to **501**, so discovery runs via `sudo`;
   WSL/native Linux run as **1000** (matches ktranslate), so discovery runs as you.
 - **Docker:** installed inside the VM (macOS) / provided by Docker Desktop-WSL
   integration or `docker.io`+systemd (Windows) / native (Linux).
-- **repo location:** cloned to the Linux env's native disk (ext4) to avoid the
-  `/mnt/c` (drvfs) ContainerLab config-commit issues on Windows.
+- **Repo clone:** on Windows and macOS the bootstrapper clones into WSL / the OrbStack VM for you — you can keep editing this checkout in your IDE.
 
 ## How they behave
 
@@ -60,8 +81,8 @@ or `%USERPROFILE%\.network-o11y-demo\oneclick.state` (Windows).
 only do the platform-specific setup, then hand off to the shared
 **`lab-linux.sh`** which runs *inside* the Linux env and does all the real work:
 
-**Bootstrapper (per platform):** prepares the Linux env, clones the repo to
-native ext4, syncs this checkout's `lab-linux.sh` in, seeds `.env`, then runs it.
+**Bootstrapper (per platform):** prepares the Linux env, clones the repo,
+syncs this checkout's `lab-linux.sh` in, seeds `.env`, then runs it.
 - macOS: install/verify OrbStack + an arm64 Ubuntu VM; copy `.env` values from the
   Mac's `local/.env`; run `lab-linux.sh` in the VM.
 - Windows: preflight WSL2 + distro; copy `.env` values; run `lab-linux.sh` in WSL.
@@ -69,8 +90,8 @@ native ext4, syncs this checkout's `lab-linux.sh` in, seeds `.env`, then runs it
 
 **`lab-linux.sh` (shared, uid-aware — the single routine for all 3):** install
 toolchain (docker, compose, ContainerLab, mikefarah yq, make, gettext, go) → seed
-config + creds + patch Alloy (topology-health scrape + `tester_id`) →
-`make generate`/`check` → build the topology-exporter image → `make up`/`stabilize`
+config + creds + patch Alloy `tester_id` →
+`make generate`/`check` → `make up`/`stabilize` (topology_exporter off by default)
 → discovery (as-you on uid 1000, via `sudo` on OrbStack's uid 501) → `make traffic`
 → `make join-app` → **Grafana Cloud step (token-based, no OAuth):** import the
 `network-lab` dashboards via the in-stack API and install the panel plugins via the

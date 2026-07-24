@@ -44,9 +44,9 @@ function Copy-Creds {
   $winEnv = Join-Path $script:RepoRoot 'local\.env'
   if (-not (Test-Path $winEnv)) { return }
   $kv = @{}
-  Get-Content $winEnv | ForEach-Object { if ($_ -match '^(GC_OTLP_URL|GC_OTLP_ACCOUNT|GC_OTLP_KEY|LAB_TESTER_ID|GRAFANA_URL|GRAFANA_TOKEN|GC_STACK_TOKEN)=(.*)$') { $kv[$Matches[1]] = $Matches[2].Trim() } }
+  Get-Content $winEnv | ForEach-Object { if ($_ -match '^(GC_OTLP_URL|GC_OTLP_ACCOUNT|GC_OTLP_KEY|LAB_TESTER_ID|GRAFANA_URL|GRAFANA_TOKEN|GC_STACK_TOKEN|LAB_STAGGER_SECS|LAB_STAGGER_FABRIC|LAB_STAGGER_COLLECTORS|LAB_STABILIZE_WAIT_SECS|LAB_SR_CLI_TRIES|LAB_SR_CLI_TRIES_SPINE|LAB_SR_CLI_TRIES_LEAF|LAB_SR_CLI_TRIES_ALL)=(.*)$') { $kv[$Matches[1]] = $Matches[2].Trim() } }
   if (-not ($kv['GC_OTLP_KEY'] -like 'glc_*')) { return }
-  Step "Seeding WSL .env with GC_OTLP_* from Windows local\.env"
+  Step "Seeding WSL .env from Windows local\.env"
   Wsl "cd ~/$($script:VmRepo)/local && [ -f .env ] || cp .env.example .env" | Out-Null
   foreach ($k in $kv.Keys) {
     $v = $kv[$k]; if ([string]::IsNullOrWhiteSpace($v)) { continue }
@@ -58,10 +58,9 @@ function Copy-Creds {
 function Deploy-Local {
   Ensure-Wsl; Ensure-Repo; Copy-Creds
   Hdr "Lab bring-up (inside WSL)"
-  Step "Running oneclick/lab-linux.sh deploy in WSL (installs toolchain, brings up the lab, imports dashboards)"
-  $rc = Wsl "bash ~/$($script:VmRepo)/oneclick/lab-linux.sh deploy"
-  if ($rc -eq 2) { Write-Host "`nResolve the roadblock shown above, then re-run .\oneclick\deploy.ps1" -ForegroundColor Yellow; $script:Failed += ,'lab bring-up (roadblock)'; Final-Report "stopped at a roadblock"; exit 2 }
-  elseif ($rc -ne 0) { Fail "lab bring-up failed (exit $rc)"; }
+  $rc = Invoke-WslLab -LabAction deploy
+  if ($rc -eq 2) { Write-Host "`nResolve the roadblock shown above, then re-run .\oneclick\deploy.ps1" -ForegroundColor Yellow; $script:Failed += ,'lab bring-up (roadblock)'; Log-Finish 2; Final-Report "stopped at a roadblock"; exit 2 }
+  elseif ($rc -ne 0) { Fail "lab bring-up failed (exit $rc)"; Log-Finish $rc; exit $rc }
   else { Ok "lab up + telemetry flowing (see Explore in Grafana Cloud)" }
 }
 
@@ -80,7 +79,8 @@ function Deploy-Aws {
 }
 
 Hdr "network-o11y-demo - one-click DEPLOY (Windows/WSL2)"
-State-Init; Choose-Target
+State-Init; Log-Init; Choose-Target
 Write-Host "Target: $($script:Target)"
 if ($script:Target -eq 'aws') { Deploy-Aws } else { Deploy-Local }
+Log-Finish $LASTEXITCODE
 Final-Report "Deploy complete."

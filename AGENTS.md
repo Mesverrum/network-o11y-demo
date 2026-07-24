@@ -6,14 +6,14 @@ Keep this file accurate as the lab evolves. When you change architecture, collec
 
 ## What this repo is
 
-Companion demo for the blog series **Network Observability Without the Lock-in**. Two deployment paths:
+Companion demo for the blog series **Network Observability Without the Lock-in**. One **ktranslate-centric telemetry model** runs on every platform — see [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md).
 
-| Path | Location | Audience |
-|------|----------|----------|
-| **Local lab (preferred for laptops)** | [`local/`](local/) | Docker Desktop + ContainerLab + Compose (macOS or WSL2/Linux); 16 GB–friendly |
-| **AWS / EKS** | [`terraform/`](terraform/), [`k8s/`](k8s/) | Full Clos on Clabbernetes; NetBox + Ansible stages |
+| Where it runs | How you start it |
+|---------------|------------------|
+| **Laptop** (macOS / Windows / Linux) | [`local/`](local/) + [`oneclick/`](oneclick/) — ContainerLab + Compose |
+| **AWS / EKS** | [`terraform/`](terraform/) + [`k8s/`](k8s/) — same ktranslate roles as Kubernetes Deployments |
 
-Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work belongs under `local/`. Leave AWS manifests alone unless the user explicitly asks for EKS changes.
+Do **not** lift-and-shift the EKS/Clabbernetes **networking** stack onto a laptop. Local work belongs under `local/`. Alloy is the OTLP sink on all paths; **SNMP, flow, sFlow, and syslog are always ktranslate**, not Alloy-native collectors.
 
 ## Agent playbook — run the local lab on the operator's stack
 
@@ -22,8 +22,9 @@ Do **not** lift-and-shift the EKS/Clabbernetes stack onto a laptop. Local work b
 ### Read order
 
 1. This section (playbook)
-2. [`local/README.md`](local/README.md) — operator commands and platform notes
-3. [`docs/network-observability-primer.md`](docs/network-observability-primer.md) — optional; networking/ktranslate context for the user
+2. [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md) — one collector model (ktranslate + Alloy + gnmic)
+3. [`local/README.md`](local/README.md) — operator commands and platform notes
+4. [`docs/network-observability-primer.md`](docs/network-observability-primer.md) — optional; networking context
 
 ### Hard rules for agents
 
@@ -45,8 +46,7 @@ docker info       # must succeed before bring-up
 | Platform | How agents run commands | Extra setup |
 |----------|-------------------------|-------------|
 | **macOS** | **Inside an OrbStack Linux VM** — ContainerLab has no macOS binary, so run the whole lab in a VM (`orb -m ubuntu ...`). See [`docs/macos-orbstack-setup.md`](docs/macos-orbstack-setup.md). | `brew install --cask orbstack`; in the VM install `docker.io docker-compose-v2 make gettext-base`, ContainerLab via get.containerlab.dev, mikefarah `yq`; give the VM **10–12 GB** RAM; clone to the VM's native disk (not `/Users`); run discovery as **`sudo make discover GROUP=srl`** (VM user is uid 501, ktranslate expects uid 1000) |
-| **WSL2** | Bash in WSL (`cd .../local`) | `sudo apt install yq gettext-base`; `sudo chown -R 1000:1000 config state` after `make generate` |
-| **Windows host only** | `wsl -e bash -lc 'cd /mnt/c/.../network-o11y-demo/local && <cmd>'` | Same as WSL2; repo on `/mnt/c` is OK — `clab.sh` mirrors fabric to ext4 automatically |
+| **WSL2 (Windows)** | Bash in WSL on a **native ext4 clone** (`~/projects/network-o11y-demo/local`) — **not** `/mnt/c/...` | `sudo apt install yq gettext-base`; `sudo chown -R 1000:1000 config state` after `make generate`. From Cursor on Windows, run commands via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` or use `.\oneclick\deploy.ps1` |
 | **Native Linux** | Bash in `local/` | `chown` only if preflight warns about uid ≠ 1000 on `config/` / `state/` |
 
 **Apple Silicon:** images are `linux/amd64`; first `make up` may take **~15 min** under emulation. This is expected.
@@ -96,7 +96,7 @@ make traffic        # client1↔client2 UDP/ICMP workloads
 
 From repo root: `make local-up` ≡ `make -C local up`.
 
-**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`, `topology_exporter`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps → **mgmt API catalog** OTLP export (`make mgmt-api-mock`).
+**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps → **mgmt API catalog** OTLP export (`make mgmt-api-mock`). Optional: `topology_exporter` via `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`.
 
 **Parallel / faster (less safe on 16 GB):** `make up-parallel` or `LAB_STAGGER=0 make up`.
 
@@ -115,17 +115,19 @@ sum by (device_name) (rate(network_io_by_flow[5m]))
 ```
 
 ```promql
-count by (device_id) (network_topology_device_info{tester_id="<LAB_TESTER_ID or network-lab>"})
+count by (device_id) (network_topology_edge_info{tester_id="<LAB_TESTER_ID or network-lab>"})
 ```
+
+(Device nodes via optional `network_topology_device_info` need `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`.)
 
 **Local sanity checks:**
 
 ```bash
 make -C local status
-docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'spine|leaf|client|ktranslate|alloy|gnmic|topology'
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'spine|leaf|client|ktranslate|alloy|gnmic'
 ```
 
-Expect **12** running containers (5 fabric + 7 collectors) when healthy.
+Expect **11** running containers (5 fabric + 6 collectors) when healthy. With optional `topology_exporter`: **12**.
 
 ### Troubleshooting (agent decision tree)
 
@@ -136,14 +138,64 @@ Expect **12** running containers (5 fabric + 7 collectors) when healthy.
 | `make check` fails containerlab | Not installed | macOS: `brew install containerlab`; Linux: [containerlab.dev/install](https://containerlab.dev/install/) |
 | `compute-limits.sh` / memory error | Unusual host RAM detection | Set `MEM_LIMITS=off` in `.env`, re-run `make up` |
 | SRL container **exit 143** | SIGTERM (sleep, `make down`, `clab --reconfigure`, Docker Desktop stop) — **not OOM** | `make -C local stabilize`; never `clab deploy --reconfigure` |
-| BGP/EVPN/SNMP missing after deploy on `/mnt/c` | drvfs postdeploy failure | `make -C local fabric-apply` or `make stabilize` (ext4 mirror via `clab.sh`) |
+| BGP/EVPN/SNMP missing after deploy | Fabric config not applied or postdeploy race | `make -C local fabric-apply` or `make stabilize`; confirm repo is on **WSL ext4**, not `/mnt/c` |
 | `leaf1` stuck / yang reload | Fabric boot race | Wait; or `docker restart leaf1` then `make stabilize` |
 | No flows in Grafana | softflowd not pointed at collector | `make -C local softflowd` (especially after compose recreate) |
 | No metrics at all | OTLP misconfig or Alloy down | Check `docker logs alloy --tail 50`; verify `GC_OTLP_*`; recreate alloy |
+| SRL containers up, **no SNMP in Grafana** | SNMP agent not listening (not OTLP) | See **SNMP diagnosis** below — usually `network-instance mgmt` missing or `ag1` has no `community-entry` |
+| ktranslate SNMP `connection refused` on :161 | Same as above | `bash scripts/enable-snmp-srl.sh`; verify `oper-state up` on `system snmp network-instance mgmt` |
+| `FULL_FABRIC=1` / broken `apply-fabric-node` | Can wedge `net_inst_mgr` or wipe mgmt NI | **Do not** set unless user asks; prefer `make fabric-apply` (SNMP-only path) or `make down && make up` |
 | Discovery permission error | `config/` / `state/` ownership | `sudo chown -R 1000:1000 config state` (Linux/WSL) |
-| GHCR pull denied (topology_exporter) | Image auth | `make -C local topology-exporter-image` |
+| GHCR pull denied (topology_exporter) | Image auth | `LAB_TOPOLOGY_EXPORTER=1` + `make -C local topology-exporter-image` + `make topology-up` |
 
 **Recovery command of first resort:** `make -C local stabilize` (starts stopped SRL nodes, applies fabric, discover, sidecar configs — no full clab redeploy).
+
+### SNMP diagnosis (SRL up but empty Grafana)
+
+**Symptom:** devices look healthy in `docker ps`, but Explore has no `kentik_snmp_*` and ktranslate logs show `recvfrom: connection refused` on UDP 161.
+
+**Check locally first** (do not assume OTLP/stack misconfig until SNMP works):
+
+```bash
+# From WSL — community public matches groups/srl.env
+snmpget -v2c -c public -t 2 172.20.20.2:161 1.3.6.1.2.1.1.5.0   # spine1
+
+docker exec spine1 sr_cli -ec 'info from state system snmp network-instance mgmt' | grep oper-state
+# expect: oper-state up
+
+docker logs srl-local-telemetry-ktranslate_snmp_srl-1 --tail 20
+```
+
+| `oper-state` / symptom | Cause | Fix |
+|------------------------|-------|-----|
+| `down`, empty `error-msg` | `ag1` missing `community-entry ce1 community public` | `bash scripts/enable-snmp-srl.sh` (deletes clab `SNMPv2-RO-Community`, sets `ag1`/public) |
+| grpc/snmp: `Network instance 'mgmt' does not exist` | `network-instance mgmt` wiped (often after `FULL_FABRIC=1`) | `bash scripts/restore-mgmt-ni.sh` then `enable-snmp-srl.sh`; if still wedged: `make down && make up` |
+| `yang reload` / commit failures | Fabric boot race or partial apply | Wait; `docker restart <node>`; then `make stabilize` |
+
+**Fabric contract:** `configs/fabric/*.cfg` must include **`network-instance mgmt`** (type `ip-vrf`, `mgmt0.0`, linux protocol) and **`system snmp access-group ag1 community-entry ce1 community public`**. `make fabric-apply` (default) pipes only SNMP via `enable-snmp-srl.sh`; full flat config requires `FULL_FABRIC=1` and is risky on a running lab.
+
+**Verify in the operator's stack** (after SNMP polls for ~1–2 min):
+
+```promql
+count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+```
+
+### Agents on Windows (Cursor host)
+
+| Do | Do not |
+|----|--------|
+| Run lab commands via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` | Inline bash `for` loops / `$var` in the **outer** PowerShell string — `$n`, `$ip` get eaten |
+| Use repo scripts: `bash scripts/enable-snmp-srl.sh` | Long one-liners with nested quoting through `wsl -e bash -lc "…"` |
+| Sync edits to the WSL clone when changing files on `C:\…` | Assume `~/network-o11y-demo` picked up Windows-side edits automatically |
+| Strip CRLF before running new shell scripts: `sed -i 's/\r$//' scripts/foo.sh` | Run freshly written `.sh` from Windows without LF check (`set: pipefail\r: invalid option`) |
+| Confirm `GC_OTLP_URL` / account in `local/.env` match the stack the user asked about | Assume Grafana Cloud MCP is on the same stack as the lab (MCP may be a different org) |
+
+**WSL clone sync** (after editing on Windows):
+
+```bash
+cp -r /mnt/c/Users/<you>/projects/network-o11y-demo/local/configs/fabric ~/network-o11y-demo/local/configs/
+cp /mnt/c/Users/<you>/projects/network-o11y-demo/local/scripts/*.sh ~/network-o11y-demo/local/scripts/
+```
 
 ### Optional next steps (only if user asks)
 
@@ -218,13 +270,13 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 
 - **Topology:** 1 spine (`spine1`) + 2 leaves (`leaf1`, `leaf2`) + 2 clients (`client1`, `client2`); all SR Linux `ixrd2l`
 - **Talk track:** eBGP underlay + EVPN MAC-VRF; clients `172.17.0.1` / `172.17.0.2`
-- **Collectors:** `ktranslate_snmp_srl` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors), **`topology_exporter`**
+- **Collectors:** `ktranslate_snmp_srl` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors). Optional: **`topology_exporter`** (`LAB_TOPOLOGY_EXPORTER=1`, `make topology-up`)
 - **NetBox Cloud (optional):** `scripts/netbox-populate.py` + `update-netbox-mgmt-ips.py` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** discovery (`groups/srl.env.sample`). See `local/netbox/README.md`.
 - **ktranslate model:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path — `groups/*.env` → `make generate` → discovery/polling split (`discover_srl` profile + read-only poller). No root `snmp.yaml` + `snmp_discovery_on_start`
-- **SRL SNMP profile:** `local/snmp-profiles/nokia/nokia-srlinux.yml` bind-mounted into poller/discover at `/etc/ktranslate/profiles/kentik_snmp/nokia/`; `mibs_enabled` includes `IF-MIB` + `TIMETRA-{SYSTEM,CHASSIS,BGP}-MIB`. Discovery should set `mib_profile: nokia-srlinux.yml` (sysObjectID `1.3.6.1.4.1.6527.1.20.*`)
+- **SNMP profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). Discovery matches `sysObjectID` → `mib_profile` automatically (e.g. Nokia SR Linux → `nokia-srlinux.yml`). Missing platform? [Profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) → PR upstream — do not bind-mount local profile overrides in normal bring-up.
 - **Alloy role:** OTLP receive + Docker log scrape (lab containers except ktranslate) → preprocess → OTLP HTTP to Grafana Cloud. ktranslate already tees its own logs (and device syslog/traps) over OTLP via `--tee_logs=true`.
-- **Topology:** `topology_exporter` discovers devices via SNMP (`network_topology_device_info`). LLDP edges via **gnmic** `/system/lldp/.../neighbor` → Alloy remaps `…lldp_interface_neighbor_system_name` → `network_topology_edge_info` (stock SRL SNMP has no LLDP rem-table; LLDP protocol itself is enabled)
-- **Topology exporter image:** GHCR may require auth; build local pin with `make -C local topology-exporter-image` (`srl-local/network-topology-exporter:v1.0.0` from GitHub release binary)
+- **Topology graph:** LLDP edges via **gnmic** → Alloy remap → `network_topology_edge_info`. Optional **topology_exporter** (off by default) adds SNMP `network_topology_device_info` + BGP walkers
+- **Topology exporter image:** only when enabled — `make -C local topology-exporter-image` then `make topology-up`
 - **Deferred:** Ansible, full 2-spine/3-leaf Clos, local LGTM stack
 
 ### Bring-up (macOS or WSL/Linux)
@@ -243,8 +295,7 @@ make traffic
 Set OTLP creds in `.env` or `python3 scripts/retarget-otlp-gc.py --write`. Apple Silicon
 uses amd64 emulation — slower but supported. See `local/README.md` → macOS quick reference.
 
-**WSL (Windows):** path via `/mnt/c/Users/<you>/projects/network-o11y-demo/local` is fine;
-`clab.sh` mirrors fabric to ext4 when on drvfs.
+**WSL (Windows):** clone inside WSL on ext4 (`git clone … ~/projects/network-o11y-demo`). Do **not** run the lab from `/mnt/c/...` — ContainerLab cannot reliably commit SR Linux config on drvfs. Agents on Windows invoke WSL explicitly, e.g. `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && make up'`, or use `.\oneclick\deploy.ps1`.
 
 `make up` **staggers** fabric sr_cli readiness and collectors with `LAB_STAGGER_SECS`
 (default 25) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
@@ -254,7 +305,7 @@ Optional NetBox Cloud discovery: `cp groups/srl.env.netbox.sample groups/srl.env
 
 From repo root: `make local-up` / `make local-down` / `make local-help`.
 
-Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
+Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && make up'`.
 
 ### Operational gotchas
 
@@ -262,9 +313,10 @@ Agents on Windows may run the same via `wsl -e bash -lc 'cd ... && make up'`.
 2. **Shell scripts must be LF** (CRLF breaks `set -o pipefail`). `.gitattributes` forces LF under `local/`.
 3. **Alloy comments are `//`**, not `#`.
 4. **`state/devices-*.yaml` is mutable** (discovery writes device lists); never commit `config/` / `state/` / `groups/*.env`. UID 1000 must own `config/` and `state/`.
-5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. Traps → poller `:1620`. One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
-6. **`/mnt/c` + ContainerLab postdeploy:** drvfs breaks SR Linux `config.tmp` commits when clab labdir/startup-config bind-mounts live on `/mnt/c`. `make up` / `make fabric-up` / `make stabilize` auto-mirror `topology.clab.yml` + `configs/fabric/` to ext4 (`CLAB_EXT4_ROOT`, default `~/.cache/network-o11y-demo/clab`) via `scripts/clab.sh`. `make fabric-apply` re-applies configs (defaults to `FULL_FABRIC=1` on ext4 workdir). Compose/o11y can stay on `/mnt/c`. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
-7. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.
+5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. **Traps go to the SNMP poller** (`ktranslate_snmp_srl`, UDP `:1620` — same container as polling, not a separate ktranslate). One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
+6. **Windows / WSL:** clone and run the lab **only** on WSL native ext4 (`~/…`), never `/mnt/c/…`. drvfs breaks ContainerLab postdeploy for SR Linux startup config. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
+7. **SNMP on mgmt:** fabric cfg + `enable-snmp-srl.sh` must set `network-instance mgmt` and `access-group ag1` + `community-entry ce1 community public`. Without both, SNMP/gNMI stay `oper-state down` and ktranslate gets `connection refused` on :161 — devices can look "up" while Grafana has no `kentik_snmp_*`. See playbook **SNMP diagnosis**.
+8. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.
 
 ### Metrics to expect in Grafana Cloud
 

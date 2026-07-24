@@ -17,7 +17,7 @@ info() { echo "==> $*"; }
 warn() { echo "WARNING: $*" >&2; }
 
 wait_sr_cli() {
-  local n=$1 tries="${2:-120}"
+  local n=$1 tries="${2:-${LAB_SR_CLI_TRIES:-120}}"
   while (( tries-- > 0 )); do
     local out
     out=$(docker exec "$n" sr_cli -ec 'show version' 2>&1) || true
@@ -34,7 +34,7 @@ wait_sr_cli() {
     fi
     sleep 2
   done
-  die "${n}: sr_cli not ready after ~$(( (${2:-120}) * 2 ))s (check yang reload / container logs)"
+  die "${n}: sr_cli not ready after ~$(( tries * 2 ))s (check yang reload / container logs)"
 }
 
 restart_if_broken() {

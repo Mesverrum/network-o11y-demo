@@ -36,28 +36,68 @@ function State-Init { if(!(Test-Path $script:StateDir)){ New-Item -ItemType Dire
 function State-Get([string]$k){ if(Test-Path $script:StateFile){ (Get-Content $script:StateFile | Where-Object { $_ -like "$k=*" } | Select-Object -Last 1) -replace "^$k=","" } }
 function State-Set([string]$k,[string]$v){ State-Init; $lines=@(); if(Test-Path $script:StateFile){ $lines=Get-Content $script:StateFile | Where-Object { $_ -notlike "$k=*" } }; ($lines + "$k=$v") | Set-Content $script:StateFile }
 
+# --- logging (Windows bootstrap + WSL stdout) ------------------------------
+function Log-Init {
+  if ($script:LogFile) { return }
+  State-Init
+  $logDir = Join-Path $script:StateDir 'logs'
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $script:LogFile = Join-Path $logDir "$($script:Action)-$ts.log"
+  Set-Content -Path (Join-Path $logDir 'latest.path') -Value $script:LogFile -NoNewline
+  Add-Content -Path $script:LogFile -Value "=== oneclick $($script:Action) started $(Get-Date -Format o) distro=$($script:Distro) ==="
+  Write-Host "  Log: $($script:LogFile)" -ForegroundColor DarkGray
+}
+
+function Log-Finish([int]$ExitCode = 0) {
+  if (-not $script:LogFile) { return }
+  Add-Content -Path $script:LogFile -Value "=== oneclick $($script:Action) finished $(Get-Date -Format o) exit=$ExitCode ==="
+}
+
+function Invoke-WslLab {
+  param(
+    [Parameter(Mandatory)][string]$LabAction,
+    [string]$Prefix = ''
+  )
+  $inner = if ($Prefix) { "$Prefix bash ~/$($script:VmRepo)/oneclick/lab-linux.sh $LabAction" }
+           else { "bash ~/$($script:VmRepo)/oneclick/lab-linux.sh $LabAction" }
+  Step "Running lab-linux.sh $LabAction in WSL (also logged under $($script:LogFile))"
+  $output = wsl.exe -d $script:Distro -- bash -lc $inner 2>&1
+  $rc = $LASTEXITCODE
+  $output | Tee-Object -FilePath $script:LogFile -Append
+  return $rc
+}
+
 # --- WSL helpers (wsl.exe emits UTF-16; fix the console encoding while reading) ---
 function Get-WslDistros {
   $prev=[Console]::OutputEncoding
   try { [Console]::OutputEncoding=[Text.Encoding]::Unicode; (wsl.exe -l -q) | ForEach-Object { ($_ -replace "`0","").Trim() } | Where-Object { $_ } }
   finally { [Console]::OutputEncoding=$prev }
 }
-function Wsl  ([string]$cmd){ wsl.exe -d $script:Distro -- bash -lc $cmd; return $LASTEXITCODE }
+function Wsl  ([string]$cmd){ wsl.exe -d $script:Distro -- bash -lc $cmd | Out-Null; return $LASTEXITCODE }
 function WslQ ([string]$cmd){ wsl.exe -d $script:Distro -- bash -lc $cmd *> $null; return ($LASTEXITCODE -eq 0) }
 function WslOut([string]$cmd){ (wsl.exe -d $script:Distro -- bash -lc $cmd) 2>$null }
+
+# wslpath mangles backslashes when the path is passed through wsl.exe argv; use /.
+function WinPathForWsl([string]$path) { return ($path -replace '\\', '/') }
 
 # Inject THIS checkout's lab-linux.sh into the WSL clone (so it works even before
 # the scripts are merged upstream). Uses wslpath to avoid stdin-encoding issues.
 function Sync-Lab {
   $labWin = Join-Path $script:RepoRoot 'oneclick\lab-linux.sh'
   if (-not (Test-Path $labWin)) { return }
-  $labWsl = (wsl.exe -d $script:Distro -- wslpath -u "$labWin").Trim()
+  $labWsl = (wsl.exe -d $script:Distro -- wslpath -u (WinPathForWsl $labWin)).Trim()
   Wsl "mkdir -p ~/$($script:VmRepo)/oneclick && tr -d '\r' < '$labWsl' > ~/$($script:VmRepo)/oneclick/lab-linux.sh && chmod +x ~/$($script:VmRepo)/oneclick/lab-linux.sh" | Out-Null
+  $logWin = Join-Path $script:RepoRoot 'oneclick\logging.sh'
+  if (Test-Path $logWin) {
+    $logWsl = (wsl.exe -d $script:Distro -- wslpath -u (WinPathForWsl $logWin)).Trim()
+    Wsl "tr -d '\r' < '$logWsl' > ~/$($script:VmRepo)/oneclick/logging.sh" | Out-Null
+  }
   # Inject the fixed dashboard-retarget script (upstream's copy points Fabric Map at
   # deleted 404 URLs -> "Extra content at the end of the document"; Sankey grouped wrong).
   $retWin = Join-Path $script:RepoRoot 'oneclick\dashboards-retarget-local.py'
   if (Test-Path $retWin) {
-    $retWsl = (wsl.exe -d $script:Distro -- wslpath -u "$retWin").Trim()
+    $retWsl = (wsl.exe -d $script:Distro -- wslpath -u (WinPathForWsl $retWin)).Trim()
     Wsl "mkdir -p ~/$($script:VmRepo)/local/scripts && tr -d '\r' < '$retWsl' > ~/$($script:VmRepo)/local/scripts/retarget-dashboards-local.py" | Out-Null
   }
 }
@@ -123,6 +163,11 @@ function Final-Report([string]$note){
   if ($script:Skipped.Count){ Write-Host "Already in place:" -ForegroundColor DarkGray; $script:Skipped | ForEach-Object { Write-Host "  [skip] $_" } }
   if ($script:Failed.Count) { Write-Host "Not completed:" -ForegroundColor Red;  $script:Failed  | ForEach-Object { Write-Host "  [x] $_" } }
   if ($note){ Write-Host "`n$note" -ForegroundColor Yellow }
+  if ($script:LogFile) {
+    Write-Host "`n  Full log: $($script:LogFile)" -ForegroundColor DarkGray
+    $wslLatest = (WslOut "cat ~/.network-o11y-demo-oneclick/logs/latest.path 2>/dev/null") 2>$null
+    if ($wslLatest) { Write-Host "  WSL lab log: $wslLatest" -ForegroundColor DarkGray }
+  }
   if ($script:Action -eq 'decommission'){
     Hdr "Next steps"; Write-Host "  Re-deploy: .\oneclick\deploy.ps1"; Write-Host "  Forget target choice: Remove-Item '$($script:StateFile)'"
   } elseif ($script:Failed.Count -eq 0) {

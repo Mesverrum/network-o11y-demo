@@ -22,9 +22,8 @@ function Decom-Local {
     }
     $rmP = ($rmPlugins -join ' ')
     Sync-Lab
-    Step "Tearing down (lab + Grafana) via lab-linux.sh in WSL"
-    $rc = Wsl "set -o pipefail; RM_DASHBOARDS=$rmDash RM_PLUGINS='$rmP' bash ~/$($script:VmRepo)/oneclick/lab-linux.sh decommission 2>&1 | cat -s"
-    if ($rc -eq 2) { Write-Host "`nResolve the roadblock above, then re-run." -ForegroundColor Yellow; Final-Report "stopped at a roadblock"; exit 2 }
+    $rc = Invoke-WslLab -LabAction decommission -Prefix "set -o pipefail; RM_DASHBOARDS=$rmDash RM_PLUGINS='$rmP'"
+    if ($rc -eq 2) { Write-Host "`nResolve the roadblock above, then re-run." -ForegroundColor Yellow; Log-Finish 2; Final-Report "stopped at a roadblock"; exit 2 }
     elseif ($rc -eq 0) { Ok "lab torn down" } else { Fail "teardown returned exit $rc" }
   } else { Skip "repo not present in WSL" }
 
@@ -44,9 +43,10 @@ function Decom-Aws {
 }
 
 Hdr "network-o11y-demo - one-click DECOMMISSION (Windows/WSL2)"
-State-Init
+State-Init; Log-Init
 $script:Target = State-Get 'TARGET'
 if (-not $script:Target) { Choose-Target }
 Write-Host "Target: $($script:Target)"
 if ($script:Target -eq 'aws') { Decom-Aws } else { Decom-Local }
+Log-Finish $LASTEXITCODE
 Final-Report "Decommission complete."

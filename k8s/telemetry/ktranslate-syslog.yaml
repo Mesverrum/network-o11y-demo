@@ -1,0 +1,79 @@
+---
+# ktranslate syslog receiver — same role as local ktranslate_syslog.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ktranslate-syslog
+  namespace: network-lab
+  labels:
+    app: ktranslate-syslog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ktranslate-syslog
+  template:
+    metadata:
+      labels:
+        app: ktranslate-syslog
+    spec:
+      containers:
+        - name: ktranslate
+          image: quay.io/kentik/ktranslate:v2
+          args:
+            - "--format=otel"
+            - "--format_metric=otel"
+            - "--otel.protocol=grpc"
+            - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
+            - "--snmp=/etc/ktranslate/poller.yaml"
+            - "--syslog.source=0.0.0.0:1514"
+            - "--metalisten=0.0.0.0:9998"
+            - "--sinks=otel"
+            - "--metrics=jchf"
+            - "--tee_logs=true"
+            - "--service_name=syslog"
+          ports:
+            - name: syslog-udp
+              containerPort: 1514
+              protocol: UDP
+            - name: syslog-tcp
+              containerPort: 1514
+              protocol: TCP
+            - name: meta
+              containerPort: 9998
+              protocol: TCP
+          volumeMounts:
+            - name: poller-config
+              mountPath: /etc/ktranslate/poller.yaml
+              subPath: poller.yaml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+      volumes:
+        - name: poller-config
+          configMap:
+            name: ktranslate-snmp-poller
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ktranslate-syslog
+  namespace: network-lab
+  labels:
+    app: ktranslate-syslog
+spec:
+  type: NodePort
+  selector:
+    app: ktranslate-syslog
+  ports:
+    - name: syslog-udp
+      port: 1514
+      protocol: UDP
+      targetPort: 1514
+      nodePort: 30614

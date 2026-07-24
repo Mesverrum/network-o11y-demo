@@ -8,7 +8,7 @@ Speakable Clos on a 16 GB laptop: **1 spine, 2 leaves, 2 clients**. Runs on
 Collector stack follows the **[KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path**:
 credential groups under `groups/`, discovery/polling split, Alloy OTLP forwarder
 with official netflow remapping, and `deployment.host` tagging. Clos extras
-(gNMI incl. LLDP, topology exporter) sit alongside that pattern.
+(gNMI incl. LLDP) sit alongside that pattern. **topology_exporter** is optional (`LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`) to save RAM.
 
 The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 
@@ -32,7 +32,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | NetFlow | softflowd on clients → `ktranslate_flow` → Alloy → GC (`network_io_by_flow`) |
 | Syslog | SR Linux → `ktranslate_syslog` → Alloy → GC |
 | gNMI | SR Linux → `gnmic` (OTLP) → Alloy → GC (`gnmi_*`, `job="gnmic"`) |
-| Topology devices | SR Linux SNMP → `topology_exporter` (OTLP) → Alloy → GC (`network_topology_device_info`) |
+| Topology devices | Optional: `topology_exporter` (OTLP) → `network_topology_device_info` — off by default |
 | Topology edges | SR Linux LLDP via **gnmic** YANG → Alloy remap → GC (`network_topology_edge_info`) |
 | Mgmt API catalog | `fixtures/srl-mgmt-api-catalog.json` + mock payloads → `mgmt-api-mock` (OTLP) → GC (`srl_mgmt_api_capability_info`; NETCONF/JSON-RPC/gNOI/gRIBI shown even when not enabled on devices) |
 | Flex-style gap-fill (optional) | `make telegraf-poc` — Telegraf `inputs.exec` + SSH/`jq` parse → OTLP (`srl_flex_poc_ssh_up`, `srl_flex_poc_bgp_peers_up`; see `local/telegraf-flex-poc/`) |
@@ -58,7 +58,16 @@ NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.net
 
 **Apple Silicon (M1/M2/M3):** SR Linux and several images are `linux/amd64`. Docker runs them under emulation — expect slower first boot and longer `make up` (~15 min). A 16 GB Mac with 10+ GB for the VM is recommended.
 
-**Windows + WSL only:** if the repo lives on `/mnt/c/...`, see [WSL `/mnt/c` and fabric config](#wsl-mntc-and-fabric-config) below. macOS and native Linux clones use the repo directory directly (no ext4 mirror needed).
+**Windows (WSL2):** clone the repo **inside** your Linux distro on native ext4 — not under `/mnt/c`. ContainerLab cannot reliably commit SR Linux startup config on the Windows drvfs mount. From PowerShell you can still use Cursor on the Windows side; run lab commands via WSL (`wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && make up'`) or use **`.\oneclick\deploy.ps1`**, which clones to `~/network-o11y-demo` for you.
+
+```bash
+# Inside WSL (Ubuntu, etc.)
+cd ~
+git clone https://github.com/Mesverrum/network-o11y-demo.git
+cd network-o11y-demo/local
+```
+
+**macOS** uses an OrbStack Linux VM with the same rule: clone on the VM's native disk, not a shared `/Users` mount — see [macOS quick reference](#macos-quick-reference) and [docs/macos-orbstack-setup.md](../docs/macos-orbstack-setup.md).
 
 ## First-time setup (all platforms)
 
@@ -140,36 +149,41 @@ count by (device_id) (network_topology_device_info{tester_id="network-lab"})
 count by (src_device, dst_device) (network_topology_edge_info{tester_id="network-lab"})
 ```
 
+(`network_topology_device_info` requires optional `topology_exporter` — see `make topology-up`.)
+
 Syslog/logs appear under the OTLP → Loki path for `service.name=ktranslate-syslog` (plus `-<host>` when `KTRANS_HOST` is set).
 
-First-time topology exporter image (if GHCR pull is unauthorized):
+**Optional topology_exporter** (SNMP device graph + BGP; saves ~hundreds of MB RAM when off):
 
 ```bash
-make topology-exporter-image
+# In .env: LAB_TOPOLOGY_EXPORTER=1
+make topology-exporter-image   # first time only
+make topology-up
 ```
 
 ## Useful targets
 
 | Target | Purpose |
 |--------|---------|
-| `make generate` | Render `config/*` + `compose-groups.generated.yaml` from `groups/*.env` |
-| `make discover GROUP=srl` | One-shot SNMP discovery → `state/devices-srl.yaml` + poller reload |
+| `make generate` | Render `config/*`, `compose-groups.generated.yaml`, `compose-catalog.generated.yaml` from `groups/*.env` |
+| `make discover GROUP=srl` | One-shot SNMP discovery → `state/devices-srl.yaml` + reload all ktranslate catalog consumers |
+| `make discover-all` | Discover every group; reload ktranslate if any device list changed |
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
 | `make snmp-targets` | Refresh `groups/srl.env` TARGETS (cidr discovery only) |
 | `make netbox-populate` | Seed NetBox Cloud with local lab topology |
 | `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
 | `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
-| `make fabric-up` | Deploy SRL fabric only (ext4 workdir on `/mnt/c`; no collectors) |
+| `make fabric-up` | Deploy SRL fabric only (no collectors) |
 | `make fabric-apply` | (Re)apply `configs/fabric/*.cfg` after edits or failed postdeploy |
-| `make sync-clab-workdir` | Mirror topology + fabric configs to ext4 when repo is on `/mnt/c` |
 | `make stabilize` | Recover without `clab --reconfigure`: start SRL, fabric, discover |
-| `make topology-targets` | Refresh topology-exporter SNMP hosts after clab IP changes |
+| `make topology-targets` | Refresh topology-exporter SNMP hosts (when `LAB_TOPOLOGY_EXPORTER=1`) |
+| `make topology-up` | Start optional topology_exporter (compose profile `topology`) |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
-| `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl:1620` |
+| `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl:1620` (same container as SNMP polling) |
 | `make emit-events` | One-shot: configure syslog+traps, flap links for real device events |
 | `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m |
 | `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP |
@@ -179,6 +193,8 @@ make topology-exporter-image
 
 ## Golden path notes (vs older monolith)
 
+- **Device catalog for flow/syslog/sFlow:** `make generate` writes `config/catalog.yaml` with `@` references to each group's `state/devices-<group>.yaml`. Flow, sFlow, and syslog receivers mount the catalog via `compose-catalog.generated.yaml` (not the per-group poller YAML).
+- **SNMP MIBs / profiles:** handled automatically — the ktranslate image bundles [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). Discovery sets `mib_profile` from each device's `sysObjectID`. If your hardware is not covered, use the [profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) and open a PR upstream; do not maintain local profile bind-mounts for normal operation.
 - **No more** root `snmp.yaml` + `--snmp_discovery_on_start`. Discovery is a one-shot
   `discover_srl` profile; the long-running poller mounts `config/poller-srl.yaml`
   read-only and `@`-includes `state/devices-srl.yaml`.
@@ -233,31 +249,21 @@ make status && make traffic
 **Recovery:** `make stabilize` (no `clab deploy --reconfigure` — that SIGTERM-stops
 all nodes). `make fabric-watch` keeps SRL containers up if Docker restarts.
 
-## WSL `/mnt/c` and fabric config
+## Fabric recovery
 
-When the repo lives under `/mnt/c/Users/...`, ContainerLab **postdeploy cannot commit**
-SR Linux startup config (`config.tmp` permission error on drvfs).
-
-**Automatic fix:** `make up`, `make fabric-up`, and `make stabilize` detect drvfs and
-mirror `topology.clab.yml` + `configs/fabric/` to native ext4 (default
-`~/.cache/network-o11y-demo/clab`) before `clab deploy`. Postdeploy can then commit
-full BGP/EVPN startup config. Override with `CLAB_EXT4_ROOT` in `.env`.
+If BGP/EVPN/SNMP look wrong after deploy, or SRL nodes exited (code 143 — SIGTERM, not OOM):
 
 ```bash
-make sync-clab-workdir   # preview ext4 mirror path
-make fabric-up           # fabric only (no collectors / NetBox)
 make fabric-apply        # re-apply after editing configs/fabric/*.cfg
+bash scripts/enable-snmp-srl.sh   # if SNMP only: connection refused on :161
 make stabilize           # full recovery without clab --reconfigure
 ```
 
-If you still see missing BGP/EVPN after deploy, run `FULL_FABRIC=1 make fabric-apply`.
-**Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it
-SIGTERM-stops all nodes (exit code 143), which is not OOM. For editors/IDEs tied to
-Windows paths, you can keep the repo on `/mnt/c`; only clab’s deploy workdir moves to ext4.
-Alternatively, clone the whole repo to `~/projects/network-o11y-demo` on ext4.
+**SRL up but no `kentik_snmp_*` in Grafana?** Usually SNMP on `network-instance mgmt`, not OTLP. From WSL: `snmpget -v2c -c public 172.20.20.2:161 1.3.6.1.2.1.1.5.0` (spine1). If that times out, run `bash scripts/enable-snmp-srl.sh` (see `AGENTS.md` → *SNMP diagnosis*).
 
-**Keeping fabric alive:** SRL nodes sometimes receive SIGTERM (exit 143) from Docker/WSL
-(e.g. Docker Desktop resource saver, disk pressure on `C:`). Use the background watchdog:
+**Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it SIGTERM-stops all nodes.
+
+**Keeping fabric alive:** SRL nodes sometimes receive SIGTERM from Docker/WSL (e.g. Docker Desktop resource saver). Use the background watchdog:
 
 ```bash
 make fabric-watch          # poll every 60s, auto fabric-stabilize
@@ -265,8 +271,7 @@ make fabric-watch-status
 make fabric-stabilize      # one-shot recovery without collectors
 ```
 
-`make fabric-up` starts `fabric-watch` automatically. In Docker Desktop, disable
-**Resource Saver** and avoid stopping the engine while the lab should run.
+`make fabric-up` starts `fabric-watch` automatically. In Docker Desktop, disable **Resource Saver** and avoid stopping the engine while the lab should run.
 
 ## Network name
 
@@ -280,7 +285,7 @@ Cursor rules: [`.cursor/rules/local-lab.mdc`](../.cursor/rules/local-lab.mdc) (a
 
 **Agent quick checklist:**
 
-1. `cd local` → copy `.env.example` + `groups/srl.env.sample` → user provides `GC_OTLP_*`
+1. `cd local` on a **native ext4** checkout (WSL: `~/projects/...`, not `/mnt/c`) → copy `.env.example` + `groups/srl.env.sample` → user provides `GC_OTLP_*`
 2. `make generate` → (`chown` on Linux/WSL if needed) → `make check` → `make up`
 3. Verify `kentik_snmp_DeviceMetrics` for spine1/leaf1/leaf2 on **user's** stack
 4. On failure: `make stabilize` — not `clab deploy --reconfigure`

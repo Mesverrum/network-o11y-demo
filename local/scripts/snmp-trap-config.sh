@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# snmp-trap-config.sh — point SR Linux SNMP traps at ktranslate_snmp_srl
+# snmp-trap-config.sh — point SR Linux SNMP traps at the SNMP ktranslate poller
+# (same container as polling — trap.listen in poller YAML / groups/srl.env TRAP_PORT).
 #
 # Uses mgmt network-instance (same path SNMP polls use) and UDP port from
 # groups/srl.env TRAP_PORT (default 1620) with TRAP_COMMUNITY (default public).

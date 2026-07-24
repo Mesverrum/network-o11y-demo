@@ -74,6 +74,7 @@ ensure_repo() {
   step "Syncing lab-linux.sh into the VM"
   tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh && chmod +x ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 \
     && ok "lab-linux.sh synced" || roadblock "could not sync lab-linux.sh into the VM" "Check: orb -m $VM_NAME"
+  [[ -f "$REPO_ROOT/oneclick/logging.sh" ]] && tr -d '\r' < "$REPO_ROOT/oneclick/logging.sh" | orb -m "$VM_NAME" bash -lc "cat > ~/$VM_REPO/oneclick/logging.sh" >/dev/null 2>&1 || true
   # Inject the fixed dashboard-retarget script too. Upstream's copy points the Fabric
   # Map svg/panelConfig/siteConfig at a deleted branch (404 -> the flow-panel throws
   # "Extra content at the end of the document") and groups Sankey by the wrong label.
@@ -146,7 +147,7 @@ deploy_aws() {
 
 main() {
   hdr "network-o11y-demo - one-click DEPLOY"
-  state_init; choose_target
+  state_init; log_init; choose_target
   say "Target: ${C_B}$TARGET${C_RESET}"
   case "$TARGET" in local) deploy_local ;; aws) deploy_aws ;; esac
   final_report "Deploy complete."

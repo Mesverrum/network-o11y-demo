@@ -1,0 +1,13 @@
+// Optional — append to alloy/config.alloy when LAB_TOPOLOGY_EXPORTER=1 (make topology-up).
+// Powers the "Topology Exporter Health" dashboard (:9100 counters not pushed over OTLP).
+prometheus.scrape "topology_health" {
+  targets         = [{ __address__ = "topology_exporter:9100", "job" = "network-topology-exporter" }]
+  forward_to      = [otelcol.receiver.prometheus.topology_health.receiver]
+  scrape_interval = "30s"
+}
+
+otelcol.receiver.prometheus "topology_health" {
+  output {
+    metrics = [otelcol.processor.transform.preprocessing.input]
+  }
+}

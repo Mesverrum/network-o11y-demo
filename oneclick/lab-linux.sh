@@ -16,17 +16,32 @@ LDIR="$REPO_ROOT/local"
 # oneclick's own state lives in $HOME (NOT local/state/, which discovery chowns to
 # uid 1000 for ktranslate; the script user may be 501 and couldn't write there).
 OC_STATE="${OC_STATE:-$HOME/.network-o11y-demo-oneclick}"
+LAB_ONECLICK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging.sh
+source "${LAB_ONECLICK_DIR}/logging.sh"
+ONECLICK_LOG_CONTEXT="repo=${REPO_ROOT} uid=$(id -u) host=$(hostname -s 2>/dev/null || hostname)"
+oneclick_log_init "$ACTION" "$OC_STATE"
+trap 'oneclick_log_finish "${ACTION:-run}" $?' EXIT
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then B=$'\033[1m'; D=$'\033[2m'; G=$'\033[32m'; Y=$'\033[33m'; Z=$'\033[0m'; else B=; D=; G=; Y=; Z=; fi
 step(){ printf '%s> %s%s\n' "$B" "$*" "$Z"; }
 ok(){   printf '  %s[ok]%s %s\n' "$G" "$Z" "$*"; }
 skip(){ printf '  %s-%s %s %s(already done)%s\n' "$D" "$Z" "$*" "$D" "$Z"; }
 warn(){ printf '  %s! %s%s\n' "$Y" "$*" "$Z"; }
+now_ts(){ date '+%Y-%m-%d %H:%M:%S'; }
+elapsed_since(){ local s=$(( $(date +%s) - $1 )); printf '%dm %ds' $(( s / 60 )) $(( s % 60 )); }
 roadblock(){ local t="$1"; shift; printf '\n%s+- ROADBLOCK: %s\n' "$Y" "$t"; local i=1
   for l in "$@"; do printf '|  %2d. %s\n' "$i" "$l"; i=$((i+1)); done
   printf '|  Then re-run the deploy from Windows/macOS (it resumes here).\n+-%s\n' "$Z"; exit 2; }
 
 UID_N="$(id -u)"
+
+can_passwordless_sudo(){ sudo -n true 2>/dev/null; }
+
+docker_reachable(){
+  docker info >/dev/null 2>&1 && return 0
+  can_passwordless_sudo && sudo docker info >/dev/null 2>&1
+}
 
 # --- creds check on the ACTIVE GC_OTLP_* lines only (ignore .env.example comments)
 creds_present(){ cd "$LDIR" && grep -qE '^GC_OTLP_KEY=glc_' .env 2>/dev/null && \
@@ -43,26 +58,32 @@ install_toolchain(){
   command -v git         >/dev/null || pkgs+=" git"
   command -v go          >/dev/null || pkgs+=" golang-go"
   if [[ -n "$pkgs" ]]; then
-    sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $pkgs >/dev/null 2>&1 \
-      || roadblock "apt install failed" "Run inside Linux: sudo apt-get update && sudo apt-get install -y$pkgs"
-    ok "installed:$pkgs"
+    if can_passwordless_sudo; then
+      sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $pkgs >/dev/null 2>&1 \
+        || roadblock "apt install failed" "Run inside Linux: sudo apt-get update && sudo apt-get install -y$pkgs"
+      ok "installed:$pkgs"
+    else
+      roadblock "sudo password required to install packages ($pkgs)" \
+        "Open an interactive WSL shell and run: sudo apt-get update && sudo apt-get install -y$pkgs" \
+        "Or install Docker Desktop WSL integration so docker works without apt-installed docker.io."
+    fi
   else skip "apt packages"; fi
 
-  # docker engine (WSL needs systemd enabled to run dockerd via systemctl)
-  if ! sudo docker info >/dev/null 2>&1; then
-    if command -v systemctl >/dev/null && systemctl list-units >/dev/null 2>&1; then
+  # docker engine (Docker Desktop WSL integration usually works without sudo)
+  if ! docker_reachable; then
+    if can_passwordless_sudo && command -v systemctl >/dev/null && systemctl list-units >/dev/null 2>&1; then
       sudo systemctl enable --now docker >/dev/null 2>&1 || true
     fi
-    if ! sudo docker info >/dev/null 2>&1; then
+    if ! docker_reachable; then
       roadblock "Docker engine is not running in this Linux environment" \
         "Easiest on Windows: install Docker Desktop and enable WSL integration for this distro (Settings -> Resources -> WSL integration)." \
         "OR enable systemd in WSL: add to /etc/wsl.conf ->  [boot]\\n systemd=true" \
         "Then from Windows PowerShell run:  wsl --shutdown   (closes WSL; next command restarts it)" \
-        "Verify:  sudo systemctl enable --now docker && docker info"
+        "Verify:  docker info"
     fi
   fi
-  sudo usermod -aG docker "$(id -un)" >/dev/null 2>&1 || true   # id -un: reliable even when $USER is unset
+  can_passwordless_sudo && sudo usermod -aG docker "$(id -un)" >/dev/null 2>&1 || true
   ok "Docker engine available"
 
   command -v containerlab >/dev/null && skip "containerlab" || {
@@ -70,8 +91,19 @@ install_toolchain(){
       && ok "containerlab" || roadblock "containerlab install failed" 'Run: bash -c "$(curl -sL https://get.containerlab.dev)"'; }
   if yq --version 2>&1 | grep -q mikefarah; then skip "yq (mikefarah)"; else
     step "Installing mikefarah yq"
-    sudo curl -sL -o /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$(dpkg --print-architecture)" \
-      && sudo chmod +x /usr/local/bin/yq && ok "yq" || roadblock "yq install failed" "Install mikefarah yq from github.com/mikefarah/yq/releases into /usr/local/bin/yq"; fi
+    arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+    if can_passwordless_sudo; then
+      sudo curl -sL -o /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+        && sudo chmod +x /usr/local/bin/yq && ok "yq" \
+        || roadblock "yq install failed" "Install mikefarah yq from github.com/mikefarah/yq/releases into /usr/local/bin/yq"
+    else
+      mkdir -p "$HOME/.local/bin"
+      curl -sL -o "$HOME/.local/bin/yq" "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}" \
+        && chmod +x "$HOME/.local/bin/yq" && ok "yq (~/.local/bin)" \
+        || roadblock "yq install failed" "Download mikefarah yq to ~/.local/bin and ensure it is on PATH"
+      export PATH="$HOME/.local/bin:$PATH"
+    fi
+  fi
 }
 
 prep_config(){
@@ -86,53 +118,45 @@ prep_config(){
     "Get them in Grafana Cloud -> Connections -> Add new connection -> OpenTelemetry (OTLP)." \
     "Edit: $LDIR/.env" \
     "Set GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (glc_... token with metrics/logs/traces write)."
-  # Alloy topology-health scrape + tester_id (until PR #5 merges)
-  if grep -q topology_health alloy/config.alloy; then skip "Alloy topology-health scrape"; else
-    step "Patching Alloy (topology-health scrape + tester_id)"
+  # Normalize tester_id in Alloy (topology-health scrape is optional — see LAB_TOPOLOGY_EXPORTER)
+  if grep -q 'marcnetterfield-lab' alloy/config.alloy 2>/dev/null; then
+    step "Patching Alloy tester_id"
     sed -i 's/marcnetterfield-lab/network-lab/g' alloy/config.alloy
-    cat >> alloy/config.alloy <<'A'
-
-prometheus.scrape "topology_health" {
-  targets         = [{ __address__ = "topology_exporter:9100", "job" = "network-topology-exporter" }]
-  forward_to      = [otelcol.receiver.prometheus.topology_health.receiver]
-  scrape_interval = "30s"
-}
-otelcol.receiver.prometheus "topology_health" {
-  output { metrics = [otelcol.processor.transform.preprocessing.input] }
-}
-A
-    ok "Alloy patched"; fi
+    ok "Alloy tester_id patched"
+  else
+    skip "Alloy tester_id"
+  fi
 }
 
 bringup(){
   step "Bring up the lab"
   cd "$LDIR" || exit 1
-  make generate >/dev/null 2>&1 && ok "make generate" || roadblock "make generate failed" "cd $LDIR && make generate  (read the error)"
-  make check    >/dev/null 2>&1 && ok "make check" || warn "make check warnings (continuing)"
-  docker image inspect srl-local/network-topology-exporter:v1.0.0 >/dev/null 2>&1 && skip "topology-exporter image" \
-    || { step "Building topology-exporter image"; make topology-exporter-image >/dev/null 2>&1 && ok "image built" || warn "topology-exporter image build failed"; }
+  run_step make generate && ok "make generate" || roadblock "make generate failed" "cd $LDIR && make generate  (read the error)"
+  run_step make check && ok "make check" || warn "make check warnings (continuing)"
 
-  local up; up="$(docker ps --format '{{.Names}}' | grep -cE 'spine1|leaf1|leaf2|client1|client2|alloy|gnmic|ktranslate|topology_exporter' || true)"
-  if [[ "${up:-0}" -ge 12 ]]; then skip "12 lab containers up"
+  local up; up="$(docker ps --format '{{.Names}}' | grep -cE 'spine1|leaf1|leaf2|client1|client2|alloy|gnmic|ktranslate' || true)"
+  if [[ "${up:-0}" -ge 11 ]]; then skip "11 lab containers up (topology_exporter optional)"
   elif docker inspect spine1 >/dev/null 2>&1; then
-    step "make stabilize"; make stabilize >/dev/null 2>&1 && ok "stabilized" || roadblock "make stabilize failed" "cd $LDIR && make stabilize"
+    step "make stabilize"; run_step make stabilize && ok "stabilized" || roadblock "make stabilize failed" "cd $LDIR && make stabilize"
   else
-    step "make up (cold: ~10 min native / longer under emulation)"; make up >/dev/null 2>&1 && ok "make up" \
-      || { warn "make up incomplete -> make stabilize"; make stabilize >/dev/null 2>&1 && ok "stabilized" || roadblock "bring-up failed" "cd $LDIR && make stabilize"; }
+    local up_t0; up_t0=$(date +%s)
+    step "make up (cold: ~10 min native / longer under emulation; started $(now_ts))"
+    run_step make up && ok "make up (finished $(now_ts), $(elapsed_since "$up_t0") elapsed)" \
+      || { warn "make up incomplete -> make stabilize"; run_step make stabilize && ok "stabilized" || roadblock "bring-up failed" "cd $LDIR && make stabilize"; }
   fi
 
   # discovery: chown state to ktranslate's uid 1000; run as user if uid==1000 else via sudo
   if grep -q device_name state/devices-srl.yaml 2>/dev/null; then skip "SNMP discovery"
   else step "SNMP discovery"
     sudo chown -R 1000:1000 config state 2>/dev/null || true
-    if [[ "$UID_N" -eq 1000 ]]; then make discover GROUP=srl >/dev/null 2>&1
-    else sudo chown -R "$UID_N":"$UID_N" config 2>/dev/null; sudo make discover GROUP=srl >/dev/null 2>&1; fi
+    if [[ "$UID_N" -eq 1000 ]]; then run_step make discover GROUP=srl
+    else sudo chown -R "$UID_N":"$UID_N" config 2>/dev/null; run_step sudo make discover GROUP=srl; fi
     grep -q device_name state/devices-srl.yaml 2>/dev/null && ok "discovered spine1/leaf1/leaf2" || warn "discovery found no devices (check SNMP)"; fi
 
   pgrep -f traffic.sh >/dev/null 2>&1 || docker exec client2 pgrep iperf3 >/dev/null 2>&1 && skip "traffic" \
-    || { step "make traffic"; make traffic >/dev/null 2>&1 && ok "traffic started" || warn "traffic failed"; }
+    || { step "make traffic"; run_step make traffic && ok "traffic started" || warn "traffic failed"; }
   if docker exec client1 pgrep -f join-app >/dev/null 2>&1; then skip "join-app"
-  elif command -v go >/dev/null; then step "make join-app"; make join-app >/dev/null 2>&1 && ok "join-app deployed" || warn "join-app failed"
+  elif command -v go >/dev/null; then step "make join-app"; run_step make join-app && ok "join-app deployed" || warn "join-app failed"
   else warn "go missing - skipping join-app"; fi
 }
 
@@ -336,9 +360,9 @@ grafana_teardown(){
 # roadblock with a clear message.
 ensure_docker_access(){
   docker info >/dev/null 2>&1 && return 0                       # already have non-sudo access
-  sudo docker info >/dev/null 2>&1 || return 0                  # daemon problem, not a group one
+  can_passwordless_sudo && sudo docker info >/dev/null 2>&1 || return 0
   local me; me="$(id -un)"
-  sudo usermod -aG docker "$me" >/dev/null 2>&1 || true         # ensure membership (idempotent)
+  can_passwordless_sudo && sudo usermod -aG docker "$me" >/dev/null 2>&1 || true
   # getent reads the group DB fresh (unlike `id -nG`, which shows this shell's stale set).
   if [[ -z "${OC_DOCKER_REEXEC:-}" ]] && getent group docker | grep -qw "$me"; then
     step "Activating docker group for this session (re-exec via sudo -u $me)"

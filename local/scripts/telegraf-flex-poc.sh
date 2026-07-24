@@ -10,6 +10,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE=(docker compose --env-file "${ROOT}/.env"
   -f "${ROOT}/compose-base.yaml"
   -f "${ROOT}/compose-groups.generated.yaml"
+  -f "${ROOT}/compose-catalog.generated.yaml"
   -f "${ROOT}/compose-limits.generated.yaml"
   -f "${ROOT}/compose-telegraf-poc.yaml")
 

@@ -19,11 +19,6 @@
         source: ./state/devices-${GROUP}.yaml
         target: /state/devices-${GROUP}.yaml
         read_only: true
-      # Overlay lab/custom profiles onto the image's kentik_snmp tree (keeps stock profiles).
-      - type: bind
-        source: ./snmp-profiles/nokia
-        target: /etc/ktranslate/profiles/kentik_snmp/nokia
-        read_only: true
     depends_on:
       - alloy
     command:
@@ -64,10 +59,6 @@
       - type: bind
         source: ./state/discovery-${GROUP}.runtime.yaml
         target: /snmp.yaml
-      - type: bind
-        source: ./snmp-profiles/nokia
-        target: /etc/ktranslate/profiles/kentik_snmp/nokia
-        read_only: true
     depends_on:
       - alloy
     command:

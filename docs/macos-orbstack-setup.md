@@ -59,9 +59,9 @@ sudo chmod +x /usr/local/bin/yq
 
 ## 3. Clone to the VM's native filesystem
 
-Running from the shared `/Users` mount causes the same class of problems
-ContainerLab hits on WSL `/mnt/c` (startup-config commit failures, uid drift).
-Clone to the VM's native disk:
+Running from a shared `/Users` mount causes the same class of problems as a Windows
+repo on `/mnt/c` (startup-config commit failures, uid drift). Clone to the VM's
+native disk:
 
 ```bash
 cd ~
@@ -82,7 +82,7 @@ make up                              # ~10-15 min cold on Apple Silicon (amd64 e
 ```
 
 `make up` deploys the ContainerLab fabric, then the collectors, then runs
-discovery. Expect **12 containers** (5 fabric + 7 collectors).
+discovery. Expect **11 containers** (5 fabric + 6 collectors; optional `topology_exporter` → 12).
 
 ## 5. macOS/OrbStack-specific gotchas
 
@@ -91,7 +91,7 @@ These differ from the Linux/WSL reference platform and will bite on a Mac:
 | Symptom | Cause | Fix |
 |---|---|---|
 | `make generate` fails with `$'\r': command not found` | sample `.env`/`groups` files have CRLF | `sed -i 's/\r$//' .env groups/srl.env` |
-| `make up` fails on `topology_exporter` (`pull access denied`) | image is a local build, not on a registry | `make topology-exporter-image`, then `make stabilize` |
+| `make up` fails on `topology_exporter` (`pull access denied`) | only if `LAB_TOPOLOGY_EXPORTER=1` — image is a local build | `make topology-exporter-image`, then `make topology-up` |
 | `make up` fails: *"containers already exist — add --reconfigure"* | fabric already deployed | **never** `--reconfigure` (SIGTERMs all nodes); run `make stabilize` |
 | discovery writes `{}` / `chtimes: operation not permitted` / `Permission denied` on `state/` | OrbStack maps your Mac user to **uid 501**, but ktranslate containers run as **uid 1000** and `run-discovery.sh` assumes it runs as root/1000 | run discovery as root: **`sudo make discover GROUP=srl`** (keep `config/` owned by your user so `make generate` still works) |
 | SR Linux nodes exit 143 | SIGTERM (Docker restart, resource saver), **not** OOM | `make stabilize` |
@@ -116,5 +116,6 @@ OTLP/ktranslate path uses per-metric names, **not** `kentik_snmp_DeviceMetrics`:
 kentik_snmp_CPU                                    # spine1, leaf1, leaf2
 kentik_snmp_tBgpPeerNgConnState                    # 6 = established
 topk(20, network_io_by_flow_bytes)                 # NetFlow (after `make traffic`)
-count by (device) (network_topology_device_info)   # topology (label is `device`)
+count by (device) (network_topology_edge_info)   # gnmic LLDP edges (default)
+# count by (device) (network_topology_device_info)   # optional topology_exporter
 ```

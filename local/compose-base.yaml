@@ -2,7 +2,8 @@
 # Pattern: https://github.com/Mesverrum/KtransToGrafana
 #
 # Static services live here. Per-group SNMP pollers/discovery are rendered into
-# compose-groups.generated.yaml by `make generate` from groups/*.env.
+# compose-groups.generated.yaml; flow/sFlow/syslog catalog mounts into
+# compose-catalog.generated.yaml — both from `make generate`.
 #
 # Requires ContainerLab so the external "clab" network exists.
 
@@ -60,6 +61,7 @@ services:
     environment:
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-ktranslate}${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    # config/catalog.yaml + state/devices-*.yaml mounts: compose-catalog.generated.yaml
     depends_on:
       - alloy
     command:
@@ -67,6 +69,8 @@ services:
       - --format_metric=otel
       - --otel.protocol=grpc
       - --otel.endpoint=http://alloy:4317/
+      - --snmp=/snmp.yaml
+      - --flow_only=true
       - --nf.source=${NF_SOURCE:-netflow9}
       - --nf.port=9995
       - --metalisten=0.0.0.0:9996
@@ -94,6 +98,7 @@ services:
     environment:
       - OTEL_SERVICE_NAME=ktranslate-sflow${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    # catalog volumes: compose-catalog.generated.yaml
     depends_on:
       - alloy
     command:
@@ -101,6 +106,8 @@ services:
       - --format_metric=otel
       - --otel.protocol=grpc
       - --otel.endpoint=http://alloy:4317/
+      - --snmp=/snmp.yaml
+      - --flow_only=true
       - --nf.source=sflow
       - --nf.port=6343
       - --metalisten=0.0.0.0:9994
@@ -109,7 +116,6 @@ services:
       - --metrics=jchf
       - --tee_logs=true
       - --service_name=flow-sflow
-      - --flow_only=true
       - --max_flows_per_message=100
       - --rollup_interval=60
       - --rollup_top_k=100
@@ -129,6 +135,7 @@ services:
     environment:
       - OTEL_SERVICE_NAME=ktranslate-syslog${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
+    # catalog volumes: compose-catalog.generated.yaml
     depends_on:
       - alloy
     command:
@@ -136,6 +143,7 @@ services:
       - --format_metric=otel
       - --otel.protocol=grpc
       - --otel.endpoint=http://alloy:4317/
+      - --snmp=/snmp.yaml
       - --syslog.source=${SYSLOG_SOURCE:-0.0.0.0:1514}
       - --metalisten=0.0.0.0:9998
       - --sinks=otel
@@ -151,6 +159,7 @@ services:
       - default
 
   topology_exporter:
+    profiles: [topology]
     image: ${TOPOLOGY_EXPORTER_IMAGE:-srl-local/network-topology-exporter:v1.0.0}
     container_name: topology_exporter
     restart: unless-stopped

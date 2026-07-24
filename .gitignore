@@ -16,6 +16,7 @@ local/groups/*.env
 local/config/
 local/state/
 local/compose-groups.generated.yaml
+local/compose-catalog.generated.yaml
 local/compose-limits.generated.yaml
 local/snmp.yaml
 local/.dash-payloads/

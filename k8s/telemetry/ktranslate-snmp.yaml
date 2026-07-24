@@ -1,0 +1,73 @@
+---
+# ktranslate SNMP — polls fabric devices and receives traps in the same container (KtransToGrafana poller config).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ktranslate-snmp
+  namespace: network-lab
+  labels:
+    app: ktranslate-snmp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ktranslate-snmp
+  template:
+    metadata:
+      labels:
+        app: ktranslate-snmp
+    spec:
+      containers:
+        - name: ktranslate
+          image: quay.io/kentik/ktranslate:v2
+          args:
+            - "--format=otel"
+            - "--format_metric=otel"
+            - "--otel.protocol=grpc"
+            - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
+            - "--snmp=/etc/ktranslate/poller.yaml"
+            - "--metalisten=0.0.0.0:9997"
+            - "--sinks=otel"
+            - "--metrics=jchf"
+            - "--tee_logs=true"
+            - "--service_name=snmp-fabric"
+          ports:
+            - name: traps
+              containerPort: 1620
+              protocol: UDP
+            - name: meta
+              containerPort: 9997
+              protocol: TCP
+          volumeMounts:
+            - name: poller-config
+              mountPath: /etc/ktranslate/poller.yaml
+              subPath: poller.yaml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: poller-config
+          configMap:
+            name: ktranslate-snmp-poller
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ktranslate-snmp
+  namespace: network-lab
+  labels:
+    app: ktranslate-snmp
+spec:
+  selector:
+    app: ktranslate-snmp
+  ports:
+    - name: traps
+      port: 1620
+      protocol: UDP
+      targetPort: 1620

@@ -56,6 +56,17 @@ state_set()  {
 state_clear() { rm -f "$STATE_FILE"; }
 
 # ---------------------------------------------------------------------------
+# Logging (bootstrap + lab-linux.sh share oneclick/logging.sh)
+# ---------------------------------------------------------------------------
+log_init() {
+  # shellcheck source=logging.sh
+  source "${ONECLICK_DIR}/logging.sh"
+  ONECLICK_LOG_CONTEXT="platform=$(uname -s) repo=$REPO_ROOT action=${ACTION:-run}"
+  oneclick_log_init "${ACTION:-run}" "${STATE_DIR}"
+  trap 'oneclick_log_finish "${ACTION:-run}" $?' EXIT
+}
+
+# ---------------------------------------------------------------------------
 # Roadblock: print step-by-step remediation and exit so the user can re-run.
 #   roadblock "Title" "step 1" "step 2" ...
 # Exit code 2 == "fixable; re-run me after doing the steps".
@@ -175,6 +186,13 @@ final_report() {
     say "${C_RED}${C_B}Not completed:${C_RESET}"; printf '  [x] %s\n' "${REPORT_FAIL[@]}"
   fi
   [[ -n "$note" ]] && printf '\n%s%s%s\n' "$C_YEL" "$note" "$C_RESET"
+  if [[ -n "${ONECLICK_LOG_FILE:-}" ]]; then
+    printf '\n  %sFull log:%s %s\n' "$C_DIM" "$C_RESET" "$ONECLICK_LOG_FILE"
+    local wsl_latest="${HOME}/.network-o11y-demo-oneclick/logs/latest.path"
+    if [[ -f "$wsl_latest" && "$(cat "$wsl_latest" 2>/dev/null)" != "$ONECLICK_LOG_FILE" ]]; then
+      printf '  %sWSL lab log:%s %s\n' "$C_DIM" "$C_RESET" "$(cat "$wsl_latest")"
+    fi
+  fi
   if [[ "${ACTION:-}" == "decommission" ]]; then
     hdr "Next steps"
     say "  Re-deploy any time:  ${C_CYN}./oneclick/deploy.sh${C_RESET}"

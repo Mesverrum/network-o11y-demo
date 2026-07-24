@@ -17,6 +17,27 @@ fi
 
 SRL=(spine1 leaf1 leaf2)
 
+wait_sr_cli() {
+  local n=$1 tries="${2:-${LAB_SR_CLI_TRIES:-120}}"
+  while (( tries-- > 0 )); do
+    local out
+    out=$(docker exec "$n" sr_cli -ec 'show version' 2>&1) || true
+    if grep -qi 'yang reload' <<<"$out"; then
+      sleep 3
+      continue
+    fi
+    if grep -qE 'Hostname[[:space:]]+:[[:space:]]+<Unknown>' <<<"$out"; then
+      sleep 3
+      continue
+    fi
+    if docker exec "$n" sr_cli -ec 'show version' >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  die "${n}: sr_cli not ready after ~$(( tries * 2 ))s (check yang reload / container logs)"
+}
+
 need_deploy=0
 for n in "${SRL[@]}"; do
   if ! docker inspect "$n" >/dev/null 2>&1; then
@@ -37,8 +58,19 @@ else
   done
 fi
 
-info "Waiting for SR Linux (45s)..."
-sleep 45
+STABILIZE_WAIT_SECS="${LAB_STABILIZE_WAIT_SECS:-45}"
+SR_CLI_TRIES="${LAB_SR_CLI_TRIES:-120}"
+
+if (( STABILIZE_WAIT_SECS > 0 )); then
+  info "Initial SR Linux settle (${STABILIZE_WAIT_SECS}s)..."
+  sleep "${STABILIZE_WAIT_SECS}"
+fi
+
+info "Waiting for sr_cli on SRL nodes (up to ~$(( SR_CLI_TRIES * 2 ))s each)..."
+for n in "${SRL[@]}"; do
+  wait_sr_cli "$n" "${SR_CLI_TRIES}"
+  info "${n}: sr_cli ready"
+done
 
 bash "${ROOT}/scripts/apply-fabric-config.sh"
 
@@ -47,10 +79,17 @@ STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
 COMPOSE=(docker compose --env-file .env
   -f compose-base.yaml
   -f compose-groups.generated.yaml
+  -f compose-catalog.generated.yaml
   -f compose-limits.generated.yaml)
+# shellcheck disable=SC2207
+COMPOSE+=($(bash "${ROOT}/scripts/lab-topology-exporter.sh" profile))
+COLLECTOR_SERVICES=(alloy ktranslate_snmp_srl ktranslate_flow ktranslate_syslog gnmic)
+if bash "${ROOT}/scripts/lab-topology-exporter.sh" enabled; then
+  COLLECTOR_SERVICES+=(topology_exporter)
+fi
 
 if [[ "${LAB_STAGGER:-1}" == "1" ]]; then
-  for svc in alloy ktranslate_snmp_srl ktranslate_flow ktranslate_syslog gnmic topology_exporter; do
+  for svc in "${COLLECTOR_SERVICES[@]}"; do
     info "Starting ${svc}..."
     "${COMPOSE[@]}" up -d "${svc}"
     sleep "${STAGGER_SECS}"
@@ -69,8 +108,8 @@ else
   bash "${ROOT}/scripts/update-snmp-targets.sh"
 fi
 
-bash "${ROOT}/scripts/run-discovery.sh" srl || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
-bash "${ROOT}/scripts/update-topology-targets.sh"
+bash "${ROOT}/scripts/run-discovery-all.sh" || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
+bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config
 bash "${ROOT}/scripts/softflowd.sh"
 bash "${ROOT}/scripts/sflow-config.sh" || info "sflow config skipped"
 bash "${ROOT}/scripts/syslog-config.sh" || info "syslog config skipped"

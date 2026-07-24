@@ -209,7 +209,7 @@ If Explore returns data but dashboards are empty, check the **device template va
 |---|---|
 | No SNMP devices after `make up` | Discovery not run yet — `make discover GROUP=<name>`; then inspect `state/devices-<group>.yaml` |
 | Discovery empty | `docker compose logs discover_<group>`; test `snmpwalk` from host; ACLs / wrong creds |
-| Devices in state but no metrics | Kentik profile match — SysObjectID in logs vs [snmp-profiles](https://github.com/kentik/snmp-profiles) |
+| Devices in state but no metrics | Profile gap — check poller logs for `sysObjectID`; search [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) or open an upstream PR ([profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP)) |
 | Poller not picking up new devices | Re-run discovery (sends `SIGUSR2` reload); confirm `state/` owned by uid **1000** |
 | No flow | Exporter IP/port, firewall UDP **9995**, `ktranslate_flow` logs |
 | Metrics in Cloud but wrong names | Alloy transform — SNMP should **not** get `integrations/ktranslate-netflow` service name |

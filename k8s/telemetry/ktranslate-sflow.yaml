@@ -1,51 +1,49 @@
 ---
-# ktranslate NetFlow receiver — same role as local ktranslate_flow.
-# softflowd on client pods sends NetFlow v9 here (simulator limitation).
+# ktranslate sFlow receiver — same role as local ktranslate_sflow.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ktranslate-flow
+  name: ktranslate-sflow
   namespace: network-lab
   labels:
-    app: ktranslate-flow
+    app: ktranslate-sflow
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ktranslate-flow
+      app: ktranslate-sflow
   template:
     metadata:
       labels:
-        app: ktranslate-flow
+        app: ktranslate-sflow
     spec:
       containers:
         - name: ktranslate
           image: quay.io/kentik/ktranslate:v2
           args:
             - "--format=otel"
+            - "--format_metric=otel"
             - "--otel.protocol=grpc"
-            # Alloy's OTLP gRPC endpoint (same namespace)
             - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
             - "--snmp=/etc/ktranslate/poller.yaml"
-            - "--flow_only=true"
-            # NetFlow v9 reception from softflowd on client nodes — port 6343
-            - "--nf.source=netflow9"
-            - "--nf.port=9995"
+            - "--nf.source=sflow"
+            - "--nf.port=6343"
+            - "--metalisten=0.0.0.0:9994"
             - "--sinks=otel"
-            - "--rollup_interval=60"
+            - "--metrics=jchf"
             - "--tee_logs=true"
-            - "--service_name=flow"
-            - "--max_flows_per_message=100"
-            # Roll up bytes per flow with key dimensions for Grafana dashboards
+            - "--service_name=flow-sflow"
+            - "--flow_only=true"
+            - "--rollup_interval=60"
+            - "--rollup_top_k=100"
             - "--rollups=s_sum,bytes_by_flow,in_bytes+out_bytes,src_addr,dst_addr,l4_src_port,l4_dst_port,protocol,device_name"
-            - "--rollup_top_k=20"
             - "--rollup_keep_undefined=true"
           ports:
-            - name: netflow
-              containerPort: 9995
+            - name: sflow
+              containerPort: 6343
               protocol: UDP
-            - name: otlp-health
-              containerPort: 8082
+            - name: meta
+              containerPort: 9994
               protocol: TCP
           securityContext:
             capabilities:
@@ -57,10 +55,10 @@ spec:
               readOnly: true
           resources:
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: 250m
               memory: 256Mi
       volumes:
         - name: poller-config
@@ -68,19 +66,18 @@ spec:
             name: ktranslate-snmp-poller
 
 ---
-# ClusterIP Service — softflowd on client nodes sends NetFlow v9 here
 apiVersion: v1
 kind: Service
 metadata:
-  name: ktranslate-flow
+  name: ktranslate-sflow
   namespace: network-lab
   labels:
-    app: ktranslate-flow
+    app: ktranslate-sflow
 spec:
   selector:
-    app: ktranslate-flow
+    app: ktranslate-sflow
   ports:
-    - name: netflow
-      port: 9995
+    - name: sflow
+      port: 6343
       protocol: UDP
-      targetPort: 9995
+      targetPort: 6343

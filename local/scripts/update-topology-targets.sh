@@ -15,6 +15,11 @@ info() { echo "==> $*"; }
 
 [[ -f "$CFG" ]] || die "missing ${CFG}"
 
+if ! bash "${ROOT}/scripts/lab-topology-exporter.sh" enabled 2>/dev/null; then
+  info "topology_exporter disabled — skipping ${CFG}"
+  exit 0
+fi
+
 CLAB_NET="${CLAB_NETWORK:-clab}"
 docker network inspect "$CLAB_NET" >/dev/null 2>&1 \
   || die "docker network ${CLAB_NET} not found — check CLAB_NETWORK / clab deploy"

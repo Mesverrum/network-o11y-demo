@@ -6,6 +6,9 @@
 #   LAB_STAGGER_SECS=25  pause between steps (default)
 #   LAB_STAGGER_FABRIC=0 skip fabric stagger (collectors still staggered)
 #   LAB_STAGGER_COLLECTORS=0 compose up -d all at once after fabric
+#   LAB_SR_CLI_TRIES_SPINE=90   sr_cli poll attempts for spine (×~2s each)
+#   LAB_SR_CLI_TRIES_LEAF=120   sr_cli poll attempts for leaves
+#   LAB_SR_CLI_TRIES_ALL=90     final all-node sr_cli pass
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,14 +17,23 @@ cd "${ROOT}"
 STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
 STAGGER_FABRIC="${LAB_STAGGER_FABRIC:-1}"
 STAGGER_COLLECTORS="${LAB_STAGGER_COLLECTORS:-1}"
+SR_CLI_TRIES_SPINE="${LAB_SR_CLI_TRIES_SPINE:-90}"
+SR_CLI_TRIES_LEAF="${LAB_SR_CLI_TRIES_LEAF:-120}"
+SR_CLI_TRIES_ALL="${LAB_SR_CLI_TRIES_ALL:-90}"
 
 SRL_ORDER=(spine1 leaf1 leaf2 client1 client2)
-COLLECTOR_SERVICES=(alloy ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic topology_exporter)
+COLLECTOR_SERVICES=(alloy ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 
 COMPOSE=(docker compose --env-file .env
   -f compose-base.yaml
   -f compose-groups.generated.yaml
+  -f compose-catalog.generated.yaml
   -f compose-limits.generated.yaml)
+# shellcheck disable=SC2207
+COMPOSE+=($(bash "${ROOT}/scripts/lab-topology-exporter.sh" profile))
+if bash "${ROOT}/scripts/lab-topology-exporter.sh" enabled; then
+  COLLECTOR_SERVICES+=(topology_exporter)
+fi
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -80,9 +92,9 @@ wait_sr_cli() {
 
 wait_all_sr_cli() {
   local n
-  info "Waiting for sr_cli on all SRL nodes (yang-reload aware, up to 180s each)..."
+  info "Waiting for sr_cli on all SRL nodes (yang-reload aware, up to $(( SR_CLI_TRIES_ALL * 2 ))s each)..."
   for n in spine1 leaf1 leaf2; do
-    wait_sr_cli "$n" 90
+    wait_sr_cli "$n" "${SR_CLI_TRIES_ALL}"
     info "${n}: sr_cli ready"
   done
 }
@@ -99,11 +111,11 @@ deploy_fabric() {
 
   if [[ "${STAGGER_FABRIC}" == "1" ]]; then
     info "Staggering fabric: sequential sr_cli readiness (clab boots all nodes; no stop/start)..."
-    wait_sr_cli spine1 90
+    wait_sr_cli spine1 "${SR_CLI_TRIES_SPINE}"
     info "spine1: sr_cli ready"
     stagger_wait
     for n in leaf1 leaf2; do
-      wait_sr_cli "$n" 120
+      wait_sr_cli "$n" "${SR_CLI_TRIES_LEAF}"
       info "${n}: sr_cli ready"
       stagger_wait
     done
@@ -115,7 +127,7 @@ deploy_fabric() {
 
   wait_all_sr_cli
 
-  info "Applying fabric config (postdeploy / drvfs workaround)..."
+  info "Applying fabric config..."
   bash "${ROOT}/scripts/apply-fabric-config.sh"
 }
 
@@ -144,11 +156,10 @@ post_up_config() {
   fi
 
   info "Discovering SRL devices (GROUP=srl)..."
-  bash scripts/run-discovery.sh srl \
-    || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
+  bash scripts/run-discovery-all.sh \
+    || echo "WARNING: discovery failed — check snmpwalk / groups/*.env"
 
-  info "Updating topology-exporter targets..."
-  bash "${ROOT}/scripts/update-topology-targets.sh"
+  bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config
 
   info "Starting softflowd on clients..."
   bash "${ROOT}/scripts/softflowd.sh"
@@ -171,7 +182,8 @@ post_up_config() {
 }
 
 main() {
-  info "Staggered bring-up (pause=${STAGGER_SECS}s fabric=${STAGGER_FABRIC} collectors=${STAGGER_COLLECTORS})"
+  local up_t0; up_t0=$(date +%s)
+  info "Staggered bring-up started $(date '+%Y-%m-%d %H:%M:%S') (cold run ~10 min; pause=${STAGGER_SECS}s fabric=${STAGGER_FABRIC} collectors=${STAGGER_COLLECTORS})"
   log_resources
   if [[ "${STAGGER_SKIP_FABRIC:-0}" == "1" ]]; then
     info "Skipping fabric deploy (STAGGER_SKIP_FABRIC=1)"
@@ -183,8 +195,9 @@ main() {
   start_collectors
   post_up_config
   log_resources
+  local elapsed_s=$(( $(date +%s) - up_t0 ))
   echo ""
-  echo "Staggered bring-up complete."
+  echo "Staggered bring-up complete at $(date '+%Y-%m-%d %H:%M:%S') ($(( elapsed_s / 60 ))m $(( elapsed_s % 60 ))s elapsed)."
 }
 
 main "$@"

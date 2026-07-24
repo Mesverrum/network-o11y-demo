@@ -46,7 +46,7 @@ Expect `service.name="telegraf-flex-poc"` on the OTLP resource. Leaves should sh
 
 | Situation | Prefer |
 |-----------|--------|
-| OID/MIB exists | Extend `snmp-profiles/nokia/nokia-srlinux.yml` + ktranslate |
+| OID/MIB exists | Usually automatic via ktranslate discovery — if missing, PR to [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) |
 | YANG path exists | gnmic subscription |
 | Structured API | JSON-RPC / NETCONF (see `fixtures/srl-mgmt-api-catalog.json`) |
 | One-off `show` / legacy CLI | Telegraf exec (this PoC) or script_exporter |

@@ -1,22 +1,9 @@
 ---
-# Grafana Alloy configuration for the network-o11y-demo.
+# Grafana Alloy — OTLP forwarder for the unified ktranslate model.
+# Receives OTLP from all ktranslate instances (+ gnmic when switched to OTLP).
+# SNMP and syslog are collected by ktranslate, not Alloy.
 #
-# Responsibilities:
-#   1. Receive OTLP (gRPC) from ktranslate — sFlow metrics → Grafana Cloud (OTLP)
-#   2. SNMP polling of all 5 SR Linux nodes via *-telemetry ClusterIP Services
-#   3. Scrape gnmic Prometheus endpoint for gNMI metrics
-#   4. Collect pod logs from network-lab → Grafana Cloud Loki
-#   5. Forward all metrics via Prometheus remote_write
-#
-# Credentials come from the grafana-cloud-credentials Secret.
-# Env var mapping (Secret key → env var in alloy.yaml):
-#   GC_OTLP_ENDPOINT  → endpoint for otelcol OTLP export
-#   GC_OTLP_USERNAME  → basic auth username for OTLP
-#   GC_PROM_ENDPOINT  → Prometheus remote_write URL
-#   GC_PROM_USERNAME  → basic auth username for Prometheus
-#   GC_LOKI_ENDPOINT  → Loki push endpoint base URL
-#   GC_LOKI_USERNAME  → basic auth username for Loki
-#   API_TOKEN         → shared password for all services
+# Credentials: grafana-cloud-credentials Secret.
 
 apiVersion: v1
 kind: ConfigMap
@@ -25,20 +12,20 @@ metadata:
   namespace: network-lab
 data:
   config.alloy: |
-    // ─── 1. sFlow metrics from ktranslate (OTLP gRPC) ───────────────────────────
+    // ─── OTLP from ktranslate (SNMP / flow / sFlow / syslog) ───────────────────
 
-    otelcol.receiver.otlp "ktranslate" {
+    otelcol.receiver.otlp "default" {
       grpc {
         endpoint = "0.0.0.0:4317"
+        max_recv_msg_size = "128MiB"
       }
       output {
-        metrics = [otelcol.processor.transform.ktranslate_flow.input]
+        metrics = [otelcol.processor.transform.preprocessing.input]
         logs    = [otelcol.processor.batch.otlp.input]
       }
     }
 
-    // Rename ktranslate rollup metric to OTEL semantic convention
-    otelcol.processor.transform "ktranslate_flow" {
+    otelcol.processor.transform "preprocessing" {
       error_mode = "ignore"
 
       metric_statements {
@@ -51,9 +38,14 @@ data:
       }
 
       metric_statements {
-        context    = "datapoint"
+        context = "datapoint"
         statements = [
-          `set(datapoint.attributes["network.transport"], datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,
+          `set(datapoint.attributes["device_role"],"spine") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"spine.*")`,
+          `set(datapoint.attributes["device_role"],"leaf") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"leaf.*")`,
+          `set(datapoint.attributes["site"],"network-lab") where IsMatch(metric.name,"kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
+          `set(datapoint.attributes["platform"],"sr-linux") where IsMatch(metric.name,"kentik_snmp_.*")`,
+          `set(datapoint.attributes["tenant"],"network-o11y-demo") where IsMatch(metric.name,"kentik_snmp_.*")`,
+          `set(datapoint.attributes["network.transport"],datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,
           `delete_key(datapoint.attributes,"protocol") where metric.name == "network.io.by_flow"`,
           `set(datapoint.attributes["network.local.address"],datapoint.attributes["src_addr"]) where metric.name == "network.io.by_flow"`,
           `delete_key(datapoint.attributes,"src_addr") where metric.name == "network.io.by_flow"`,
@@ -71,46 +63,7 @@ data:
       }
     }
 
-    // ─── 2. SNMP polling — all 5 SR Linux nodes ──────────────────────────────────
-    // Reaches SR Linux via iptables DNAT in each launcher pod (port 161 UDP).
-
-    prometheus.exporter.snmp "srl_fabric" {
-      target "spine1" {
-        address = "spine1-telemetry.network-lab.svc.cluster.local:161"
-        module  = "system,if_mib"
-        auth    = "public_v2"
-      }
-      target "spine2" {
-        address = "spine2-telemetry.network-lab.svc.cluster.local:161"
-        module  = "system,if_mib"
-        auth    = "public_v2"
-      }
-      target "leaf1" {
-        address = "leaf1-telemetry.network-lab.svc.cluster.local:161"
-        module  = "system,if_mib"
-        auth    = "public_v2"
-      }
-      target "leaf2" {
-        address = "leaf2-telemetry.network-lab.svc.cluster.local:161"
-        module  = "system,if_mib"
-        auth    = "public_v2"
-      }
-      target "leaf3" {
-        address = "leaf3-telemetry.network-lab.svc.cluster.local:161"
-        module  = "system,if_mib"
-        auth    = "public_v2"
-      }
-    }
-
-    prometheus.scrape "srl_snmp" {
-      targets         = prometheus.exporter.snmp.srl_fabric.targets
-      forward_to      = [prometheus.relabel.netbox_enrich_snmp.receiver]
-      job_name        = "integrations/snmp"
-      scrape_timeout  = "30s"
-      scrape_interval = "60s"
-    }
-
-    // ─── 3. gnmic gNMI metrics ────────────────────────────────────────────────────
+    // ─── gNMI via gnmic (Prometheus scrape until gnmic → OTLP migration) ─────────
 
     prometheus.scrape "gnmic" {
       targets         = [{"__address__" = "gnmic.network-lab.svc.cluster.local:9273"}]
@@ -120,129 +73,13 @@ data:
       scrape_timeout  = "25s"
     }
 
-    // ─── 3a. NetBox enrichment — SNMP metrics ─────────────────────────────────────
-    // Adds job_snmp, device, device_role, site, platform, and tenant labels.
-    //
-    // Label sources:
-    //   job      = "integrations/snmp"  (set by prometheus.scrape job_name above)
-    //   instance = "<node>-telemetry.network-lab.svc.cluster.local:161"
-    //              (the address Alloy used to reach the SNMP exporter target)
-    //
-    // Grafana SNMP integration dashboards filter on job_snmp=~"integrations/snmp.*"
-    // rather than job=~"...", so job_snmp must be set explicitly.
-
-    prometheus.relabel "netbox_enrich_snmp" {
-      forward_to = [prometheus.remote_write.grafana_cloud.receiver]
-
-      // ── job_snmp ──────────────────────────────────────────────────────────────────
-      // Grafana dashboard variable queries use: job_snmp=~"integrations/snmp.*"
-      // Copy the job label value → job_snmp so those variables resolve correctly.
-      rule {
-        source_labels = ["job"]
-        target_label  = "job_snmp"
-      }
-
-      // ── Device name ───────────────────────────────────────────────────────────────
-      // instance = "spine1-telemetry.network-lab.svc.cluster.local:161"
-      // Strip the "-telemetry.<cluster-dns>:<port>" suffix to get the bare device name.
-      rule {
-        source_labels = ["instance"]
-        regex         = "^([^.]+?)-telemetry\\..*"
-        target_label  = "device"
-        replacement   = "$1"
-      }
-
-      // Mirror to "source" so SNMP and gNMI metrics share the same label vocabulary.
-      rule {
-        source_labels = ["device"]
-        target_label  = "source"
-      }
-
-      // ── Device role ───────────────────────────────────────────────────────────────
-      rule {
-        source_labels = ["device"]
-        regex         = "spine.*"
-        target_label  = "device_role"
-        replacement   = "spine"
-      }
-      rule {
-        source_labels = ["device"]
-        regex         = "leaf.*"
-        target_label  = "device_role"
-        replacement   = "leaf"
-      }
-
-      // ── Site, platform, tenant ────────────────────────────────────────────────────
-      rule {
-        source_labels = ["device"]
-        regex         = ".+"
-        target_label  = "site"
-        replacement   = "network-lab"
-      }
-      rule {
-        source_labels = ["device"]
-        regex         = ".+"
-        target_label  = "platform"
-        replacement   = "sr-linux"
-      }
-      rule {
-        source_labels = ["device"]
-        regex         = ".+"
-        target_label  = "tenant"
-        replacement   = "network-o11y-demo"
-      }
-    }
-
-    // ─── 3b. NetBox enrichment — gNMI metrics ─────────────────────────────────────
-    // gnmic sets a `source` label containing the device hostname, which maps
-    // directly to the NetBox device name.
-
     prometheus.relabel "netbox_enrich_gnmi" {
       forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 
-      // ── Metric renaming ──────────────────────────────────────────────────────────
-      // gnmic auto-builds metric names from YANG module paths, producing names like:
-      //   gnmi_interface_stats_srl_nokia_interfaces_interface_statistics_in_octets
-      // We strip the middle YANG module path to get clean srl_* names that follow
-      // Prometheus naming conventions (https://prometheus.io/docs/practices/naming/).
-
-      rule {
-        source_labels = ["__name__"]
-        regex         = "gnmi_interface_stats_srl_nokia_interfaces_interface_statistics_(.*)"
-        replacement   = "srl_iface_$1"
-        target_label  = "__name__"
-      }
-
-      rule {
-        source_labels = ["__name__"]
-        regex         = "gnmi_bgp_neighbors_srl_nokia_network_instance_network_instance_protocols_srl_nokia_bgp_bgp_neighbor_(.*)"
-        replacement   = "srl_bgp_neighbor_$1"
-        target_label  = "__name__"
-      }
-
-      rule {
-        source_labels = ["__name__"]
-        regex         = "gnmi_system_resources_srl_nokia_platform_platform_srl_nokia_platform_control_control_srl_nokia_platform_cpu_cpu_(.*)"
-        replacement   = "srl_cpu_$1"
-        target_label  = "__name__"
-      }
-
-      rule {
-        source_labels = ["__name__"]
-        regex         = "gnmi_system_resources_srl_nokia_platform_platform_srl_nokia_platform_control_control_srl_nokia_platform_memory_memory_(.*)"
-        replacement   = "srl_memory_$1"
-        target_label  = "__name__"
-      }
-
-      // ── Label enrichment ─────────────────────────────────────────────────────────
-
-      // gnmic sets source = device name already (spine1, leaf1, etc.)
-      // Copy it to the canonical "device" label used by dashboards.
       rule {
         source_labels = ["source"]
         target_label  = "device"
       }
-
       rule {
         source_labels = ["source"]
         regex         = "spine[12]"
@@ -255,21 +92,6 @@ data:
         target_label  = "device_role"
         replacement   = "leaf"
       }
-
-      // Also set "role" as a short alias for device_role — used by dashboards.
-      rule {
-        source_labels = ["source"]
-        regex         = "spine[12]"
-        target_label  = "role"
-        replacement   = "spine"
-      }
-      rule {
-        source_labels = ["source"]
-        regex         = "leaf[123]"
-        target_label  = "role"
-        replacement   = "leaf"
-      }
-
       rule {
         source_labels = ["source"]
         regex         = "spine[12]|leaf[123]"
@@ -282,91 +104,23 @@ data:
         target_label  = "platform"
         replacement   = "sr-linux"
       }
-      rule {
-        source_labels = ["source"]
-        regex         = "spine[12]|leaf[123]"
-        target_label  = "tenant"
-        replacement   = "network-o11y-demo"
-      }
     }
 
-    // ─── 3c. NetBox SD — device inventory discovery ───────────────────────────────
-    // Polls the netbox-sd service (k8s/netbox/netbox-sd.yaml) for all active
-    // devices in Prometheus HTTP SD format.  The discovered targets and their
-    // labels are visible in the Alloy UI under "discovery.http / netbox_sd".
-    // This demonstrates the live NetBox → Alloy integration; the labels returned
-    // here match those applied by the relabel rules above.
-
-    discovery.http "netbox_sd" {
-      url              = "http://netbox-sd.network-tools.svc.cluster.local:8181/targets"
-      refresh_interval = "5m"
-    }
-
-    // ─── 4. Syslog from SR Linux devices → Loki ──────────────────────────────────
-    // SR Linux forwards RFC5424 syslog over TCP (RSYSLOG_SyslogProtocol23Format).
-    //
-    // use_rfc5424_message = true stores the full RFC5424 line as the log body so
-    // loki.process can reliably regex-parse HOSTNAME, APP-NAME and PRI rather than
-    // relying on loki.source.syslog's auto-extraction (which can silently fail when
-    // the stream has framing errors and leaves hostname empty, causing stage.labels
-    // to overwrite hostname with an empty string).  The process stage replaces the
-    // log body with just the MSG part after label extraction.
-
-    loki.source.syslog "srl_devices" {
-      listener {
-        address             = "0.0.0.0:6514"
-        protocol            = "udp"
-        use_rfc5424_message = true
-        labels = {
-          job = "syslog/srl",
-        }
-      }
-      forward_to = [loki.process.srl_syslog.receiver]
-    }
-
-    loki.process "srl_syslog" {
-      // RFC5424 format: <PRI>1 TIMESTAMP HOSTNAME APP-NAME PROCID MSGID SD MSG
-      // \S+ for the SD field handles the common "-" (nil) case.
-      stage.regex {
-        expression = `^<(?P<pri>\d+)>1 \S+ (?P<hostname>\S+) (?P<app_name>\S+) \S+ \S+ \S+ ?(?P<message>.*)$`
-      }
-
-      // Compute human-readable severity from PRI mod 8.
-      // 0=emergency 1=alert 2=critical 3=error 4=warning 5=notice 6=informational 7=debug
-      stage.template {
-        source   = "severity"
-        template = `{{- if .pri -}}{{- $n := mod (int .pri) 8 -}}{{- if eq $n 0 -}}emergency{{- else if eq $n 1 -}}alert{{- else if eq $n 2 -}}critical{{- else if eq $n 3 -}}error{{- else if eq $n 4 -}}warning{{- else if eq $n 5 -}}notice{{- else if eq $n 6 -}}informational{{- else -}}debug{{- end -}}{{- else -}}unknown{{- end -}}`
-      }
-
-      stage.labels {
-        values = {
-          hostname = "hostname",
-          app_name = "app_name",
-          severity = "severity",
-        }
-      }
-
-      // Replace the full RFC5424 syslog line with just the message body.
-      stage.output {
-        source = "message"
-      }
-
-      forward_to = [loki.write.grafana_cloud.receiver]
-    }
-
-    // ─── 4b. Pod log collection → Loki ───────────────────────────────────────────
-    // Collect logs from all pods in network-lab using the Kubernetes API.
+    // ─── Pod logs (skip ktranslate — they tee logs over OTLP) ────────────────────
 
     discovery.kubernetes "network_lab_pods" {
       role = "pod"
-      namespaces {
-        names = ["network-lab"]
-      }
+      namespaces { names = ["network-lab"] }
     }
 
     discovery.relabel "network_lab_pods" {
       targets = discovery.kubernetes.network_lab_pods.targets
 
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app"]
+        regex         = "ktranslate.*"
+        action        = "drop"
+      }
       rule {
         source_labels = ["__meta_kubernetes_namespace"]
         target_label  = "namespace"
@@ -400,7 +154,7 @@ data:
       }
     }
 
-    // ─── 5. OTLP export pipeline (sFlow metrics) → Grafana Cloud ─────────────────
+    // ─── Export ──────────────────────────────────────────────────────────────────
 
     otelcol.processor.batch "otlp" {
       output {
@@ -420,8 +174,6 @@ data:
       username = env("GC_OTLP_USERNAME")
       password = env("API_TOKEN")
     }
-
-    // ─── 6. Prometheus remote_write (SNMP + gNMI metrics) → Grafana Cloud ────────
 
     prometheus.remote_write "grafana_cloud" {
       endpoint {

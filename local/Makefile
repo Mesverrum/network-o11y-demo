@@ -25,8 +25,10 @@ LAB_STAGGER_SECS ?= 25
 export LAB_STAGGER LAB_STAGGER_SECS
 
 COMPOSE := docker compose --env-file .env \
+  $(shell bash $(ROOT)scripts/lab-topology-exporter.sh profile 2>/dev/null) \
   -f compose-base.yaml \
   -f compose-groups.generated.yaml \
+  -f compose-catalog.generated.yaml \
   -f compose-limits.generated.yaml
 
 .PHONY: help
@@ -91,6 +93,10 @@ discover: ## Run one-shot SNMP discovery (GROUP=srl)
 	@test -n "$(GROUP)" || { echo "ERROR: pass GROUP=<name>, e.g. make discover GROUP=srl" >&2; exit 1; }
 	@cd $(ROOT) && bash scripts/run-discovery.sh $(GROUP)
 
+.PHONY: discover-all
+discover-all: ## Run discovery for every group; reload catalog consumers if any list changed
+	@cd $(ROOT) && bash scripts/run-discovery-all.sh
+
 .PHONY: up
 up: check generate bootstrap limits ## Staggered deploy (default): fabric + collectors + discover
 ifeq ($(LAB_STAGGER),0)
@@ -98,7 +104,7 @@ ifeq ($(LAB_STAGGER),0)
 	@bash $(ROOT)scripts/clab.sh deploy
 	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
 	@sleep 60
-	@echo "==> Applying fabric config (postdeploy workaround for /mnt/c)..."
+	@echo "==> Applying fabric config..."
 	@bash $(ROOT)scripts/apply-fabric-config.sh
 	@echo "==> deployment.host = $(KTRANS_HOST)"
 	@echo "==> Starting telemetry compose stack..."
@@ -124,9 +130,8 @@ _post-up-config:
 	  bash $(ROOT)scripts/update-snmp-targets.sh; \
 	fi
 	@echo "==> Discovering SRL devices (GROUP=srl)..."
-	cd $(ROOT) && bash scripts/run-discovery.sh srl || echo "WARNING: discovery failed — check snmpwalk / groups/srl.env"
-	@echo "==> Updating topology-exporter targets..."
-	bash $(ROOT)scripts/update-topology-targets.sh
+	cd $(ROOT) && bash scripts/run-discovery-all.sh || echo "WARNING: discovery failed — check snmpwalk / groups/*.env"
+	@bash $(ROOT)scripts/lab-topology-exporter.sh post-config
 	@echo "==> Starting softflowd on clients..."
 	bash $(ROOT)scripts/softflowd.sh
 	@echo "==> Configuring SR Linux sFlow → ktranslate_sflow..."
@@ -139,11 +144,11 @@ _post-up-config:
 	bash $(ROOT)scripts/mgmt-api-mock.sh emit || echo "WARNING: mgmt-api-mock export failed — check go + alloy OTLP"
 
 .PHONY: sync-clab-workdir
-sync-clab-workdir: ## Mirror topology + fabric configs to ext4 when repo is on /mnt/c
+sync-clab-workdir: ## (internal) sync clab deploy dir when CLAB_FORCE_EXT4=1
 	bash $(ROOT)scripts/sync-clab-workdir.sh
 
 .PHONY: fabric-up
-fabric-up: sync-clab-workdir ## Deploy SRL fabric only (no o11y/NetBox); uses ext4 workdir on /mnt/c
+fabric-up: sync-clab-workdir ## Deploy SRL fabric only (no o11y/NetBox)
 	@bash $(ROOT)scripts/clab.sh deploy
 	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
 	@sleep 60
@@ -168,7 +173,7 @@ fabric-watch-status: ## Show fabric-watch status / recent log
 	bash $(ROOT)scripts/fabric-watch.sh status
 
 .PHONY: fabric-apply
-fabric-apply: sync-clab-workdir ## Apply configs/fabric/*.cfg via sr_cli (WSL /mnt/c postdeploy workaround)
+fabric-apply: sync-clab-workdir ## Apply configs/fabric/*.cfg via sr_cli
 	bash $(ROOT)scripts/apply-fabric-config.sh
 
 .PHONY: stabilize
@@ -222,6 +227,15 @@ netbox-populate: ## Seed NetBox with local lab topology (idempotent)
 .PHONY: topology-targets
 topology-targets: ## Rewrite topology-exporter target hosts from live clab mgmt IPs
 	bash $(ROOT)scripts/update-topology-targets.sh
+
+.PHONY: topology-up
+topology-up: check generate topology-exporter-image ## Start optional topology_exporter (set LAB_TOPOLOGY_EXPORTER=1 in .env)
+	@echo "==> Starting topology_exporter (compose profile topology)..."
+	@cd $(ROOT) && LAB_TOPOLOGY_EXPORTER=1 docker compose --env-file .env --profile topology \
+	  -f compose-base.yaml -f compose-groups.generated.yaml -f compose-catalog.generated.yaml \
+	  -f compose-limits.generated.yaml up -d topology_exporter
+	@cd $(ROOT) && LAB_TOPOLOGY_EXPORTER=1 bash scripts/update-topology-targets.sh
+	@echo "Optional: append scripts/topology-health-scrape.alloy to alloy/config.alloy and recreate alloy for :9100 health metrics."
 
 .PHONY: softflowd
 softflowd: ## (Re)start softflowd on clients

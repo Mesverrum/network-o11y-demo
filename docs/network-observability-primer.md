@@ -90,7 +90,7 @@ Think of four questions network ops asks every day:
 **SNMP polling** is the decades-old default: every N minutes, a collector asks each device “what’s your interface error count, CPU, BGP state?”
 
 - **Pros:** Works on almost everything; huge ecosystem.
-- **Cons:** Poll interval hides short spikes; MIB/profile work per vendor; can be heavy on large devices.
+- **Cons:** Poll interval hides short spikes; uncommon platforms may need a new upstream SNMP profile; can be heavy on large devices.
 
 **gNMI streaming** is newer: the device **pushes** changes when state changes.
 
@@ -99,7 +99,7 @@ Think of four questions network ops asks every day:
 
 **In this lab:** SNMP via **ktranslate** (`kentik_snmp_*` metrics). gNMI via **gnmic** (`gnmi_*` metrics).
 
-**Gap-fill (optional):** When a MIB or YANG path does not exist yet, teams sometimes **SSH to devices and parse CLI output** (historically [New Relic nri-flex](https://github.com/newrelic/nri-flex), in Prometheus land often **Telegraf `inputs.exec`** + jq). This repo includes an opt-in PoC: `make -C local telegraf-poc` → SSH + JSON parse → `srl_flex_poc_*` over OTLP. Prefer extending SNMP profiles or gnmic subscriptions when possible.
+**Gap-fill (optional):** When a MIB or YANG path does not exist yet, teams sometimes **SSH to devices and parse CLI output** (historically [New Relic nri-flex](https://github.com/newrelic/nri-flex), in Prometheus land often **Telegraf `inputs.exec`** + jq). This repo includes an opt-in PoC: `make -C local telegraf-poc` → SSH + JSON parse → `srl_flex_poc_*` over OTLP. For SNMP gaps, contribute a profile to [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) (see the [ktranslate profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP)); use gnmic when a YANG path exists.
 
 ### Logs (syslog and traps)
 
@@ -108,7 +108,7 @@ Devices emit **syslog** for operational events: link down, BGP neighbor lost, co
 - Network teams search logs by **device, severity, facility**.
 - **SNMP traps** are push alerts (often fed into the same pipeline).
 
-**In this lab:** Syslog and traps → **ktranslate** → OTLP → Alloy → Grafana Cloud.
+**In this lab:** Syslog → `ktranslate_syslog`. **SNMP traps → `ktranslate_snmp_*`** (same container as polling, UDP trap port in poller config). Both → OTLP → Alloy → Grafana Cloud.
 
 ### Flows (NetFlow / sFlow)
 
@@ -125,7 +125,7 @@ A **flow** is a summary of traffic between endpoints: source/dest IP, ports, pro
 
 **In this lab:**
 
-- **Devices:** `topology_exporter` (SNMP discovery) → `network_topology_device_info`
+- **Devices:** optional `topology_exporter` (SNMP) → `network_topology_device_info` — off by default on laptops
 - **Edges:** **gnmic** LLDP neighbors → Alloy remap → `network_topology_edge_info`
 
 ### Traces (application side—but we join them to the network)
@@ -144,14 +144,14 @@ App SREs live here. Network teams traditionally do not—but **correlating trace
 
 | ktranslate role | What it does |
 |-----------------|--------------|
-| **SNMP poller** | Discovers devices, runs vendor SNMP profiles, exports metrics via OTLP |
+| **SNMP poller (+ traps)** | Discovers devices, polls on a schedule, **and** listens for SNMP traps on the trap port in the same config — exports metrics and trap events via OTLP |
 | **Flow collector** | Listens for NetFlow/sFlow, normalizes records, exports via OTLP |
-| **Syslog/trap receiver** | Ingests device logs and traps, forwards via OTLP |
+| **Syslog receiver** | Ingests device syslog, forwards via OTLP |
 
 **Why not poll SNMP directly in Alloy?** You can—for simple cases. ktranslate adds:
 
-- **SNMP profiles** per vendor/platform (Nokia SR Linux, Cisco, Juniper, …)
-- **Discovery** workflows (find devices, assign profiles, split pollers)
+- **SNMP profiles** shipped in the image ([kentik/snmp-profiles](https://github.com/kentik/snmp-profiles)); discovery assigns them from `sysObjectID` — you usually do not manage MIBs by hand
+- **Discovery** workflows (find devices, split pollers by credential group)
 - **Flow parsing** at scale with Kentik’s battle-tested pipeline
 - **OTLP out** so everything lands in one modern pipeline
 
@@ -160,7 +160,7 @@ App SREs live here. Network teams traditionally do not—but **correlating trace
 **In this repo** we follow the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) pattern:
 
 - Credential **groups** (`groups/srl.env`) → generated poller/discovery configs
-- Separate containers for SNMP, flow, and syslog
+- Separate containers for **SNMP (poll + traps)**, flow, and syslog
 - Alloy receives OTLP and forwards to **Grafana Cloud**
 
 You’ll see metrics prefixed like `kentik_snmp_*` and flow series like `network_io_by_flow`—that’s ktranslate’s export shape into Prometheus-compatible OTLP.
@@ -173,18 +173,18 @@ You’ll see metrics prefixed like `kentik_snmp_*` and flow series like `network
 |-----------|------|
 | **Grafana Alloy** | Telemetry router: OTLP in, relabel/enrich, forward to Grafana Cloud; also scrapes some sources and remaps LLDP into topology edge metrics |
 | **gnmic** | gNMI client; streams YANG paths (BGP, LLDP, …) as OTLP/Prometheus metrics |
-| **topology_exporter** | Discovers devices via SNMP; publishes device graph metrics |
+| **topology_exporter** | Optional: SNMP device graph (`LAB_TOPOLOGY_EXPORTER=1` locally) |
 | **Grafana Cloud** | Hosted Prometheus + Loki + Tempo + Grafana UI—one place to query, dashboard, and alert |
 | **NetBox + Ansible** | Inventory and config automation | NetBox in local compose; Ansible on EKS path |
 
 **Data path (local lab):**
 
 ```
-SR Linux devices ──SNMP──► ktranslate_snmp ──┐
+SR Linux devices ──SNMP + traps──► ktranslate_snmp ──┐
               ──syslog──► ktranslate_syslog ─┤
 clients ──NetFlow──────► ktranslate_flow ───┼──► Alloy ──OTLP──► Grafana Cloud
               ──gNMI────► gnmic ─────────────┤
-              ──SNMP────► topology_exporter ─┘
+              ──SNMP────► topology_exporter ─┘  (optional locally)
 join-app ──traces/metrics────────────────────► Alloy
 ```
 
@@ -284,7 +284,7 @@ join-app ──traces/metrics─────────────────
 |------|---------------------|
 | **OTLP** | OpenTelemetry Protocol—how collectors send data to backends |
 | **Poller** | Process that periodically queries devices (SNMP) |
-| **MIB / profile** | Schema of what SNMP OIDs to collect for a platform |
+| **MIB / profile** | ktranslate matches `sysObjectID` to a YAML profile in [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles); add new platforms via upstream PR |
 | **5-tuple** | src IP, dst IP, protocol, src port, dst port—identifies a conversation |
 | **tester_id** | Label identifying this lab instance in metrics (`network-lab` by default) |
 | **SIG** | Grafana “service inference graph” direction—unified service + network entity model |

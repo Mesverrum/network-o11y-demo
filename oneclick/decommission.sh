@@ -78,7 +78,7 @@ decom_aws() {
 
 main() {
   hdr "network-o11y-demo - one-click DECOMMISSION"
-  state_init
+  state_init; log_init
   TARGET="$(state_get TARGET)"; [[ -z "$TARGET" ]] && choose_target
   say "Target: ${C_B}$TARGET${C_RESET}"
   case "$TARGET" in local) decom_local ;; aws) decom_aws ;; *) err "unknown target"; exit 1 ;; esac

@@ -54,6 +54,11 @@ else
   fi
 fi
 
+# --- WSL drvfs: repo must live on native ext4, not /mnt/c ---
+if [[ "$(uname -s)" == "Linux" ]] && [[ "${REPO_ROOT}" == /mnt/* ]]; then
+  _fail "repo is on Windows drvfs (${REPO_ROOT}) — clone inside WSL on ext4 (e.g. ~/projects/network-o11y-demo); see local/README.md"
+fi
+
 # --- Base runtime files copied from .sample ---
 for f in .env alloy/config.alloy compose-base.yaml; do
   if [[ -f "${f}" ]]; then
@@ -111,6 +116,16 @@ if [[ -f compose-groups.generated.yaml ]]; then
   _ok "compose-groups.generated.yaml exists"
 else
   _fail "compose-groups.generated.yaml is missing — run: make generate"
+fi
+if [[ -f compose-catalog.generated.yaml ]]; then
+  _ok "compose-catalog.generated.yaml exists"
+else
+  _fail "compose-catalog.generated.yaml is missing — run: make generate"
+fi
+if [[ -f config/catalog.yaml ]]; then
+  _ok "config/catalog.yaml exists"
+else
+  _fail "config/catalog.yaml is missing — run: make generate"
 fi
 
 # --- Per-group rendered configs ---

@@ -181,7 +181,7 @@ data:
     # ktranslate ClusterIP explicitly.
     fix_client_sflow() {
       pod="$1"; node="$2"
-      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate \
+      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate-flow \
                 -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
       [ -z "$kt_ip" ] && return
       # -v 9 = NetFlow v9; without -d, softflowd daemonizes automatically.
@@ -189,13 +189,13 @@ data:
         docker --host unix:///run/docker.sock exec "$node" \
         sh -c "which softflowd > /dev/null 2>&1 || apk add --no-cache softflowd > /dev/null 2>&1; \
                pkill softflowd 2>/dev/null; sleep 1; \
-               softflowd -i eth1 -n ${kt_ip}:6343 -v 9 -P udp" \
+               softflowd -i eth1 -n ${kt_ip}:9995 -v 9 -P udp" \
         2>/dev/null || true
     }
 
     # Ensure softflowd is running in each client container every poll cycle.
     ensure_softflowd() {
-      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate \
+      kt_ip=$(kubectl get svc -n "$NAMESPACE" ktranslate-flow \
                 -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
       [ -z "$kt_ip" ] && return
       for node in client1 client2 client3; do
@@ -206,7 +206,7 @@ data:
           docker --host unix:///run/docker.sock exec "$node" \
           sh -c "pgrep softflowd > /dev/null 2>&1 || { \
             which softflowd > /dev/null 2>&1 || apk add --no-cache softflowd > /dev/null 2>&1; \
-            softflowd -i eth1 -n ${kt_ip}:6343 -v 9 -P udp; }" \
+            softflowd -i eth1 -n ${kt_ip}:9995 -v 9 -P udp; }" \
           2>/dev/null || true
       done
     }
