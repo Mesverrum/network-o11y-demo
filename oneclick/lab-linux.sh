@@ -323,23 +323,22 @@ grafana_teardown(){
   warn "Ingested metrics are retained per your stack's retention; nothing is deleted from the TSDB."
 }
 
-# After a FRESH docker.io install, usermod -aG docker adds us to the docker group
-# but this shell still carries its old group set, so `docker`/`make up` hit
-# "permission denied ... /var/run/docker.sock". sg re-reads the group database, so
-# re-exec the whole run once under it - then docker works without sudo and without a
-# re-login. Guard against looping; if docker still isn't reachable, fall through and
-# let bringup roadblock with a clear message.
+# After a FRESH docker.io install, usermod -aG docker adds us to the docker group but
+# this shell still carries its old (stale) group set, so `docker`/`make up` hit
+# "permission denied ... /var/run/docker.sock". The OrbStack base image has no sg/newgrp,
+# so we re-exec the whole run once via `sudo -u <self>`: sudo calls initgroups(), which
+# re-reads the group DB and picks up the just-added 'docker' group - no re-login needed.
+# Guarded against looping; if docker still isn't reachable, fall through and let bringup
+# roadblock with a clear message.
 ensure_docker_access(){
   docker info >/dev/null 2>&1 && return 0                       # already have non-sudo access
   sudo docker info >/dev/null 2>&1 || return 0                  # daemon problem, not a group one
   local me; me="$(id -un)"
   sudo usermod -aG docker "$me" >/dev/null 2>&1 || true         # ensure membership (idempotent)
-  # NOTE: check membership with getent (reads the group DB fresh). `id -nG` reflects the
-  # process's cached group set, which does NOT yet include a just-added group - that stale
-  # read is exactly why the first version of this guard never fired.
-  if [[ -z "${OC_DOCKER_SG:-}" ]] && command -v sg >/dev/null 2>&1 && getent group docker | grep -qw "$me"; then
-    step "Activating docker group for this session (re-exec under 'sg docker')"
-    exec sg docker -c "OC_DOCKER_SG=1 bash '${BASH_SOURCE[0]}' '$ACTION'"
+  # getent reads the group DB fresh (unlike `id -nG`, which shows this shell's stale set).
+  if [[ -z "${OC_DOCKER_REEXEC:-}" ]] && getent group docker | grep -qw "$me"; then
+    step "Activating docker group for this session (re-exec via sudo -u $me)"
+    exec sudo -u "$me" -H bash -c "OC_DOCKER_REEXEC=1 bash '${BASH_SOURCE[0]}' '$ACTION'"
   fi
 }
 
