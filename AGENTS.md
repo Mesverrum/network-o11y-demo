@@ -159,6 +159,61 @@ Expect **12** running containers (5 fabric + 7 collectors) when healthy.
 
 If MCP is available, authenticate to the **operator's** stack (same as `GRAFANA_URL` / `GC_OTLP_*`). Use it to run verification PromQL and generate Explore deeplinks — do not assume a specific stack name in docs or queries.
 
+### Grafana dashboard updates — preserve `TabsLayout` (v2 manifest path)
+
+**Audience:** agents patching or importing ktranslate / Network O11y dashboards on Grafana Cloud.
+
+Grafana **v2** dashboards (generation ≥ 2, `spec.layout.kind: TabsLayout`) store tabs in the **App Platform manifest**, not in classic `dashboard.panels` JSON. Updating them through the **legacy** API **flattens tabs into one long scroll** — we hit this on Commvault Device Details (restored from version history).
+
+| Path | Safe for tabbed v2 dashboards? | When to use |
+|------|-------------------------------|-------------|
+| `gcx dashboards get` → edit manifest → `gcx dashboards update` | **Yes** | Any patch on `mavgvqv`, `magz6qw1`, or other `TabsLayout` boards |
+| `POST /api/dashboards/db` with `{ "dashboard": { ...panels... } }` | **No** on v2 tabbed boards | One-shot **first import** of classic JSON only; never re-save tabbed dashboards this way |
+| `local/scripts/patch-iface-bps-60s.py` (legacy HTTP) | **No** on tabbed boards | Avoid; kept for `rewrite_expr()` helper only |
+| `local/scripts/audit-commvault-bps.py` | **No** | Deprecated — strips `TabsLayout` |
+
+**Canonical workflow (gcx + v2 manifest):**
+
+```bash
+# 1) Read full manifest (note layout.kind)
+gcx --context <stack> --agent dashboards get <uid> -o json > /tmp/dash.json
+
+# 2) Patch spec.elements[*].spec (queries, descriptions, etc.) — not top-level panels[]
+#    Example: interface bps — rate(kentik_snmp_ifHC*Octets[$__rate_interval])*8
+#             → (kentik_snmp_ifHC*Octets{...}) * 8 / 60  (ktranslate delta gauges, 60s poll)
+
+# 3) Write back via v2 update
+gcx --context <stack> --agent dashboards update <uid> -f /tmp/dash.json
+
+# 4) Verify layout survived
+gcx --context <stack> --agent dashboards get <uid> -o json \
+  | jq '.spec.layout.kind'    # expect "TabsLayout" when started as TabsLayout
+```
+
+**Fleet helper (interface BPS on kentik SNMP):**
+
+```bash
+# Dry-run scan (discovers ktranslate/network-lab dashboards on the stack)
+python3 local/scripts/patch-iface-bps-fleet.py <gcx-context> --dry-run
+
+# Patch explicit UIDs (live)
+python3 local/scripts/patch-iface-bps-fleet.py networko11ydev mavgvqv magz6qw1
+python3 local/scripts/patch-iface-bps-fleet.py marcnetterfield1 mavgvqv net-o11y-traffic-sankey
+```
+
+Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query rewrite: `rewrite_expr()` in `local/scripts/patch-iface-bps-60s.py`.
+
+**Post-patch checklist:**
+
+1. `spec.layout.kind` unchanged (`TabsLayout` vs `RowsLayout` / `GridLayout`).
+2. `metadata.generation` incremented (update actually landed).
+3. UI spot-check: e.g. **01. Network Device Details** still shows all tabs (Interfaces, BGP, …), not one flattened page.
+4. For BPS panels: no remaining `rate(kentik_snmp_ifHCInOctets` / `ifHCOutOctets` in the manifest.
+
+**If tabs were already flattened:** restore a pre-patch dashboard **version** in Grafana UI (Dashboard settings → Versions), then re-apply patches with the v2 path above.
+
+**MCP note:** prefer read-only MCP (`get_dashboard_summary`, PromQL) for verification. For writes on tabbed v2 dashboards, use **gcx v2** until you have confirmed your MCP `patch_dashboard` / `update_dashboard` path preserves `TabsLayout` (legacy-shaped payloads are unsafe).
+
 ## Local lab (current phase)
 
 - **Topology:** 1 spine (`spine1`) + 2 leaves (`leaf1`, `leaf2`) + 2 clients (`client1`, `client2`); all SR Linux `ixrd2l`
@@ -260,7 +315,9 @@ See root [`README.md`](README.md) and `make post-03` … `post-06`. Uses Clabber
 
 ## Grafana Cloud MCP
 
-If the Grafana Cloud MCP server is available and authenticated, prefer it for Explore queries, dashboard import/patch, and deeplinks. Point MCP at **your** Grafana Cloud stack (the same one as `GRAFANA_URL` / `GC_OTLP_*` in `local/.env`).
+If the Grafana Cloud MCP server is available and authenticated, prefer it for Explore queries and deeplinks. Point MCP at **your** Grafana Cloud stack (the same one as `GRAFANA_URL` / `GC_OTLP_*` in `local/.env`).
+
+**Dashboard writes on tabbed v2 boards:** use the [**v2 manifest / gcx path**](#grafana-dashboard-updates--preserve-tabslayout-v2-manifest-path) (`dashboards get` → edit `spec.elements` → `dashboards update`). Do **not** use `POST /api/dashboards/db` or legacy patch scripts on `TabsLayout` dashboards.
 
 ## Blog / docs map
 

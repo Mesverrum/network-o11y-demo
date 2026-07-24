@@ -263,6 +263,10 @@ traffic: ## Start ongoing UDP workloads (steady+burst+reverse+ping)
 traffic-stop: ## Stop traffic workloads
 	bash $(ROOT)scripts/traffic.sh stop
 
+.PHONY: validate-flow-counts
+validate-flow-counts: ## Sanity-check flow series/rates vs lab traffic (see scripts/validate-flow-counts.py)
+	python3 $(ROOT)scripts/validate-flow-counts.py $(ARGS)
+
 .PHONY: traffic-status
 traffic-status: ## Show traffic workload status
 	bash $(ROOT)scripts/traffic.sh status

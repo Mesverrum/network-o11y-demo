@@ -67,7 +67,7 @@ output:
     heartbeat_cycles: 1
 
 targets:
-  - host: 172.20.20.3
+  - host: 172.20.20.4
     port: 161
     site: srl-local
     labels:
@@ -79,7 +79,7 @@ targets:
     labels:
       role: leaf
       tester_id: marcnetterfield-lab
-  - host: 172.20.20.5
+  - host: 172.20.20.3
     port: 161
     site: srl-local
     labels:

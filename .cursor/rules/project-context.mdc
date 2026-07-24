@@ -16,3 +16,4 @@ alwaysApply: true
 - **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` — default sample uses CIDR discovery.
 - **Memory:** read and update root `AGENTS.md` (+ these rules) when architecture or bring-up changes.
 - **New teammate + AI agent:** start at `AGENTS.md` → **Agent playbook**; then `local/README.md`. Do not assume any default Grafana Cloud stack.
+- **Grafana dashboard patches (tabbed v2):** never `POST /api/dashboards/db` on `TabsLayout` boards — it flattens tabs. Use `gcx dashboards get` → edit `spec.elements` → `gcx dashboards update`, or `local/scripts/patch-iface-bps-fleet.py`. Full playbook: `AGENTS.md` → *Grafana dashboard updates — preserve TabsLayout*.

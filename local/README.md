@@ -113,6 +113,17 @@ topk(20, network_io_by_flow_bytes)
 
 **Flow dashboard** (ktranslate NetFlow/sFlow): UID `lab-ktranslate-flow` in folder `network-lab`. Panels use `network_io_by_flow_bytes` with exporter/src/dst/protocol variables (same layout as marcnetterfield1 **02. Network Flow Summary**). Rebuild/import: `python3 scripts/build-ktranslate-flow-dashboard.py` then `python3 scripts/import-ktranslate-flow-dashboard.py` (`gcx --context networko11ydev` preferred).
 
+**Sanity-check flow counting** (series count + byte rates vs known lab traffic):
+
+```bash
+make softflowd          # after compose recreate — softflowd target IP drifts
+make traffic            # steady 3M+1M UDP + ping between 172.17.0.1 / 172.17.0.2
+make validate-flow-counts              # path check + PromQL vs dashboard
+make validate-flow-counts ARGS="--burst --wait 90"   # optional controlled iperf burst
+```
+
+Checks: `count(network_io_by_flow_bytes)` (active conversations), top-5 tuples on `172.17.0.0/16`, and total bps via `sum(network_io_by_flow_bytes) * 8 / 60` (ktranslate rollup gauge; `rate()` often under-reports). Report: `.dash-payloads/flow-validate-report.json`. Expect ~4 Mbps steady from `traffic.sh`; allow ±50% for UDP overhead and burst idle cycles.
+
 **Clos join app (app↔network):** `make join-app` deploys a tiny OTel Go HTTP client on `client1` and server on `client2` (`172.17.0.1`→`172.17.0.2:8080` over EVPN). Traces land in Tempo as `service.name=clos-join-demo` with `network.peer.*` / `server.address` join keys; softflowd should show `network_peer_port="8080"`. Source: `join-app/`. Stop: `make join-app-stop`. Talk track: dashboard **Investigation** row → `make join-fault` (netem 200 ms/1 % on client `eth1`) → watch app p95 climb → `make join-fault-stop`.
 
 ```promql

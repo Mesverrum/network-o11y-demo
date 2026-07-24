@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Patch interface BPS panels: rate()*8 -> *8/60, note 60s poll in description."""
+"""Patch interface BPS panels: rate()*8 -> *8/60, note 60s poll in description.
+
+Exports ``rewrite_expr()`` used by v2-safe fleet patchers. The legacy HTTP save path
+(``POST /api/dashboards/db``) in this module must NOT be used on ``TabsLayout`` v2
+dashboards — see ``AGENTS.md`` → *Grafana dashboard updates — preserve TabsLayout*.
+"""
 from __future__ import annotations
 
 import copy
@@ -75,21 +80,23 @@ def api(env: dict[str, str], method: str, path: str, body: dict | None = None):
 
 
 def rewrite_expr(expr: str) -> tuple[str, bool]:
-    if "kentik_snmp_ifHC" not in expr or "rate(" not in expr:
+    if "kentik_snmp_ifHC" not in expr:
         return expr, False
     if "ifHCInOctets" not in expr and "ifHCOutOctets" not in expr:
         return expr, False
+    if "rate(" not in expr and "irate(" not in expr:
+        return expr, False
     orig = expr
-    # rate(METRIC{sel}[$__rate_interval]) * 8  OR  rate(...) )* 8 with parens
+    # rate/irate(METRIC{sel}[$__rate_interval][ offset …]) — ktranslate exports poll deltas, not counters
     new = re.sub(
-        r"rate\(\s*(kentik_snmp_ifHC(?:In|Out)Octets(?:\{[^{}]*\})?)\s*\[\$__rate_interval\]\s*\)",
-        r"(\1)",
+        r"(?:rate|irate)\(\s*(kentik_snmp_ifHC(?:In|Out)Octets(?:\{[^{}]*\})?)\s*\[\$__rate_interval\]"
+        r"(\s+offset\s+[\w]+)?\s*\)",
+        lambda m: f"({m.group(1)}{m.group(2) or ''})",
         expr,
     )
     # After removing rate(), ensure * 8 becomes * 8 / 60 (avoid double)
     if new == expr:
         return expr, False
-    # If we still have * 8 without / 60 nearby for these metrics
     if "* 8 / 60" in new or "*8/60" in new.replace(" ", ""):
         return new, new != orig
     new2 = re.sub(r"\*\s*8\b(?!\s*/\s*60)", "* 8 / 60", new)
