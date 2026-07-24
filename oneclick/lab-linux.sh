@@ -62,7 +62,7 @@ install_toolchain(){
         "Verify:  sudo systemctl enable --now docker && docker info"
     fi
   fi
-  sudo usermod -aG docker "$USER" >/dev/null 2>&1 || true
+  sudo usermod -aG docker "$(id -un)" >/dev/null 2>&1 || true   # id -un: reliable even when $USER is unset
   ok "Docker engine available"
 
   command -v containerlab >/dev/null && skip "containerlab" || {
@@ -332,7 +332,12 @@ grafana_teardown(){
 ensure_docker_access(){
   docker info >/dev/null 2>&1 && return 0                       # already have non-sudo access
   sudo docker info >/dev/null 2>&1 || return 0                  # daemon problem, not a group one
-  if [[ -z "${OC_DOCKER_SG:-}" ]] && id -nG "$USER" 2>/dev/null | grep -qw docker && command -v sg >/dev/null; then
+  local me; me="$(id -un)"
+  sudo usermod -aG docker "$me" >/dev/null 2>&1 || true         # ensure membership (idempotent)
+  # NOTE: check membership with getent (reads the group DB fresh). `id -nG` reflects the
+  # process's cached group set, which does NOT yet include a just-added group - that stale
+  # read is exactly why the first version of this guard never fired.
+  if [[ -z "${OC_DOCKER_SG:-}" ]] && command -v sg >/dev/null 2>&1 && getent group docker | grep -qw "$me"; then
     step "Activating docker group for this session (re-exec under 'sg docker')"
     exec sg docker -c "OC_DOCKER_SG=1 bash '${BASH_SOURCE[0]}' '$ACTION'"
   fi
