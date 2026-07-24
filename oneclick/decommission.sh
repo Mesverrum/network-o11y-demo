@@ -16,7 +16,7 @@ gather_teardown_answers() {
   confirm "Remove the network-lab dashboards + folder from Grafana Cloud?" && RM_DASHBOARDS=1
   local plist p
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    plist="$(orb -m "$VM_NAME" bash -lc 'cat ~/.network-o11y-demo-oneclick/plugins-installed 2>/dev/null' 2>/dev/null)"
+    plist="$(orb -m "$VM_NAME" bash -lc 'cat ~/.network-o11y-demo-oneclick/plugins-installed 2>/dev/null' </dev/null 2>/dev/null)"
   else
     plist="$(cat "$HOME/.network-o11y-demo-oneclick/plugins-installed" 2>/dev/null)"
   fi
@@ -34,7 +34,7 @@ run_teardown() {
     return "${PIPESTATUS[0]}"
   fi
   tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 || true
-  orb -m "$VM_NAME" bash -lc "set -o pipefail; $envs bash ~/$VM_REPO/oneclick/lab-linux.sh decommission 2>&1 | cat -s"
+  orb -m "$VM_NAME" bash -lc "set -o pipefail; $envs bash ~/$VM_REPO/oneclick/lab-linux.sh decommission 2>&1 | cat -s" </dev/null
 }
 
 decom_local() {
@@ -47,7 +47,7 @@ decom_local() {
     return
   fi
   if ! have orb; then skip "OrbStack not installed - nothing local to remove"; return; fi
-  if ! orb list 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then skip "VM '$VM_NAME' not present"
+  if ! orb list </dev/null 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then skip "VM '$VM_NAME' not present"
   else
     if vm_q "test -d ~/$VM_REPO/local"; then
       gather_teardown_answers
@@ -59,7 +59,7 @@ decom_local() {
       step "Deleting VM '$VM_NAME'"
       # -f: skip orb's own y/N prompt (we already confirmed above); capture stderr so a
       # real failure is shown instead of a bare "could not delete".
-      local out; if out="$(orb delete -f "$VM_NAME" 2>&1)"; then ok "VM deleted"
+      local out; if out="$(orb delete -f "$VM_NAME" </dev/null 2>&1)"; then ok "VM deleted"
       else warn "could not delete VM: ${out:-orb delete -f $VM_NAME failed}"; fi
     else skip "VM kept (re-deploy will be fast)"; fi
   fi

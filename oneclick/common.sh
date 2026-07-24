@@ -84,8 +84,10 @@ roadblock() {
 # Helpers
 # ---------------------------------------------------------------------------
 have()   { command -v "$1" >/dev/null 2>&1; }
-vm()     { orb -m "$VM_NAME" bash -lc "$1"; }             # run a command inside the VM
-vm_q()   { orb -m "$VM_NAME" bash -lc "$1" >/dev/null 2>&1; }
+# </dev/null on every orb call: orb buffers/drains the caller's stdin, which would
+# otherwise swallow input meant for the interactive confirm prompts (or piped answers).
+vm()     { orb -m "$VM_NAME" bash -lc "$1" </dev/null; }   # run a command inside the VM
+vm_q()   { orb -m "$VM_NAME" bash -lc "$1" </dev/null >/dev/null 2>&1; }
 gcx_ok() { [[ -x "$GCX_BIN" ]] && "$GCX_BIN" config check >/dev/null 2>&1; }
 
 confirm() { # confirm "question" -> returns 0 for yes
