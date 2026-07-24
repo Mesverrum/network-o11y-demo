@@ -251,7 +251,12 @@ for p in PLUGINS:
         print(f"  plugin {p}: already installed - left as-is (will NOT be removed on teardown)")
         continue
     c,b=req(f"https://grafana.com/api/instances/{slug}/plugins",ptok,{"plugin":p})
-    if 200<=c<300 or c==409:
+    if c==409:
+        # 409 = already installed on the stack (the in-stack GET can lag Cloud
+        # provisioning). This deploy did NOT install it, so DON'T track it - a
+        # pre-existing plugin must never be offered for removal on teardown.
+        print(f"  plugin {p}: already installed - left as-is (will NOT be removed on teardown)")
+    elif 200<=c<300:
         print(f"  plugin {p}: installed by this deploy (teardown will ASK before removing)"); tracked.append(p)
     elif c in (401,403):
         print(f"  plugin {p}: HTTP {c} (token lacks stack-plugins:write)"); need_scope=True
