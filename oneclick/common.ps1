@@ -66,7 +66,23 @@ function Confirm-Yes([string]$q){ $a=Read-Host "  $q [y/N]"; return ($a -match '
 
 function Choose-Target {
   $t = State-Get 'TARGET'
-  if ($t){ $script:Target=$t; return }
+  if ($t){
+    $script:Target = $t
+    if ([Console]::IsInputRedirected) { return }   # non-interactive: keep saved target silently
+    Hdr "Deployment target"
+    Write-Host "  Saved target: $t"
+    $c = Read-Host "  Press Enter to keep, or type 'local' / 'aws' to change"
+    switch ($c) {
+      ''      { $script:Target = $t }
+      'local' { $script:Target = 'local' }
+      '1'     { $script:Target = 'local' }
+      'aws'   { $script:Target = 'aws' }
+      '2'     { $script:Target = 'aws' }
+      default { Warn "unrecognized '$c' - keeping saved target '$t'"; $script:Target = $t }
+    }
+    if ($script:Target -ne $t){ State-Set 'TARGET' $script:Target }
+    return
+  }
   Hdr "Choose deployment target"
   Write-Host "  1) local  - WSL2 Linux distro on this PC (ContainerLab + ktranslate -> Grafana Cloud)"
   Write-Host "  2) aws    - EKS / Clabbernetes via the repo's terraform + 'make all' (run inside WSL)"

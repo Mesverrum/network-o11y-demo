@@ -98,7 +98,21 @@ confirm() { # confirm "question" -> returns 0 for yes
 # ---------------------------------------------------------------------------
 choose_target() {
   local t; t="$(state_get TARGET)"
-  if [[ -n "$t" ]]; then TARGET="$t"; return; fi
+  if [[ -n "$t" ]]; then
+    TARGET="$t"
+    [[ -t 0 ]] || return                       # non-interactive (piped/resume): keep saved target silently
+    hdr "Deployment target"
+    say "  Saved target: ${C_B}$t${C_RESET}"
+    local c; read -r -p "  Press Enter to keep, or type 'local' / 'aws' to change: " c
+    case "${c:-}" in
+      ""|"$t")  TARGET="$t" ;;
+      local|1)  TARGET=local ;;
+      aws|2)    TARGET=aws ;;
+      *)        warn "unrecognized '$c' - keeping saved target '$t'"; TARGET="$t" ;;
+    esac
+    [[ "$TARGET" != "$t" ]] && state_set TARGET "$TARGET"
+    return
+  fi
   hdr "Choose deployment target"
   say "  ${C_B}1)${C_RESET} local  - OrbStack Linux VM on this Mac (ContainerLab + ktranslate -> Grafana Cloud)"
   say "  ${C_B}2)${C_RESET} aws    - EKS / Clabbernetes via OpenTofu + Ansible (repo's terraform + make all)"
