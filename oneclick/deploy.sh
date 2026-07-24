@@ -62,14 +62,19 @@ seed_creds() {
     return
   fi
   vm "cd ~/$VM_REPO/local && { [ -f .env ] || cp .env.example .env; sed -i 's/\r\$//' .env; }" >/dev/null 2>&1 || true
-  if vm_q "cd ~/$VM_REPO/local && { $creds_ok; }"; then skip "OTLP credentials present in VM"; return; fi
+  # Prefer this Mac's local/.env as the source of truth: if it has usable OTLP creds,
+  # seed ALL keys into the VM (idempotent). This must run even when the VM already has
+  # OTLP creds, otherwise GRAFANA_URL/GRAFANA_TOKEN/GC_STACK_TOKEN would never propagate
+  # (they aren't part of the OTLP-present check) and dashboards/plugins get skipped.
   if [[ -f "$REPO_ROOT/local/.env" ]] && ( cd "$REPO_ROOT/local" && eval "$creds_ok" ) 2>/dev/null; then
     step "Copying Grafana Cloud creds/tokens from this Mac's local/.env into the VM"
     for k in GC_OTLP_URL GC_OTLP_ACCOUNT GC_OTLP_KEY LAB_TESTER_ID GRAFANA_URL GRAFANA_TOKEN GC_STACK_TOKEN; do
       local v; v="$(grep -E "^$k=" "$REPO_ROOT/local/.env" | head -1 | cut -d= -f2- | tr -d '\r')"
       [[ -n "$v" ]] && orb -m "$VM_NAME" bash -lc "cd ~/$VM_REPO/local && grep -v '^$k=' .env > .env.t && printf '%s\n' '$k=$v' >> .env.t && mv .env.t .env"
     done
-    ok "credentials copied from Mac repo"
+    ok "credentials copied from Mac repo (OTLP + dashboard/plugin tokens present are propagated)"
+  elif vm_q "cd ~/$VM_REPO/local && { $creds_ok; }"; then
+    skip "OTLP credentials present in VM (no usable Mac local/.env to seed from)"
   else
     roadblock "Grafana Cloud OTLP credentials required" \
       "Grafana Cloud -> Connections -> Add new connection -> OpenTelemetry (OTLP)." \
