@@ -72,16 +72,16 @@ targets:
     site: srl-local
     labels:
       role: spine
-      tester_id: marcnetterfield-lab
+      tester_id: network-lab
   - host: 172.20.20.2
     port: 161
     site: srl-local
     labels:
       role: leaf
-      tester_id: marcnetterfield-lab
+      tester_id: network-lab
   - host: 172.20.20.5
     port: 161
     site: srl-local
     labels:
       role: leaf
-      tester_id: marcnetterfield-lab
+      tester_id: network-lab
