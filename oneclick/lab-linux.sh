@@ -323,8 +323,23 @@ grafana_teardown(){
   warn "Ingested metrics are retained per your stack's retention; nothing is deleted from the TSDB."
 }
 
+# After a FRESH docker.io install, usermod -aG docker adds us to the docker group
+# but this shell still carries its old group set, so `docker`/`make up` hit
+# "permission denied ... /var/run/docker.sock". sg re-reads the group database, so
+# re-exec the whole run once under it - then docker works without sudo and without a
+# re-login. Guard against looping; if docker still isn't reachable, fall through and
+# let bringup roadblock with a clear message.
+ensure_docker_access(){
+  docker info >/dev/null 2>&1 && return 0                       # already have non-sudo access
+  sudo docker info >/dev/null 2>&1 || return 0                  # daemon problem, not a group one
+  if [[ -z "${OC_DOCKER_SG:-}" ]] && id -nG "$USER" 2>/dev/null | grep -qw docker && command -v sg >/dev/null; then
+    step "Activating docker group for this session (re-exec under 'sg docker')"
+    exec sg docker -c "OC_DOCKER_SG=1 bash '${BASH_SOURCE[0]}' '$ACTION'"
+  fi
+}
+
 case "$ACTION" in
-  deploy)        install_toolchain; prep_config; validate_tokens; bringup; grafana; ok "lab-linux: deploy complete" ;;
+  deploy)        install_toolchain; ensure_docker_access; prep_config; validate_tokens; bringup; grafana; ok "lab-linux: deploy complete" ;;
   decommission)  teardown; grafana_teardown; ok "lab-linux: decommission complete" ;;
   *) echo "usage: lab-linux.sh deploy|decommission"; exit 1 ;;
 esac
