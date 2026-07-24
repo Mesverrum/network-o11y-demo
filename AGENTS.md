@@ -44,7 +44,7 @@ docker info       # must succeed before bring-up
 
 | Platform | How agents run commands | Extra setup |
 |----------|-------------------------|-------------|
-| **macOS** | Native terminal in repo `local/` | `brew install containerlab yq gettext`; Docker Desktop **10–12 GB** RAM; disable Resource Saver during lab |
+| **macOS** | **Inside an OrbStack Linux VM** — ContainerLab has no macOS binary, so run the whole lab in a VM (`orb -m ubuntu ...`). See [`docs/macos-orbstack-setup.md`](docs/macos-orbstack-setup.md). | `brew install --cask orbstack`; in the VM install `docker.io docker-compose-v2 make gettext-base`, ContainerLab via get.containerlab.dev, mikefarah `yq`; give the VM **10–12 GB** RAM; clone to the VM's native disk (not `/Users`); run discovery as **`sudo make discover GROUP=srl`** (VM user is uid 501, ktranslate expects uid 1000) |
 | **WSL2** | Bash in WSL (`cd .../local`) | `sudo apt install yq gettext-base`; `sudo chown -R 1000:1000 config state` after `make generate` |
 | **Windows host only** | `wsl -e bash -lc 'cd /mnt/c/.../network-o11y-demo/local && <cmd>'` | Same as WSL2; repo on `/mnt/c` is OK — `clab.sh` mirrors fabric to ext4 automatically |
 | **Native Linux** | Bash in `local/` | `chown` only if preflight warns about uid ≠ 1000 on `config/` / `state/` |
