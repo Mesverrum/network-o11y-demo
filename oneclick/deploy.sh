@@ -44,7 +44,13 @@ preflight_local() {
 
 ensure_repo() {
   hdr "Repo + shared routine"
-  if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then skip "using this checkout ($REPO_ROOT)"; return; fi
+  if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then
+    # Runs from this checkout; drop the fixed dashboard-retarget script into place
+    # (the source may be an upstream clone whose copy points Fabric Map at dead URLs).
+    [[ -f "$REPO_ROOT/oneclick/dashboards-retarget-local.py" ]] && mkdir -p "$REPO_ROOT/local/scripts" && \
+      cp "$REPO_ROOT/oneclick/dashboards-retarget-local.py" "$REPO_ROOT/local/scripts/retarget-dashboards-local.py" 2>/dev/null || true
+    skip "using this checkout ($REPO_ROOT)"; return
+  fi
   if vm_q "test -d ~/$VM_REPO/.git"; then vm "cd ~/$VM_REPO && git pull -q || true" >/dev/null 2>&1; skip "repo cloned (pulled latest)"
   else
     # A freshly-created OrbStack VM has no git yet (lab-linux.sh installs the rest of
@@ -60,6 +66,13 @@ ensure_repo() {
   step "Syncing lab-linux.sh into the VM"
   tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh && chmod +x ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 \
     && ok "lab-linux.sh synced" || roadblock "could not sync lab-linux.sh into the VM" "Check: orb -m $VM_NAME"
+  # Inject the fixed dashboard-retarget script too. Upstream's copy points the Fabric
+  # Map svg/panelConfig/siteConfig at a deleted branch (404 -> the flow-panel throws
+  # "Extra content at the end of the document") and groups Sankey by the wrong label.
+  # Overwriting the clone's copy makes every deploy render these panels correctly.
+  step "Syncing dashboard-retarget fix into the VM"
+  tr -d '\r' < "$REPO_ROOT/oneclick/dashboards-retarget-local.py" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/local/scripts && cat > ~/$VM_REPO/local/scripts/retarget-dashboards-local.py" >/dev/null 2>&1 \
+    && ok "dashboard-retarget fix synced" || warn "could not sync dashboard-retarget fix (Fabric Map/Sankey may not render)"
 }
 
 seed_creds() {

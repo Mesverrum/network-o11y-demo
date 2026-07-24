@@ -53,6 +53,13 @@ function Sync-Lab {
   if (-not (Test-Path $labWin)) { return }
   $labWsl = (wsl.exe -d $script:Distro -- wslpath -u "$labWin").Trim()
   Wsl "mkdir -p ~/$($script:VmRepo)/oneclick && tr -d '\r' < '$labWsl' > ~/$($script:VmRepo)/oneclick/lab-linux.sh && chmod +x ~/$($script:VmRepo)/oneclick/lab-linux.sh" | Out-Null
+  # Inject the fixed dashboard-retarget script (upstream's copy points Fabric Map at
+  # deleted 404 URLs -> "Extra content at the end of the document"; Sankey grouped wrong).
+  $retWin = Join-Path $script:RepoRoot 'oneclick\dashboards-retarget-local.py'
+  if (Test-Path $retWin) {
+    $retWsl = (wsl.exe -d $script:Distro -- wslpath -u "$retWin").Trim()
+    Wsl "mkdir -p ~/$($script:VmRepo)/local/scripts && tr -d '\r' < '$retWsl' > ~/$($script:VmRepo)/local/scripts/retarget-dashboards-local.py" | Out-Null
+  }
 }
 
 function Confirm-Yes([string]$q){ $a=Read-Host "  $q [y/N]"; return ($a -match '^[Yy]') }
