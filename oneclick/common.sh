@@ -179,7 +179,9 @@ final_report() {
     hdr "Next steps"
     say "  Re-deploy any time:  ${C_CYN}./oneclick/deploy.sh${C_RESET}"
     say "  ${C_DIM}Forget the saved target choice:${C_RESET} rm -f $STATE_FILE"
-  else
+  elif ((${#REPORT_FAIL[@]} == 0)); then
+    # Only show how to reach the components on a clean deploy; on a roadblock the
+    # remediation box above is the relevant guidance, not access instructions.
     access_instructions
   fi
 }

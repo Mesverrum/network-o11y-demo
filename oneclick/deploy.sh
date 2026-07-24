@@ -28,11 +28,19 @@ preflight_local() {
       && ok "OrbStack installed" || roadblock "OrbStack install failed" "Run: brew install --cask orbstack"
   else ok "OrbStack CLI present"; fi
   if [[ "$(orb status 2>/dev/null)" != "Running" ]]; then
+    step "OrbStack not running - starting it"
     open -a OrbStack >/dev/null 2>&1 || true
-    roadblock "OrbStack needs its one-time setup (GUI + admin approval)" \
-      "OrbStack was opened. Click through the welcome and APPROVE the macOS admin prompt (installs its network helper)." \
-      "When asked what to use, enable 'Linux' (and 'Docker')." \
-      "Wait until 'orb status' reports Running."
+    # An already-configured OrbStack starts within a few seconds of being opened; only a
+    # brand-new install needs the GUI welcome + admin approval. Wait, then decide - so we
+    # don't show first-run setup steps to someone who's used OrbStack before.
+    local i=0
+    while [[ "$(orb status 2>/dev/null)" != "Running" && $i -lt 30 ]]; do sleep 1; i=$((i+1)); done
+    if [[ "$(orb status 2>/dev/null)" != "Running" ]]; then
+      roadblock "OrbStack is installed but not running yet" \
+        "It was just opened - if it only needs a moment to start, wait until 'orb status' prints 'Running', then re-run (nothing else to do)." \
+        "ONLY if this is OrbStack's first launch on this Mac: click through the welcome, APPROVE the macOS admin prompt (network helper), and enable 'Linux' (and 'Docker')." \
+        "Check anytime with: orb status"
+    fi
   fi
   ok "OrbStack running"
   if ! orb list 2>/dev/null | awk '{print $1}' | grep -qx "$VM_NAME"; then

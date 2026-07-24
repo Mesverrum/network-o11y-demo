@@ -125,5 +125,8 @@ function Final-Report([string]$note){
   if ($note){ Write-Host "`n$note" -ForegroundColor Yellow }
   if ($script:Action -eq 'decommission'){
     Hdr "Next steps"; Write-Host "  Re-deploy: .\oneclick\deploy.ps1"; Write-Host "  Forget target choice: Remove-Item '$($script:StateFile)'"
-  } else { Access-Instructions }
+  } elseif ($script:Failed.Count -eq 0) {
+    # only show access instructions on a clean deploy; on a roadblock the remediation is the guidance
+    Access-Instructions
+  }
 }
