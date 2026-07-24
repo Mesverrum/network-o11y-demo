@@ -27,6 +27,10 @@ help: ## Show this help
 	@echo "Network Observability Demo — Deployment Targets"
 	@echo "================================================"
 	@echo ""
+	@echo "One-click (recommended — asks local VM or AWS):"
+	@printf "  %-28s %s\n" "make deploy"   "Deploy the whole demo end-to-end"
+	@printf "  %-28s %s\n" "make teardown" "Decommission the whole demo"
+	@echo ""
 	@echo "Blog post alignment:"
 	@printf "  %-28s %s\n" "make post-03" "Post 3: Lab — SR Linux fabric + telemetry pipeline"
 	@printf "  %-28s %s\n" "make post-04" "Post 4: NetBox — inventory source of truth"
@@ -52,6 +56,16 @@ help: ## Show this help
 	@echo ""
 	@echo "Current kubectl context: $(KUBE_CONTEXT)"
 	@echo ""
+
+# ─── One-click ────────────────────────────────────────────────────────────────
+
+.PHONY: deploy
+deploy: ## One-click deploy (interactive: local OrbStack VM or AWS/EKS)
+	@bash oneclick/deploy.sh
+
+.PHONY: teardown
+teardown: ## One-click decommission (interactive: local or AWS)
+	@bash oneclick/decommission.sh
 
 # ─── Full deployment ──────────────────────────────────────────────────────────
 
