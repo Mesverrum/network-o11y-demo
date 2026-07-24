@@ -46,7 +46,16 @@ ensure_repo() {
   hdr "Repo + shared routine"
   if [[ "${NATIVE_LINUX:-0}" == "1" ]]; then skip "using this checkout ($REPO_ROOT)"; return; fi
   if vm_q "test -d ~/$VM_REPO/.git"; then vm "cd ~/$VM_REPO && git pull -q || true" >/dev/null 2>&1; skip "repo cloned (pulled latest)"
-  else step "Cloning repo into VM"; vm "git clone -q $REPO_URL ~/$VM_REPO" && ok "cloned ~/$VM_REPO" || roadblock "git clone failed in VM" "orb -m $VM_NAME then: git clone $REPO_URL ~/$VM_REPO"; fi
+  else
+    # A freshly-created OrbStack VM has no git yet (lab-linux.sh installs the rest of
+    # the toolchain, but that runs AFTER we need the repo). Install git first.
+    if ! vm_q "command -v git >/dev/null 2>&1"; then
+      step "Installing git in VM (fresh VM has none)"
+      vm "sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git ca-certificates" >/dev/null 2>&1 \
+        && ok "git installed" || roadblock "could not install git in VM" "orb -m $VM_NAME then: sudo apt-get update && sudo apt-get install -y git"
+    fi
+    step "Cloning repo into VM"; vm "git clone -q $REPO_URL ~/$VM_REPO" && ok "cloned ~/$VM_REPO" || roadblock "git clone failed in VM" "orb -m $VM_NAME then: git clone $REPO_URL ~/$VM_REPO"
+  fi
   # Inject THIS checkout's lab-linux.sh into the VM clone (works even before it's merged upstream).
   step "Syncing lab-linux.sh into the VM"
   tr -d '\r' < "$REPO_ROOT/oneclick/lab-linux.sh" | orb -m "$VM_NAME" bash -lc "mkdir -p ~/$VM_REPO/oneclick && cat > ~/$VM_REPO/oneclick/lab-linux.sh && chmod +x ~/$VM_REPO/oneclick/lab-linux.sh" >/dev/null 2>&1 \
