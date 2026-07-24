@@ -11,6 +11,8 @@ rsync -a --delete \
   --exclude 'local/groups/*.env' \
   --exclude 'local/config/' \
   --exclude 'local/state/' \
+  --exclude 'local/clab-srl-local/' \
+  --exclude 'local/compose-*.generated.yaml' \
   "$WIN/" "$WSL/"
 # Preserve WSL-local secrets if present
 for f in .env groups/srl.env; do
