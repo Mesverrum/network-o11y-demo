@@ -23,7 +23,9 @@ case "${1:-}" in
     topology_exporter_enabled
     ;;
   profile)
-    topology_exporter_enabled && echo --profile topology
+    if topology_exporter_enabled; then
+      echo --profile topology
+    fi
     ;;
   post-config)
     if topology_exporter_enabled; then
