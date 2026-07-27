@@ -116,7 +116,9 @@ otelcol.processor.transform "docker_logs" {
 
 // Official Grafana Cloud ktranslate-netflow integration shape:
 // rename kentik.rollup.bytes_by_flow → network.io.by_flow and remap attributes.
-// SNMP / syslog set their own service.name so this pass leaves them alone.
+// Tag rollups with datapoint label integration=ktranslate-netflow — do NOT rewrite
+// resource.service.name (CHF + logs from ktranslate_flow share that resource).
+// SNMP / syslog keep their OTEL_SERVICE_NAME on the resource.
 otelcol.processor.transform "preprocessing" {
   error_mode = "ignore"
 
@@ -124,7 +126,6 @@ otelcol.processor.transform "preprocessing" {
     context = "metric"
     statements = [
       `set(metric.name, "network.io.by_flow") where metric.name == "kentik.rollup.bytes_by_flow"`,
-      `set(resource.attributes["service.name"], "integrations/ktranslate-netflow") where metric.name == "network.io.by_flow"`,
       `set(metric.unit, "By") where metric.name == "network.io.by_flow"`,
       // Dashboards filter on tester_id (default network-lab; override via LAB_TESTER_ID)
       `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, "network_topology_.*")`,
@@ -164,6 +165,7 @@ otelcol.processor.transform "preprocessing" {
       `set(datapoint.attributes["site"], "network-lab") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
       `set(datapoint.attributes["platform"], "sr-linux") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*|leaf.*")`,
       `set(datapoint.attributes["tenant"], "network-o11y-demo") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
+      `set(datapoint.attributes["integration"], "ktranslate-netflow") where metric.name == "network.io.by_flow"`,
       `set(datapoint.attributes["network.protocol.name"], datapoint.attributes["application"]) where metric.name == "network.io.by_flow"`,
       `delete_key(datapoint.attributes, "application") where metric.name == "network.io.by_flow"`,
       `set(datapoint.attributes["network.transport"], datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,

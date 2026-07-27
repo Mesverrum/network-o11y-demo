@@ -89,36 +89,47 @@ make generate
 # sudo chown -R 1000:1000 config state
 
 make check          # must pass (docker, containerlab, yq, envsubst, non-placeholder .env)
-make up             # staggered ~10 min (default LAB_STAGGER_SECS=25)
+make up             # staggered ~10 min — fabric + collectors + flows/syslog/traps/traffic/events
 make status
-make traffic        # client1↔client2 UDP/ICMP workloads
 ```
 
 From repo root: `make local-up` ≡ `make -C local up`.
 
-**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`) → refresh SNMP targets → `make discover GROUP=srl` → softflowd, syslog, sFlow, traps → **mgmt API catalog** OTLP export (`make mgmt-api-mock`). Optional: `topology_exporter` via `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`.
+**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `flow_dns`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`) → refresh SNMP targets → `make discover GROUP=srl` → **`scripts/post-telemetry-config.sh`** (softflowd, sFlow, syslog, traps, flow DNS, traffic, events-loop) → **mgmt API catalog** OTLP export. Optional: `topology_exporter` via `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`. Opt out: `LAB_AUTO_TRAFFIC=0` / `LAB_AUTO_EVENTS=0` in `.env`.
 
 **Parallel / faster (less safe on 16 GB):** `make up-parallel` or `LAB_STAGGER=0 make up`.
 
 ### Success criteria (verify in the operator's Grafana Cloud)
 
-Use Grafana Explore → Prometheus (or Grafana Cloud MCP if authenticated to **their** stack).
+Use Grafana Explore → Prometheus (or Grafana Cloud MCP if authenticated to **their** stack). **Do not use `kentik_snmp_DeviceMetrics`** — that rollup exists on AWS `integrations/snmp` dashboards, **not** on the ktranslate OTLP path. See [Metric names & PromQL](#metric-names--promql-ktranslate-otlp-path).
 
 ```promql
-count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count by (device_name) (kentik_snmp_CPU)
 ```
 
 Expect **three** devices: `spine1`, `leaf1`, `leaf2`.
 
 ```promql
-sum by (device_name) (rate(network_io_by_flow[5m]))
+count(network_io_by_flow_bytes)
 ```
 
 ```promql
-count by (device_id) (network_topology_edge_info{tester_id="<LAB_TESTER_ID or network-lab>"})
+sum(network_io_by_flow_bytes) * 8 / 60
+```
+
+(Use `network_io_by_flow_bytes` rollup gauges — **`rate(network_io_by_flow[…])` under-reports** on ktranslate delta exports.)
+
+```promql
+count by (src_device, dst_device) (network_topology_edge_info{tester_id="<LAB_TESTER_ID or network-lab>"})
 ```
 
 (Device nodes via optional `network_topology_device_info` need `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`.)
+
+**One-shot local + Grafana check:**
+
+```bash
+make -C local snmp-check    # TARGETS vs live IPs, snmpget, poller logs, Grafana SNMP series
+```
 
 **Local sanity checks:**
 
@@ -140,15 +151,58 @@ Expect **11** running containers (5 fabric + 6 collectors) when healthy. With op
 | SRL container **exit 143** | SIGTERM (sleep, `make down`, `clab --reconfigure`, Docker Desktop stop) — **not OOM** | `make -C local stabilize`; never `clab deploy --reconfigure` |
 | BGP/EVPN/SNMP missing after deploy | Fabric config not applied or postdeploy race | `make -C local fabric-apply` or `make stabilize`; confirm repo is on **WSL ext4**, not `/mnt/c` |
 | `leaf1` stuck / yang reload | Fabric boot race | Wait; or `docker restart leaf1` then `make stabilize` |
-| No flows in Grafana | softflowd not pointed at collector | `make -C local softflowd` (especially after compose recreate) |
-| No metrics at all | OTLP misconfig or Alloy down | Check `docker logs alloy --tail 50`; verify `GC_OTLP_*`; recreate alloy |
-| SRL containers up, **no SNMP in Grafana** | SNMP agent not listening (not OTLP) | See **SNMP diagnosis** below — usually `network-instance mgmt` missing or `ag1` has no `community-entry` |
-| ktranslate SNMP `connection refused` on :161 | Same as above | `bash scripts/enable-snmp-srl.sh`; verify `oper-state up` on `system snmp network-instance mgmt` |
+| No flows in Grafana | softflowd not running, EVPN down, or wrong PromQL (`rate()` on rollup) | `bash scripts/finish-flows.sh` or `make softflowd` + `make traffic`; verify `count(network_io_by_flow_bytes)` |
+| SNMP looks empty in Grafana but poller healthy | Wrong PromQL (`kentik_snmp_DeviceMetrics` does not exist) or MCP on different stack than lab | `make snmp-check`; use `count by (device_name) (kentik_snmp_CPU)` — see [Metric names](#metric-names--promql-ktranslate-otlp-path) |
+| ktranslate SNMP `connection refused` on :161 | Stale device IP **or** SNMP agent down on mgmt NI | `make snmp-check` (compare TARGETS vs live clab IPs); if IPs drifted: `make snmp-recover`; if snmpget times out: `bash scripts/enable-snmp-srl.sh` |
 | `FULL_FABRIC=1` / broken `apply-fabric-node` | Can wedge `net_inst_mgr` or wipe mgmt NI | **Do not** set unless user asks; prefer `make fabric-apply` (SNMP-only path) or `make down && make up` |
 | Discovery permission error | `config/` / `state/` ownership | `sudo chown -R 1000:1000 config state` (Linux/WSL) |
 | GHCR pull denied (topology_exporter) | Image auth | `LAB_TOPOLOGY_EXPORTER=1` + `make -C local topology-exporter-image` + `make topology-up` |
 
 **Recovery command of first resort:** `make -C local stabilize` (starts stopped SRL nodes, applies fabric, discover, sidecar configs — no full clab redeploy).
+
+**After clab IP drift or `clab deploy --reconfigure`:** stabilize alone may leave **stale SNMP targets**. Run `make snmp-recover` then `make finish-flows`.
+
+### Investigation playbook — SNMP & flows (do not start from scratch)
+
+**Run diagnostics before guessing OTLP or dashboard bugs:**
+
+| Symptom | First command | What it tells you |
+|---------|---------------|-------------------|
+| "SNMP broken" | `make -C local snmp-check` | TARGETS vs live `clab` IPs, `snmpget`, `state/devices-srl.yaml`, poller logs, Grafana `kentik_snmp_*` count |
+| "No flows" | `make -C local finish-flows` | EVPN ping, softflowd, traffic, Grafana `network_io_by_flow_bytes` |
+| "Containers keep dying" | `make -C local lab-log-status` | `state/lab-actions.log` (our scripts) + `docker-events.log` (which container stopped) |
+
+**Decision tree (SNMP):**
+
+1. **`snmp-check` → snmpget works, Grafana has `kentik_snmp_*`** → SNMP is fine. User likely queries `kentik_snmp_DeviceMetrics` or an AWS `integrations/snmp` dashboard. Retarget panels or use lab dashboards under `local/.dash-payloads/`.
+2. **`snmpget` fails, TARGETS ≠ live clab IPs** → IP drift after clab redeploy. `make snmp-recover` (`finish-bringup.sh`: refresh TARGETS → discover → reload poller).
+3. **`snmpget` fails, IPs match, `connection refused` in poller logs** → SNMP agent on device. `bash scripts/enable-snmp-srl.sh`; confirm `oper-state up` on `system snmp network-instance mgmt`.
+4. **snmpget works, Grafana empty, flows present** → stack mismatch (lab `.env` `GC_OTLP_*` vs Grafana MCP token) or Alloy down. Verify `GC_OTLP_*`; `docker logs alloy --tail 50`.
+
+**Decision tree (flows):**
+
+1. **`count(network_io_by_flow_bytes)` > 0** → flows OK; dashboard may use wrong metric or `rate()`.
+2. **No series** → `docker exec client1 ip link show eth1` (missing after partial restart); `make softflowd`; `make traffic`; wait ~90s for rollup.
+3. **EVPN down** (`client2` cannot ping `172.17.0.1`) → `make fabric-apply` or `finish-flows.sh` (applies fabric, then softflowd).
+
+**Container exit 143:** SIGTERM, not OOM (`OOMKilled=false`). Common causes: `clab deploy --reconfigure`, `make down`, Docker Desktop Resource Saver, staggered collector restarts. `journalctl -u docker` may show `hasBeenManuallyStopped=true`. Do not treat as memory pressure.
+
+### Metric names & PromQL (ktranslate OTLP path)
+
+ktranslate exports **per-metric OTLP names** (dots → underscores in Prometheus). There is **no** `kentik_snmp_DeviceMetrics` series on this path.
+
+| Check | PromQL |
+|-------|--------|
+| SNMP devices up | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2 |
+| SNMP volume | `count({__name__=~"kentik_snmp.*"})` (expect hundreds of series) |
+| Poll health | `kentik_snmp_PollingHealth` |
+| Interface bps | `(kentik_snmp_ifHCInOctets{device_name="$device"}) * 8 / 60` — **not** `rate(...)` |
+| Flow conversations | `count(network_io_by_flow_bytes)` |
+| Flow throughput (bps) | `sum(network_io_by_flow_bytes) * 8 / 60` |
+
+**Dashboard trap:** Commvault / AWS **01. Network Device Details** and similar boards query `kentik_snmp_DeviceMetrics` and `rate(kentik_snmp_ifHC*Octets[…])`. Those panels stay empty until retargeted (see [Grafana dashboard updates](#grafana-dashboard-updates--preserve-tabslayout-v2-manifest-path)).
+
+**Grafana Cloud MCP:** `query_prometheus` needs `endTime` (e.g. `"now"`). MCP may authenticate to a **different** stack than the lab — confirm against `GRAFANA_URL` / `GC_OTLP_*` in `local/.env`, or use `snmp-check` / `finish-flows.sh` (they query via `.env`).
 
 ### SNMP diagnosis (SRL up but empty Grafana)
 
@@ -177,8 +231,11 @@ docker logs srl-local-telemetry-ktranslate_snmp_srl-1 --tail 20
 **Verify in the operator's stack** (after SNMP polls for ~1–2 min):
 
 ```promql
-count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count by (device_name) (kentik_snmp_CPU)
+count({__name__=~"kentik_snmp.*"})
 ```
+
+(`kentik_snmp_DeviceMetrics` does **not** exist on the ktranslate path — empty result there is not a failure.)
 
 ### Agents on Windows (Cursor host)
 
@@ -201,6 +258,10 @@ cp /mnt/c/Users/<you>/projects/network-o11y-demo/local/scripts/*.sh ~/network-o1
 
 | Goal | Command |
 |------|---------|
+| SNMP diagnostic (IPs, snmpget, Grafana) | `make -C local snmp-check` |
+| SNMP recovery after clab IP drift | `make -C local snmp-recover` |
+| Flow recovery (EVPN, softflowd, traffic, verify) | `make -C local finish-flows` |
+| Container stop audit trail | `make -C local lab-log-status` |
 | App↔network join demo traces | `make -C local join-app` |
 | Latency fault talk-track | `make -C local join-fault` / `join-fault-stop` |
 | Synthetic traps + link flaps | `make -C local events-loop` |
@@ -213,13 +274,24 @@ If MCP is available, authenticate to the **operator's** stack (same as `GRAFANA_
 
 ### Grafana dashboard updates — preserve `TabsLayout` (v2 manifest path)
 
+**Full playbook:** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md) — UID migration, legends, heights, marcnetterfield reorg, HTTP v2 when gcx is unavailable.
+
+**Operator PromQL patterns:** [`local/docs/dashboard-query-lessons.md`](local/docs/dashboard-query-lessons.md) — diff tool: `local/scripts/_compare-dashboard-live.py`.
+
+**Hard rule:** **Pull the live dashboard manifest before any edit.** Never push from stale `local/.dash-payloads/` or re-apply hand-rolled queries the operator already fixed in Grafana Assistant. After live edits, update patch scripts only when `_compare-dashboard-live.py` shows the script matches live.
+
 **Audience:** agents patching or importing ktranslate / Network O11y dashboards on Grafana Cloud.
 
 Grafana **v2** dashboards (generation ≥ 2, `spec.layout.kind: TabsLayout`) store tabs in the **App Platform manifest**, not in classic `dashboard.panels` JSON. Updating them through the **legacy** API **flattens tabs into one long scroll** — we hit this on Commvault Device Details (restored from version history).
 
 | Path | Safe for tabbed v2 dashboards? | When to use |
 |------|-------------------------------|-------------|
-| `gcx dashboards get` → edit manifest → `gcx dashboards update` | **Yes** | Any patch on `mavgvqv`, `magz6qw1`, or other `TabsLayout` boards |
+| `gcx dashboards get` → edit manifest → `gcx dashboards update` | **Yes** | Preferred when `gcx --context <stack>` is configured |
+| v2 HTTP `GET`/`PUT` on `dashboard.grafana.app/v2` | **Yes** | `GRAFANA_URL` + `GRAFANA_TOKEN` in `local/.env` (WSL without gcx context) |
+| `local/scripts/reorganize-marcnetterfield-dashboards.py` | **Yes** | Pull / renumber / friendly UID migration on marcnetterfield1 |
+| `local/scripts/patch-iface-bps-fleet.py` | **Yes** | Fleet interface BPS rewrites |
+| `gcx assistant dashboard` / `gcx assistant prompt` | **Yes** (OAuth) | New panels/rows — prefer over hand-built JSON; then pull manifest |
+| `local/scripts/patch-flow-dashboard-sections.py` | **Yes** | Flow Summary scripted rows (country, transport) |
 | `POST /api/dashboards/db` with `{ "dashboard": { ...panels... } }` | **No** on v2 tabbed boards | One-shot **first import** of classic JSON only; never re-save tabbed dashboards this way |
 | `local/scripts/patch-iface-bps-60s.py` (legacy HTTP) | **No** on tabbed boards | Avoid; kept for `rewrite_expr()` helper only |
 | `local/scripts/audit-commvault-bps.py` | **No** | Deprecated — strips `TabsLayout` |
@@ -242,6 +314,24 @@ gcx --context <stack> --agent dashboards get <uid> -o json \
   | jq '.spec.layout.kind'    # expect "TabsLayout" when started as TabsLayout
 ```
 
+**marcnetterfield1 ktranslate set** (`local/.dash-payloads/marcnetterfield-live/`, gitignored):
+
+```bash
+# Pull all 00–04 + refresh agent docs (after UI/Assistant edits)
+python3 local/scripts/sync-ktranslate-dashboards-live.py --pull
+
+# Manifests only
+python3 local/scripts/reorganize-marcnetterfield-dashboards.py pull
+python3 local/scripts/reorganize-marcnetterfield-dashboards.py plan    # stage + inspect reorg/
+python3 local/scripts/reorganize-marcnetterfield-dashboards.py apply --delete-legacy
+```
+
+Committed agent references: `docs/grafana-network-dashboard-design-patterns.md`, `docs/grafana-network-dashboard-expand-hardware.md`, `docs/grafana-network-dashboard-skills-README.md` (portable — recommend for any stack); `local/docs/dashboard-query-lessons.md`, `local/docs/ktranslate-dashboard-live-snapshot.md` (this lab).
+
+UID migration: v2 cannot rename `metadata.name` on PUT (400). Create new UID via POST **without** `deprecatedInternalID` or `resourceVersion`; delete legacy UID after UI check. See playbook § UID migration.
+
+**Legends / heights:** do not blank existing `legendFormat` (`{{if_interface_name}}`, `__auto`, etc.). Only fill empty legends when a panel has 2+ queries with missing formats. Trim oversized text panels (~10 grid units); bump charts below ~8 — avoid half-page whitespace and dashboard-level scroll on normal monitors.
+
 **Fleet helper (interface BPS on kentik SNMP):**
 
 ```bash
@@ -249,8 +339,8 @@ gcx --context <stack> --agent dashboards get <uid> -o json \
 python3 local/scripts/patch-iface-bps-fleet.py <gcx-context> --dry-run
 
 # Patch explicit UIDs (live)
-python3 local/scripts/patch-iface-bps-fleet.py networko11ydev mavgvqv magz6qw1
-python3 local/scripts/patch-iface-bps-fleet.py marcnetterfield1 mavgvqv net-o11y-traffic-sankey
+python3 local/scripts/patch-iface-bps-fleet.py networko11ydev ktranslate-device-summary ktranslate-device-details
+python3 local/scripts/patch-iface-bps-fleet.py marcnetterfield1 ktranslate-device-summary net-o11y-traffic-sankey
 ```
 
 Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query rewrite: `rewrite_expr()` in `local/scripts/patch-iface-bps-60s.py`.
@@ -259,12 +349,18 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 
 1. `spec.layout.kind` unchanged (`TabsLayout` vs `RowsLayout` / `GridLayout`).
 2. `metadata.generation` incremented (update actually landed).
-3. UI spot-check: e.g. **01. Network Device Details** still shows all tabs (Interfaces, BGP, …), not one flattened page.
-4. For BPS panels: no remaining `rate(kentik_snmp_ifHCInOctets` / `ifHCOutOctets` in the manifest.
+3. UI spot-check: e.g. **04. Network Device Details** still shows all tabs (Interfaces, BGP, …), not one flattened page.
+4. Legends readable on multi-series panels; no accidental blank `legendFormat` overwrites.
+5. Panel heights: no half-page empty markdown; charts not cramped below ~8 grid units.
+6. For BPS panels: no remaining `rate(kentik_snmp_ifHCInOctets` / `ifHCOutOctets` in the manifest.
 
 **If tabs were already flattened:** restore a pre-patch dashboard **version** in Grafana UI (Dashboard settings → Versions), then re-apply patches with the v2 path above.
 
 **MCP note:** prefer read-only MCP (`get_dashboard_summary`, PromQL) for verification. For writes on tabbed v2 dashboards, use **gcx v2** until you have confirmed your MCP `patch_dashboard` / `update_dashboard` path preserves `TabsLayout` (legacy-shaped payloads are unsafe).
+
+**Grafana Assistant:** `gcx login` then `gcx assistant dashboard "…"` or GUI Assistant for dashboard design. Requires OAuth — not the SA token in `.env`. After Assistant edits, run `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull` (all ktranslate boards) or `download-flow-dashboard.py` (flow only).
+
+**Flow Summary (`ktranslate-flow-summary`):** RowsLayout; live JSON in `.dash-payloads/marcnetterfield-live/`. Use `max_over_time` on `network_io_by_flow_bytes` (not `rate()`). Keep IP + `src_host`/`dst_host` in group-by; country panels must match geomap filters (`network_peer_country!~"Private IP|undefined"`). North-south geomap traffic: client mgmt `172.20.20.*` + `make internet-probes`. Full playbook: [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md) § Grafana Assistant · § Flow Summary dashboard.
 
 ## Local lab (current phase)
 
@@ -322,8 +418,8 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 
 | Stream | PromQL / check |
 |--------|----------------|
-| SNMP | `count by (device_name, service_name) (kentik_snmp_DeviceMetrics)` → spine1, leaf1, leaf2 |
-| NetFlow | `sum by (device_name) (rate(network_io_by_flow[5m]))` |
+| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. |
+| NetFlow | `count(network_io_by_flow_bytes)`; throughput `sum(network_io_by_flow_bytes) * 8 / 60` — **not** `rate(network_io_by_flow[…])` |
 | Syslog | OTLP logs via ktranslate `--tee_logs` (`service_name` ≈ `ktranslate`, `tags.container_service=syslog`) |
 | Docker stdout | Alloy `loki.source.docker` → OTLP (`collector=docker`, `service_name` = container: `topology_exporter`, `spine1`, …). ktranslate containers skipped (already teed) |
 | gNMI | `{job="gnmic"}` — OTEL metric names often use `:` separators, e.g. `gnmi_bgp_neighbors_…:bgp_neighbor_session_state` |
@@ -347,7 +443,21 @@ Topology dashboards (adapted for this lab):
 
 JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`, `local/.dash-payloads/ktranslate-import/lab-ktranslate-flow.json`. Skip `topology-schedule` (long-running mutator harness only).
 
-**Flow dashboard:** UID `lab-ktranslate-flow`, folder `network-lab`. Adapted from the ktranslate **02. Network Flow Summary** pattern (Commvault/marcnetterfield1). Rebuild/import: `python3 local/scripts/build-ktranslate-flow-dashboard.py` then `python3 local/scripts/import-ktranslate-flow-dashboard.py` (prefers `gcx --context networko11ydev`). Source export: `gcx --context commvault dashboards get be8hpir89dds0a`.
+**Ktranslate dashboards (marcnetterfield1 / Network Lab folder):** friendly UIDs, numbered 00–04. **Playbook:** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md). Re-pull and re-apply: `python3 local/scripts/reorganize-marcnetterfield-dashboards.py pull|plan|apply` (v2 API — preserves `TabsLayout`).
+
+| # | UID | Title |
+|---|-----|-------|
+| 00 | `ktranslate-architecture` | Ktranslate Architecture |
+| 01 | `ktranslate-health` | Ktranslate Health (CHF / jchf) |
+| 02 | `ktranslate-flow-summary` | Network Flow Summary |
+| 03 | `ktranslate-device-summary` | Network Device Summary |
+| 04 | `ktranslate-device-details` | Network Device Details (TabsLayout) |
+
+**Architecture guide (KtransToGrafana):** UID `ktranslate-architecture` (**00.**). Re-sync text panels from upstream docs: `python3 local/scripts/build-ktrans-arch-dashboard.py --context <gcx-context>` (gcx v2 manifest path — preserves `GridLayout`).
+
+**Collector health (ktranslate CHF / jchf):** UID `ktranslate-health` (**01.**). Maps [New Relic container health](https://docs.newrelic.com/docs/network-performance-monitoring/advanced/ktranslate-container-health/) metrics to OTLP names (`kentik_ktranslate_chf_kkc_*`). Facet by **`service_name`** (`ktranslate-snmp-*`, `ktranslate-flow-*`, `ktranslate-sflow-*`, `ktranslate-syslog-*`). Patch script: `python3 local/scripts/patch-ktranslate-health-dashboard.py` (v2 TabsLayout-safe). Flow **rollups** carry datapoint label `integration=ktranslate-netflow` (Alloy does not rewrite resource `service.name`). Each ktranslate container sets its own `OTEL_SERVICE_NAME`. **Upstream fix (pending):** [Mesverrum/ktranslate `fix/otel-chf-flow-only`](https://github.com/Mesverrum/ktranslate/tree/fix/otel-chf-flow-only). **Local test image until merge:** `make -C local ktranslate-dev-image` → `KTRANSLATE_IMAGE=srl-local/ktranslate:otel-chf-dev` in `.env` → `make -C local ktranslate-dev-recreate`. Verify: `bash local/scripts/verify-chf-grafana.sh`.
+
+**Flow dashboard:** UID `lab-ktranslate-flow` (local lab) or `ktranslate-flow-summary` (marcnetterfield1). Adapted from the ktranslate **02. Network Flow Summary** pattern. Rebuild/import lab copy: `python3 local/scripts/build-ktranslate-flow-dashboard.py` then `python3 local/scripts/import-ktranslate-flow-dashboard.py` (prefers `gcx --context networko11ydev`). Pull live Assistant edits: `python3 local/scripts/download-flow-dashboard.py`. Patch helpers: `patch-ktranslate-flow-dashboard.py`, `patch-flow-dashboard-sections.py`, `verify-flow-countries.py`. Playbook: [`docs/grafana-dashboard-playbook.md`](../docs/grafana-dashboard-playbook.md) § Flow Summary dashboard.
 
 **Join demo:** UID `lab-network-join-demo`, folder `network-lab`. Section **0** pairs Tempo `clos-join-demo` spans with softflowd flows on shared `$peer_addr`/`$peer_port` (default `172.17.0.2:8080`). Rebuild/import: `python3 local/scripts/build-network-join-demo.py` then `python3 local/scripts/import-network-join-demo-gcx.py` (or `import-network-join-demo.sh` with `GRAFANA_URL` + `GRAFANA_TOKEN`). After compose recreate, `make -C local softflowd` (collector IP drift).
 

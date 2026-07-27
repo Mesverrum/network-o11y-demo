@@ -41,7 +41,8 @@ restart_if_broken() {
   local n=$1
   if ! docker exec "$n" sr_cli -ec 'show version' >/dev/null 2>&1; then
     warn "${n}: restarting container after failed commit"
-    docker restart "$n" >/dev/null
+    lab_log_docker "restart ${n} reason=fabric_apply_failed"
+    lab_run docker restart "$n" >/dev/null
     wait_sr_cli "$n"
   fi
 }

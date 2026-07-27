@@ -39,3 +39,7 @@ lab_path_init() {
 }
 
 lab_path_init
+
+# Audit log for scripts that source lab-path (see scripts/lab-log.sh).
+# shellcheck source=lab-log.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lab-log.sh"

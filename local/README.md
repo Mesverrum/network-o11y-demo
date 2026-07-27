@@ -93,15 +93,15 @@ On macOS, `chown` is usually not required unless discovery fails with permission
 
 ```bash
 make check
-make up          # staggered: spine→leaves→clients→collectors (25s pauses)
+make up          # staggered: fabric + all collectors + flows/syslog/traps/traffic/events
 make status
-make traffic     # ongoing UDP+ICMP workloads (steady/burst/reverse) client1↔client2
 ```
 
 `make up` (default) staggers fabric nodes and telemetry collectors with
-`LAB_STAGGER_SECS` pauses and logs host RAM between steps — tuned from
-the Jul 2026 stability ladder. Use `make up-parallel` or `LAB_STAGGER=0` for
-the old all-at-once path. Expect **~10 minutes** for a cold `make up`.
+`LAB_STAGGER_SECS` pauses, configures **softflowd, sFlow, syslog, SNMP traps,
+lab DNS**, starts **client traffic**, **internet probes**, and the **events-loop** (synthetic traps +
+periodic link flaps). Disable auto workloads in `.env`: `LAB_AUTO_TRAFFIC=0`
+and/or `LAB_AUTO_EVENTS=0`.
 
 `make up` prints `deployment.host`, starts the stack, rewrites `groups/srl.env`
 TARGETS from ContainerLab mgmt `/32`s, then runs `make discover GROUP=srl`.
@@ -114,10 +114,24 @@ make down
 
 ## Verify in Grafana Cloud
 
-Explore → Prometheus:
+Explore → Prometheus (ktranslate OTLP path — **not** AWS `integrations/snmp` metric names):
 
 ```promql
-count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count by (device_name) (kentik_snmp_CPU)
+```
+
+```promql
+count({__name__=~"kentik_snmp.*"})
+```
+
+(`kentik_snmp_DeviceMetrics` does **not** exist here — empty result is not an SNMP failure.)
+
+```promql
+count(network_io_by_flow_bytes)
+```
+
+```promql
+sum(network_io_by_flow_bytes) * 8 / 60
 ```
 
 ```promql
@@ -126,7 +140,9 @@ topk(20, network_io_by_flow_bytes)
 
 **Network join demo dashboard** (SIG UX: conversations + Clos LLDP subway + packet-relevant SNMP): UID `lab-network-join-demo` in folder `network-lab`. Payload: `.dash-payloads/network-join-demo.json`. Import: `python3 scripts/build-network-join-demo.py` then `python3 scripts/import-network-join-demo-gcx.py` (set `GCX_BIN` + `GCX_CONTEXT`, or `GRAFANA_URL` + `GRAFANA_TOKEN` in `.env` and use `scripts/import-network-join-demo.sh`). OTLP: set `GC_OTLP_*` in `.env` (helper: `python3 scripts/retarget-otlp-gc.py --write`). If flows vanish after recreate: `make softflowd`. **Identity tab** (`demo_model` variable): parallel `entity_demo_*` datasets for hostname / poison / mac_alias / address / iface / edge_attrs / vrf.
 
-**Flow dashboard** (ktranslate NetFlow/sFlow): UID `lab-ktranslate-flow` in folder `network-lab`. Panels use `network_io_by_flow_bytes` with exporter/src/dst/protocol variables (same layout as marcnetterfield1 **02. Network Flow Summary**). Rebuild/import: `python3 scripts/build-ktranslate-flow-dashboard.py` then `python3 scripts/import-ktranslate-flow-dashboard.py` (`gcx --context networko11ydev` preferred).
+**Flow dashboard** (ktranslate NetFlow/sFlow): UID `lab-ktranslate-flow` in folder `network-lab`. Panels use `network_io_by_flow_bytes` with exporter/src/dst/protocol variables (same layout as marcnetterfield1 **02. Network Flow Summary**, UID `ktranslate-flow-summary`). Rebuild/import: `python3 scripts/build-ktranslate-flow-dashboard.py` then `python3 scripts/import-ktranslate-flow-dashboard.py` (`gcx --context networko11ydev` preferred).
+
+**Grafana dashboard edits (v2 / TabsLayout):** see [`docs/grafana-network-dashboard-skills-README.md`](../docs/grafana-network-dashboard-skills-README.md) for portable Assistant skills (recommend to any ktranslate stack). Lab pulls: `make -C local dash-live-sync`. PromQL notes: `local/docs/dashboard-query-lessons.md`. Playbook: [`docs/grafana-dashboard-playbook.md`](../docs/grafana-dashboard-playbook.md).
 
 **Sanity-check flow counting** (series count + byte rates vs known lab traffic):
 
@@ -171,6 +187,10 @@ make topology-up
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
 | `make snmp-targets` | Refresh `groups/srl.env` TARGETS (cidr discovery only) |
+| `make snmp-check` | Diagnose TARGETS vs live IPs, snmpget, poller logs, Grafana SNMP series |
+| `make snmp-recover` | After clab IP drift: TARGETS + discover + reload poller (`finish-bringup.sh`) |
+| `make finish-flows` | EVPN + softflowd + traffic + verify flows in Grafana |
+| `make lab-log-status` | Tail `state/lab-actions.log` + `docker-events.log` (container stop audit) |
 | `make netbox-populate` | Seed NetBox Cloud with local lab topology |
 | `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
 | `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
@@ -184,9 +204,17 @@ make topology-up
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
 | `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl:1620` (same container as SNMP polling) |
-| `make emit-events` | One-shot: configure syslog+traps, flap links for real device events |
-| `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m |
-| `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP |
+| `make emit-events` | One-shot: configure syslog+traps, flap links for real device events (also runs once when events-loop starts) |
+| `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m (**on by default** after `make up`; `LAB_AUTO_EVENTS=0` to skip) |
+| `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP (**on by default** after `make up`; `LAB_AUTO_TRAFFIC=0` to skip) |
+| `make north-south-flows` | re-apply dual softflowd (eth0 mgmt + eth1 EVPN) + internet probes on a **running** lab |
+| `make internet-probes` / `internet-probes-stop` / `internet-probes-status` | HTTPS probes via client mgmt eth0 for **geomap** `network_peer_country` (**on by default**; targets in `fixtures/internet-probe-targets.txt`; `LAB_AUTO_INTERNET_PROBES=0` to skip) |
+| `make -C local dash-live-sync` | pull all ktranslate dashboards 00–04 + refresh `local/docs/dashboard-query-lessons.md` |
+| `python3 scripts/download-flow-dashboard.py` | pull live `ktranslate-flow-summary` v2 manifest into `.dash-payloads/marcnetterfield-live/` |
+| `python3 scripts/patch-flow-dashboard-sections.py` | add/fix Country Breakdown + Transport & Ports rows (`--fix-country`) |
+| `python3 scripts/patch-ktranslate-flow-dashboard.py` | hostname + IP labels on flow endpoint panels |
+| `make verify-flow-countries` | list public `network_peer_country` values in Prometheus |
+| `make flow-dashboard-download` | same as `download-flow-dashboard.py` |
 | `make mgmt-api-mock` | OTLP export of SR Linux mgmt API catalog (live + mock for NETCONF/JSON-RPC/gNOI/gRIBI) |
 | `make telegraf-poc` / `telegraf-poc-stop` | Optional Telegraf exec gap-fill PoC (nri-flex analog → OTLP) |
 | `make traps` / `traps-burst` / `traps-loop` | Synthetic SNMPv2c traps → poller `:1620` (`public`; foreground loop default 3m) |
@@ -194,12 +222,12 @@ make topology-up
 ## Golden path notes (vs older monolith)
 
 - **Device catalog for flow/syslog/sFlow:** `make generate` writes `config/catalog.yaml` with `@` references to each group's `state/devices-<group>.yaml`. Flow, sFlow, and syslog receivers mount the catalog via `compose-catalog.generated.yaml` (not the per-group poller YAML).
-- **SNMP MIBs / profiles:** handled automatically — the ktranslate image bundles [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). Discovery sets `mib_profile` from each device's `sysObjectID`. If your hardware is not covered, use the [profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) and open a PR upstream; do not maintain local profile bind-mounts for normal operation.
+- **SNMP MIBs / profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). **Temporary:** `local/snmp-profiles/nokia/nokia-srlinux.yml` is bind-mounted until [kentik/snmp-profiles#889](https://github.com/kentik/snmp-profiles/pull/889) merges (SRL `MemoryUtilization`). Run `make generate` after template changes; recreate `ktranslate_snmp_srl` to pick up profile edits.
 - **No more** root `snmp.yaml` + `--snmp_discovery_on_start`. Discovery is a one-shot
   `discover_srl` profile; the long-running poller mounts `config/poller-srl.yaml`
   read-only and `@`-includes `state/devices-srl.yaml`.
 - Flow rollups + Alloy preprocess match the official Grafana Cloud
-  **ktranslate-netflow** integration (`network_io_by_flow` + OTEL semconv labels).
+  **ktranslate-netflow** integration: flow rollups use metric `network_io_by_flow` + datapoint label `integration=ktranslate-netflow` (CHF/logs keep `ktranslate-*` service names).
 - Add another credential group by copying `groups/srl.env.sample` →
   `groups/<name>.env`, assigning unique ports, then `make generate && make up && make discover GROUP=<name>`.
 
@@ -238,7 +266,7 @@ sed -i 's/\r$//' .env groups/srl.env    # sample files may carry CRLF
 # Set GC_OTLP_* in .env (paste from Grafana Cloud → OpenTelemetry)
 make generate && make check && make up
 sudo make discover GROUP=srl            # uid 501↔1000 mapping: run discovery as root on OrbStack
-make status && make traffic
+make status   # traffic + events-loop start automatically on make up
 ```
 
 **Credentials:** set `GC_OTLP_URL`, `GC_OTLP_ACCOUNT`, and `GC_OTLP_KEY` directly in
@@ -259,7 +287,7 @@ bash scripts/enable-snmp-srl.sh   # if SNMP only: connection refused on :161
 make stabilize           # full recovery without clab --reconfigure
 ```
 
-**SRL up but no `kentik_snmp_*` in Grafana?** Usually SNMP on `network-instance mgmt`, not OTLP. From WSL: `snmpget -v2c -c public 172.20.20.2:161 1.3.6.1.2.1.1.5.0` (spine1). If that times out, run `bash scripts/enable-snmp-srl.sh` (see `AGENTS.md` → *SNMP diagnosis*).
+**SRL up but no `kentik_snmp_*` in Grafana?** Run `make snmp-check` first. If `snmpget` works but Explore is empty, you may be querying `kentik_snmp_DeviceMetrics` (wrong — use `kentik_snmp_CPU` above) or MCP is on a different stack than `GC_OTLP_*` in `.env`. If `snmpget` times out: `bash scripts/enable-snmp-srl.sh`. If TARGETS ≠ live clab IPs: `make snmp-recover`. See `AGENTS.md` → *Investigation playbook*.
 
 **Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it SIGTERM-stops all nodes.
 
@@ -272,6 +300,18 @@ make fabric-stabilize      # one-shot recovery without collectors
 ```
 
 `make fabric-up` starts `fabric-watch` automatically. In Docker Desktop, disable **Resource Saver** and avoid stopping the engine while the lab should run.
+
+## Lab action audit log
+
+Every `make` target and script that sources `lab-path.sh` appends to **`state/lab-actions.log`** (who, pid, docker/clab/compose commands, script begin/end). On `make up` / `make stabilize`, **`state/docker-events.log`** also captures container die/kill/stop/start (auto unless `LAB_LOG_EVENTS=0`).
+
+```bash
+make lab-log-status              # tail both logs
+make lab-log-events              # start docker events capture manually
+journalctl -u docker --since today | grep -i ManuallyStopped   # WSL: daemon-level stop hints
+```
+
+Correlate timestamps: `lab-actions.log` shows *our* scripts; `docker-events.log` shows *which container* stopped; `journalctl` distinguishes manual stop vs dockerd restart (`daemonShuttingDown`).
 
 ## Network name
 
@@ -287,7 +327,7 @@ Cursor rules: [`.cursor/rules/local-lab.mdc`](../.cursor/rules/local-lab.mdc) (a
 
 1. `cd local` on a **native ext4** checkout (WSL: `~/projects/...`, not `/mnt/c`) → copy `.env.example` + `groups/srl.env.sample` → user provides `GC_OTLP_*`
 2. `make generate` → (`chown` on Linux/WSL if needed) → `make check` → `make up`
-3. Verify `kentik_snmp_DeviceMetrics` for spine1/leaf1/leaf2 on **user's** stack
-4. On failure: `make stabilize` — not `clab deploy --reconfigure`
+3. Verify on **user's** stack: `count by (device_name) (kentik_snmp_CPU)` and `count(network_io_by_flow_bytes)` — not `kentik_snmp_DeviceMetrics`
+4. On failure: `make snmp-check` / `bash scripts/finish-flows.sh` → then `make stabilize` — not `clab deploy --reconfigure`
 
 Update `AGENTS.md`, `.cursor/rules/`, and this README when local lab behavior changes.

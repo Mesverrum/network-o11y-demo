@@ -1,0 +1,70 @@
+---
+description: Grafana dashboard edits — always pull live first; operator PromQL/UI patterns
+alwaysApply: true
+---
+
+# Grafana dashboard patches — agent rules
+
+## Mandatory workflow (every dashboard change)
+
+1. **Pull live manifest first** — never start from stale `local/.dash-payloads/`, repo JSON exports, or a prior patch script output.
+2. **Note `metadata.generation`** (and `resourceVersion` on PUT) from the GET response.
+3. **Edit the pulled manifest** (`spec.elements` for TabsLayout v2) — minimal diff only.
+4. **PUT back** via gcx v2 or HTTP v2 API — never `POST /api/dashboards/db` on tabbed boards.
+5. **Verify** `spec.layout.kind` unchanged (`TabsLayout` / `RowsLayout` / `GridLayout`).
+6. **Diff before updating patch scripts:** `python3 local/scripts/_compare-dashboard-live.py` — bake operator/Assistant fixes into scripts only after live matches intent.
+
+### Pull commands
+
+```bash
+# Preferred (gcx context configured)
+gcx --context <stack> --agent dashboards get <uid> -o json > /tmp/dash-live.json
+
+# HTTP v2 (WSL / SA token from local/.env)
+curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" \
+  "$GRAFANA_URL/apis/dashboard.grafana.app/v2/namespaces/stacks-1061129/dashboards/<uid>"
+
+# Fleet pull (marcnetterfield1)
+python3 local/scripts/sync-ktranslate-dashboards-live.py --pull
+python3 local/scripts/reorganize-marcnetterfield-dashboards.py pull
+
+# Flow Summary after Assistant edits
+python3 local/scripts/download-flow-dashboard.py
+```
+
+**Query path in v2 elements:** `spec.elements[<key>].spec.data.spec.queries[*].spec.query.spec.expr`
+
+---
+
+## Operator patterns (repeat these — do not revert)
+
+These are fixes the operator applies via Grafana Assistant / UI. **Do not overwrite with hand-rolled alternatives.**
+
+| Topic | Use (operator pattern) | Do not use |
+|-------|------------------------|------------|
+| **Memory %** | `kentik_snmp_MemoryUtilization{$sel}` | `100 * MemoryUsed / (MemoryUsed + MemoryAvailable)`; `last_over_time` ratio hacks |
+| **Interface bps** | `(kentik_snmp_ifHCInOctets{...}) * 8 / 60` | `rate(kentik_snmp_ifHC*Octets[...])` |
+| **Interface errors/s** | `(kentik_snmp_ifInErrors{...}) / 60` | `rate(kentik_snmp_if*Errors[...])` |
+| **Flow bytes** | `max_over_time(network_io_by_flow_bytes[...])` | `rate(network_io_by_flow_bytes[...])` |
+| **Trap volume** | Loki: `count_over_time({service_name=~"ktranslate.*"} \|~ "(?i)(KSnmpTrap\|linkDown\|…)" [$__interval])` | `rate(kentik_ktranslate_chf_kkc_snmp_traps[5m])` |
+| **Syslog volume** | Loki: `sum by (severity) (count_over_time({service_name=~"ktranslate.*"} \| json \| severity != "" [$__interval]))` | `rate(kentik_ktranslate_chf_kkc_syslog_messages[5m])` |
+| **CHF metrics** | Collector health / heartbeat panels only | Event volume or device telemetry |
+| **Fleet count stats** | `count(...) OR vector(0)` | Bare `count(...)` → "No data" |
+| **Δ24h stats** | `instant: false` on stat; current expr minus `offset 24h` subquery | Single instant snapshot |
+| **Timeseries trends** | `instant: false`, range query | `instant: true` on timeseries |
+| **BGP state** | `tBgpPeerNgConnState="established"` / `!="established"` | Magic `== 6` (acceptable in legacy panels; prefer strings in new work) |
+| **SNMP tables** | `labelsToFields` → `merge` → `organize`; hide `deployment_host`, `src_addr`, … | Raw instant tables; missing `merge` (shows 1 row only) |
+| **Device drill-down** | `/d/ktranslate-device-details?var-instance=${__data.fields.device_name}` | Legacy `magz6qw1` UID |
+| **New Device Details UI** | Follow `local/docs/grafana-network-dashboard-design-patterns.md` | Ad-hoc layout/naming/table transforms |
+
+**SNMP inventory:** `count by (device_name) (kentik_snmp_CPU)` — **not** `kentik_snmp_DeviceMetrics` (AWS path only).
+
+---
+
+## References
+
+- **Design patterns (new panels/tabs):** `docs/grafana-network-dashboard-design-patterns.md` — layout, `has_*` gates, table transforms, naming
+- **New device/vendor coverage:** `docs/grafana-network-dashboard-expand-hardware.md` — discover metrics → map rows → fill gaps
+- **Import / recommend to others:** `docs/grafana-network-dashboard-skills-README.md`
+- Full playbook: `docs/grafana-dashboard-playbook.md`
+- Query lessons + diff tool: `local/docs/dashboard-query-lessons.md` · `local/docs/ktranslate-dashboard-live-snapshot.md` · `local/scripts/_compare-dashboard-live.py`

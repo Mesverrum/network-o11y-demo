@@ -147,7 +147,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg by (device_name) ((100 * sum by (device_name) (kentik_snmp_MemoryUsed{device_name=~\"$device\"}) / (sum by (device_name) (kentik_snmp_MemoryUsed{device_name=~\"$device\"}) + sum by (device_name) (kentik_snmp_MemoryAvailable{device_name=~\"$device\"}))))",
+          "expr": "avg by (device_name) (kentik_snmp_MemoryUtilization{device_name=~\"$device\"})",
           "legendFormat": "Memory",
           "refId": "A",
           "editorMode": "code",
@@ -648,7 +648,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg by (device_name) ((100 * sum by (device_name) (kentik_snmp_MemoryUsed{device_name=~\"$device\"}) / (sum by (device_name) (kentik_snmp_MemoryUsed{device_name=~\"$device\"}) + sum by (device_name) (kentik_snmp_MemoryAvailable{device_name=~\"$device\"}))))",
+          "expr": "avg by (device_name) (kentik_snmp_MemoryUtilization{device_name=~\"$device\"})",
           "legendFormat": "Utilization %",
           "refId": "A",
           "editorMode": "code",
@@ -708,7 +708,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg by (device_name) (kentik_snmp_MemoryAvailable{device_name=~\"$device\"})",
+          "expr": "avg by (device_name) (kentik_snmp_MemoryFree{device_name=~\"$device\"})",
           "legendFormat": "Free",
           "refId": "A",
           "editorMode": "code",

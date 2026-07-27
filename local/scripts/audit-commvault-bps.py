@@ -26,11 +26,11 @@ rewrite_expr = _patch.rewrite_expr
 walk_panels = _patch.walk_panels
 
 KTRANSLATE_UIDS = [
-    "mavgvqv",  # 00. Network Device Summary
-    "magz6qw1",  # 01. Network Device Details
-    "be8hpir89dds0a",  # 02. Network Flow Summary
-    "ktrans-arch-replication",  # 03. Architecture
-    "masjqrs",  # 04. KTranslate Health
+    "ktranslate-device-summary",  # 03. Network Device Summary
+    "ktranslate-device-details",  # 04. Network Device Details
+    "ktranslate-flow-summary",  # 02. Network Flow Summary
+    "ktranslate-architecture",  # 00. Ktranslate Architecture
+    "ktranslate-health",  # 01. Ktranslate Health
 ]
 
 OLD_PATTERNS = [

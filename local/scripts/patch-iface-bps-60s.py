@@ -164,6 +164,11 @@ def main() -> None:
 
     # Also always check known UIDs from import
     known = [
+        "ktranslate-device-summary",
+        "ktranslate-device-details",
+        "ktranslate-flow-summary",
+        "ktranslate-health",
+        "ktranslate-architecture",
         "mavgvqv",
         "magz6qw1",
         "ma7zxqw",

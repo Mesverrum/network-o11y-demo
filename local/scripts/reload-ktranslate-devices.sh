@@ -47,5 +47,7 @@ if [[ ${#RUNNING[@]} -eq 0 ]]; then
   exit 0
 fi
 
+bash "${REPO_ROOT}/scripts/refresh-flow-dns.sh"
+
 docker compose "${COMPOSE_ARGS[@]}" restart "${RUNNING[@]}"
 echo "reloaded ktranslate device catalog consumers: ${RUNNING[*]}"

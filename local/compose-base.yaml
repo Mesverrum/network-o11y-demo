@@ -54,16 +54,33 @@ services:
       - clab
       - default
 
+  # Split-horizon DNS for ktranslate --dns (src_host / dst_host on NetFlow rollups).
+  flow_dns:
+    image: ${FLOW_DNS_IMAGE:-andyshinn/dnsmasq:2.83}
+    container_name: flow_dns
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./dnsmasq/dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ./dnsmasq/hosts.generated.conf:/etc/dnsmasq.d/hosts.generated.conf:ro
+      - ./dnsmasq/upstream.conf:/etc/dnsmasq.d/upstream.conf:ro
+      - ./dnsmasq/extra-hosts.conf:/etc/dnsmasq.d/extra-hosts.conf:ro
+    networks:
+      - clab
+      - default
+
   ktranslate_flow:
     image: ${KTRANSLATE_IMAGE:-quay.io/kentik/ktranslate:latest}
     container_name: ktranslate_flow
     restart: unless-stopped
     environment:
-      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-ktranslate}${KTRANS_HOST:+-}${KTRANS_HOST}
+      - OTEL_SERVICE_NAME=ktranslate-flow${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION:-gzip}
     # config/catalog.yaml + state/devices-*.yaml mounts: compose-catalog.generated.yaml
     depends_on:
       - alloy
+      - flow_dns
     command:
       - --format=otel
       - --format_metric=otel
@@ -74,7 +91,7 @@ services:
       - --nf.source=${NF_SOURCE:-netflow9}
       - --nf.port=9995
       - --metalisten=0.0.0.0:9996
-      - --dns=127.0.0.1:53
+      - --dns=${FLOW_DNS:-flow_dns:53}
       - --sinks=otel
       - --metrics=jchf
       - --tee_logs=true
@@ -101,6 +118,7 @@ services:
     # catalog volumes: compose-catalog.generated.yaml
     depends_on:
       - alloy
+      - flow_dns
     command:
       - --format=otel
       - --format_metric=otel
@@ -111,7 +129,7 @@ services:
       - --nf.source=sflow
       - --nf.port=6343
       - --metalisten=0.0.0.0:9994
-      - --dns=127.0.0.1:53
+      - --dns=${FLOW_DNS:-flow_dns:53}
       - --sinks=otel
       - --metrics=jchf
       - --tee_logs=true
@@ -144,6 +162,7 @@ services:
       - --otel.protocol=grpc
       - --otel.endpoint=http://alloy:4317/
       - --snmp=/snmp.yaml
+      - --flow_only=true
       - --syslog.source=${SYSLOG_SOURCE:-0.0.0.0:1514}
       - --metalisten=0.0.0.0:9998
       - --sinks=otel

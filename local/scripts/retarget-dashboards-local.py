@@ -46,19 +46,17 @@ NAMES = [
 
 
 def snmp(s: str) -> str:
-    # memory utilization: no local gauge -> compute from Used / (Used + Available)
+    # memory utilization: ktranslate compound metric from MemoryUsed + MemoryFree tags
     s = re.sub(
         r"srl_memory_utilization\{([^}]*)\}",
-        r"(100 * sum by (device_name) (kentik_snmp_MemoryUsed{\1}) "
-        r"/ (sum by (device_name) (kentik_snmp_MemoryUsed{\1}) "
-        r"+ sum by (device_name) (kentik_snmp_MemoryAvailable{\1})))",
+        r"kentik_snmp_MemoryUtilization{\1}",
         s,
     )
     # gNMI metrics that do not exist locally -> SNMP equivalents
     for a, b in [
         ("srl_cpu_total_average_1", "kentik_snmp_CPU"),
         ("srl_cpu_total_average_5", "kentik_snmp_CPU"),
-        ("srl_memory_free", "kentik_snmp_MemoryAvailable"),
+        ("srl_memory_free", "kentik_snmp_MemoryFree"),
         ("srl_iface_in_octets", "kentik_snmp_ifHCInOctets"),
         ("srl_iface_out_octets", "kentik_snmp_ifHCOutOctets"),
         ("srl_iface_in_packets", "kentik_snmp_ifHCInUcastPkts"),

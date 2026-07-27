@@ -16,6 +16,7 @@ for n in "${NODES[@]}"; do
     '/system snmp network-instance mgmt admin-state enable' \
     '/system snmp access-group ag1 admin-state enable' \
     '/system snmp access-group ag1 security-level no-auth-no-priv' \
+    'delete /system snmp access-group ag1 community-entry ce1' \
     '/system snmp access-group ag1 community-entry ce1 community public' \
     'commit now' | docker exec -i "$n" sr_cli
 done

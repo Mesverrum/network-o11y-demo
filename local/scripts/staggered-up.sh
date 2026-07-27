@@ -13,6 +13,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
+# shellcheck source=lab-path.sh
+source "${ROOT}/scripts/lab-path.sh"
 
 STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
 STAGGER_FABRIC="${LAB_STAGGER_FABRIC:-1}"
@@ -22,7 +24,7 @@ SR_CLI_TRIES_LEAF="${LAB_SR_CLI_TRIES_LEAF:-120}"
 SR_CLI_TRIES_ALL="${LAB_SR_CLI_TRIES_ALL:-90}"
 
 SRL_ORDER=(spine1 leaf1 leaf2 client1 client2)
-COLLECTOR_SERVICES=(alloy ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
+COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 
 COMPOSE=(docker compose --env-file .env
   -f compose-base.yaml
@@ -138,11 +140,13 @@ start_collectors() {
     local svc
     for svc in "${COLLECTOR_SERVICES[@]}"; do
       info "Starting collector ${svc}..."
+      lab_log_compose "up -d ${svc}"
       "${COMPOSE[@]}" up -d "${svc}"
       stagger_wait
     done
   else
     info "Starting full telemetry compose stack..."
+    lab_log_compose "up -d (all collectors)"
     "${COMPOSE[@]}" up -d
   fi
 }
@@ -161,28 +165,14 @@ post_up_config() {
 
   bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config
 
-  info "Starting softflowd on clients..."
-  bash "${ROOT}/scripts/softflowd.sh"
-
-  info "Configuring sFlow → ktranslate_sflow..."
-  bash "${ROOT}/scripts/sflow-config.sh" \
-    || echo "WARNING: sflow config failed — check sr_cli syntax"
-
-  info "Configuring syslog → ktranslate_syslog..."
-  bash "${ROOT}/scripts/syslog-config.sh" \
-    || echo "WARNING: syslog config failed — check sr_cli syntax"
-
-  info "Configuring SNMP traps → ktranslate_snmp_srl..."
-  bash "${ROOT}/scripts/snmp-trap-config.sh" \
-    || echo "WARNING: snmp trap config failed — check sr_cli syntax"
-
-  info "Exporting SR Linux mgmt API catalog (live + mock)..."
-  bash "${ROOT}/scripts/mgmt-api-mock.sh" emit \
-    || echo "WARNING: mgmt-api-mock export failed — check go + alloy OTLP"
+  bash "${ROOT}/scripts/post-telemetry-config.sh"
 }
 
 main() {
   local up_t0; up_t0=$(date +%s)
+  if [[ "${LAB_LOG_EVENTS:-1}" == "1" ]]; then
+    bash "${ROOT}/scripts/lab-log-events.sh" start || true
+  fi
   info "Staggered bring-up started $(date '+%Y-%m-%d %H:%M:%S') (cold run ~10 min; pause=${STAGGER_SECS}s fabric=${STAGGER_FABRIC} collectors=${STAGGER_COLLECTORS})"
   log_resources
   if [[ "${STAGGER_SKIP_FABRIC:-0}" == "1" ]]; then

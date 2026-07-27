@@ -13,9 +13,9 @@ STAGING = ROOT / ".dash-payloads" / "ktranslate-import"
 FOLDER = "network-lab"
 
 UIDS = [
-    ("mavgvqv", "00. Network Device Summary"),
-    ("magz6qw1", "01. Network Device Details"),
-    ("be8hpir89dds0a", "02. Network Flow Summary"),
+    ("ktranslate-device-summary", "03. Network Device Summary"),
+    ("ktranslate-device-details", "04. Network Device Details"),
+    ("ktranslate-flow-summary", "02. Network Flow Summary"),
 ]
 
 TARGETS = {

@@ -1,0 +1,24 @@
+---
+description: Network Device Details dashboard UI/layout + new hardware expansion (portable Grafana Assistant skills)
+globs: docs/grafana-network-dashboard-*.md,local/scripts/*dashboard*.py,local/scripts/patch-*.py,docs/grafana-dashboard-playbook.md,local/docs/dashboard-query-lessons.md
+alwaysApply: false
+---
+
+# Network dashboard skills (portable)
+
+| Task | Read |
+|------|------|
+| Import / recommend to other stacks | [`docs/grafana-network-dashboard-skills-README.md`](../../docs/grafana-network-dashboard-skills-README.md) |
+| New panels, rows, tabs, tables | [`docs/grafana-network-dashboard-design-patterns.md`](../../docs/grafana-network-dashboard-design-patterns.md) |
+| New device type / vendor | [`docs/grafana-network-dashboard-expand-hardware.md`](../../docs/grafana-network-dashboard-expand-hardware.md) |
+
+## Conventions (any stack)
+
+- **`$device`** = single-device selector variable (PromQL label `device_name`); may be named `$instance` or `$device_name` on import.
+- **ktranslate SNMP bps:** `(kentik_snmp_ifHC*Octets{...}) * 8 / <poll_sec>` — not `rate(kentik_snmp_*)`.
+- **`has_ping`** gates on `kentik_ping_*`, not `kentik_snmp_*`.
+- **Gate metric** must match what panels query (`MemoryUtilization` vs `hrStorageUsedPercent`, etc.).
+- **Tables:** `labelsToFields` → `merge` → `organize`; hide `deployment_host`.
+- **Device Details:** no `provider` filter in panel queries; use `max by(device_name)` on drill-downs.
+
+Lab-only: `local/docs/dashboard-query-lessons.md`, `make -C local dash-live-sync`.

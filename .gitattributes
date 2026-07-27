@@ -1,7 +1,9 @@
 # Force LF for shell/Make so WSL bash does not choke on CRLF
 local/**/*.sh text eol=lf
+local/docker/** text eol=lf
 local/Makefile text eol=lf
 local/**/*.alloy text eol=lf
 local/**/*.yml text eol=lf
 local/**/*.yaml text eol=lf
 local/**/*.example text eol=lf
+oneclick/**/*.sh text eol=lf

@@ -3,8 +3,8 @@
     restart: always
     pull_policy: always
     environment:
-      # Distinct service.name per group so the Alloy preprocessing transform
-      # (which rebrands flow data as integrations/ktranslate-netflow) doesn't
+      # Distinct service.name per group so flow rollup integration label
+      # (integration=ktranslate-netflow on network_io_by_flow_bytes only) doesn't
       # touch SNMP telemetry, and so each group is separable in Grafana. The
       # ${KTRANS_HOST:+-}${KTRANS_HOST} suffix appends "-<host>" (when set) so
       # the same group on two hosts stays separable too.
@@ -19,6 +19,11 @@
         source: ./state/devices-${GROUP}.yaml
         target: /state/devices-${GROUP}.yaml
         read_only: true
+      # Until kentik/snmp-profiles#889 merges: SRL MemoryFree tag → MemoryUtilization
+      - type: bind
+        source: ./snmp-profiles/nokia/nokia-srlinux.yml
+        target: /etc/ktranslate/profiles/kentik_snmp/nokia/nokia-srlinux.yml
+        read_only: true
     depends_on:
       - alloy
     command:
@@ -28,7 +33,6 @@
       - --otel.endpoint=http://alloy:4317/
       - --snmp=/snmp.yaml
       - --metalisten=0.0.0.0:${METALISTEN_PORT}
-      - --dns=127.0.0.1:53
       - --sinks=otel
       - --metrics=jchf
       - --tee_logs=true
@@ -59,6 +63,11 @@
       - type: bind
         source: ./state/discovery-${GROUP}.runtime.yaml
         target: /snmp.yaml
+      # Until kentik/snmp-profiles#889 merges: SRL MemoryFree tag → MemoryUtilization
+      - type: bind
+        source: ./snmp-profiles/nokia/nokia-srlinux.yml
+        target: /etc/ktranslate/profiles/kentik_snmp/nokia/nokia-srlinux.yml
+        read_only: true
     depends_on:
       - alloy
     command:

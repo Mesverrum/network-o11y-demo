@@ -502,7 +502,7 @@ def build_elements(existing: dict) -> dict:
             ("Critical Uplinks", "96.5"),
         ]),
         desc="Composite health score per network domain (demo).",
-        links=[{"targetBlank": True, "title": "Device Summary", "url": "/d/mavgvqv/00-network-device-summary"}],
+        links=[{"targetBlank": True, "title": "Device Summary", "url": "/d/ktranslate-device-summary/03-network-device-summary"}],
         thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 90}, {"color": "green", "value": 95}],
     )
     elements["panel-21"] = stat_panel(
@@ -607,7 +607,7 @@ def build_elements(existing: dict) -> dict:
     elements["panel-11"] = stat_panel(
         11, "Switching health",
         [td_query("A", "csv_metric_values", alias="On Prem Switching", stringInput="97.5")],
-        links=[{"targetBlank": True, "title": "Device Summary", "url": "/d/mavgvqv/00-network-device-summary"}],
+        links=[{"targetBlank": True, "title": "Device Summary", "url": "/d/ktranslate-device-summary/03-network-device-summary"}],
     )
     elements["panel-57"] = bargauge_panel(
         57, "Managed devices by site",

@@ -4,12 +4,17 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
+# shellcheck source=lab-path.sh
+source "${ROOT}/scripts/lab-path.sh"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
 [[ -f groups/srl.env ]] || die "missing groups/srl.env — cp groups/srl.env.sample groups/srl.env"
 [[ -f .env ]] || die "missing .env — cp .env.example .env"
+if [[ "${LAB_LOG_EVENTS:-1}" == "1" ]]; then
+  bash "${ROOT}/scripts/lab-log-events.sh" start || true
+fi
 if [[ ! -f compose-groups.generated.yaml ]]; then
   info "Running make generate (first-time / missing compose fragment)..."
   make generate
@@ -53,7 +58,8 @@ else
   info "Starting stopped SRL nodes (if any)..."
   for n in "${SRL[@]}"; do
     if [[ "$(docker inspect -f '{{.State.Running}}' "$n" 2>/dev/null || echo false)" != "true" ]]; then
-      docker start "$n"
+      lab_log_docker "start ${n} reason=stabilize"
+      lab_run docker start "$n"
     fi
   done
 fi
@@ -83,7 +89,7 @@ COMPOSE=(docker compose --env-file .env
   -f compose-limits.generated.yaml)
 # shellcheck disable=SC2207
 COMPOSE+=($(bash "${ROOT}/scripts/lab-topology-exporter.sh" profile))
-COLLECTOR_SERVICES=(alloy ktranslate_snmp_srl ktranslate_flow ktranslate_syslog gnmic)
+COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 if bash "${ROOT}/scripts/lab-topology-exporter.sh" enabled; then
   COLLECTOR_SERVICES+=(topology_exporter)
 fi
@@ -91,10 +97,12 @@ fi
 if [[ "${LAB_STAGGER:-1}" == "1" ]]; then
   for svc in "${COLLECTOR_SERVICES[@]}"; do
     info "Starting ${svc}..."
+    lab_log_compose "up -d ${svc}"
     "${COMPOSE[@]}" up -d "${svc}"
     sleep "${STAGGER_SECS}"
   done
 else
+  lab_log_compose "up -d (all collectors)"
   "${COMPOSE[@]}" up -d
 fi
 
@@ -109,10 +117,6 @@ else
 fi
 
 bash "${ROOT}/scripts/run-discovery-all.sh" || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
-bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config
-bash "${ROOT}/scripts/softflowd.sh"
-bash "${ROOT}/scripts/sflow-config.sh" || info "sflow config skipped"
-bash "${ROOT}/scripts/syslog-config.sh" || info "syslog config skipped"
-bash "${ROOT}/scripts/snmp-trap-config.sh" || info "trap config skipped"
+bash "${ROOT}/scripts/post-telemetry-config.sh"
 
-info "Lab stabilized. Run: make traffic && make status"
+info "Lab stabilized. Verify: make status"

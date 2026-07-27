@@ -2,8 +2,9 @@
 """Scan and patch kentik ifHC* BPS queries on a Grafana Cloud stack (v2-safe).
 
 Uses gcx ``dashboards get`` / ``dashboards update`` so ``TabsLayout`` is preserved.
-Do not use legacy ``POST /api/dashboards/db`` on tabbed v2 dashboards — see
-``AGENTS.md`` → *Grafana dashboard updates — preserve TabsLayout*.
+Do not use legacy ``POST /api/dashboards/db`` on tabbed v2 dashboards.
+
+Playbook: docs/grafana-dashboard-playbook.md · AGENTS.md → Grafana dashboard updates.
 """
 from __future__ import annotations
 
@@ -32,6 +33,11 @@ OLD_EXPR = re.compile(
 )
 
 KNOWN_UIDS = [
+    "ktranslate-device-summary",
+    "ktranslate-device-details",
+    "ktranslate-flow-summary",
+    "ktranslate-health",
+    "ktranslate-architecture",
     "mavgvqv",
     "ma7zxqw",
     "magz6qw1",

@@ -1155,7 +1155,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg by (device_name) ((100 * sum by (device_name) (kentik_snmp_MemoryUsed{}) / (sum by (device_name) (kentik_snmp_MemoryUsed{}) + sum by (device_name) (kentik_snmp_MemoryAvailable{}))))",
+          "expr": "avg by (device_name) (kentik_snmp_MemoryUtilization{})",
           "legendFormat": "",
           "refId": "H",
           "editorMode": "code",

@@ -22,7 +22,15 @@ export KTRANS_HOST
 # Staggered bring-up (fabric + collectors) reduces simultaneous load on WSL laptops.
 LAB_STAGGER ?= 1
 LAB_STAGGER_SECS ?= 25
-export LAB_STAGGER LAB_STAGGER_SECS
+LAB_AUTO_TRAFFIC ?= 1
+LAB_AUTO_INTERNET_PROBES ?= 1
+LAB_AUTO_EVENTS ?= 1
+export LAB_STAGGER LAB_STAGGER_SECS LAB_AUTO_TRAFFIC LAB_AUTO_INTERNET_PROBES LAB_AUTO_EVENTS
+
+# Audit logging: local/state/lab-actions.log (+ docker-events.log). See make lab-log-status.
+LAB_RUN := bash $(ROOT)scripts/lab-run.sh
+LAB_LOG_EVENTS ?= 1
+export LAB_LOG_EVENTS
 
 COMPOSE := docker compose --env-file .env \
   $(shell bash $(ROOT)scripts/lab-topology-exporter.sh profile 2>/dev/null) \
@@ -64,8 +72,8 @@ generate: ## Render poller/discovery configs + compose-groups.generated.yaml
 	@cd $(ROOT) && bash scripts/generate-groups.sh
 
 .PHONY: bootstrap
-bootstrap: ## Seed empty state/devices-<group>.yaml stubs
-	@mkdir -p $(ROOT)state $(ROOT)config
+bootstrap: ## Seed empty state/devices-<group>.yaml stubs + flow_dns config stubs
+	@mkdir -p $(ROOT)state $(ROOT)config $(ROOT)dnsmasq
 	@for envfile in $(ROOT)groups/*.env; do \
 	  [ -f "$$envfile" ] || continue; \
 	  group=$$(awk -F= '/^GROUP=/{print $$2; exit}' "$$envfile"); \
@@ -75,6 +83,8 @@ bootstrap: ## Seed empty state/devices-<group>.yaml stubs
 	    echo "seeded empty state/devices-$$group.yaml"; \
 	  fi; \
 	done
+	@[ -f $(ROOT)dnsmasq/hosts.generated.conf ] || echo '# pending refresh-flow-dns' > $(ROOT)dnsmasq/hosts.generated.conf
+	@[ -f $(ROOT)dnsmasq/upstream.conf ] || echo 'server=host.docker.internal' > $(ROOT)dnsmasq/upstream.conf
 
 .PHONY: limits
 limits: ## Compute per-container memory limits from host RAM
@@ -100,22 +110,26 @@ discover-all: ## Run discovery for every group; reload catalog consumers if any 
 .PHONY: up
 up: check generate bootstrap limits ## Staggered deploy (default): fabric + collectors + discover
 ifeq ($(LAB_STAGGER),0)
-	@echo "==> Deploying ContainerLab topology (parallel)..."
-	@bash $(ROOT)scripts/clab.sh deploy
-	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
-	@sleep 60
-	@echo "==> Applying fabric config..."
-	@bash $(ROOT)scripts/apply-fabric-config.sh
-	@echo "==> deployment.host = $(KTRANS_HOST)"
-	@echo "==> Starting telemetry compose stack..."
-	cd $(ROOT) && $(COMPOSE) up -d
-	@$(MAKE) -C $(ROOT) --no-print-directory _post-up-config
+	$(LAB_RUN) up -- bash -c '\
+	  echo "==> Deploying ContainerLab topology (parallel)..." && \
+	  bash $(ROOT)scripts/clab.sh deploy && \
+	  echo "==> Waiting for SR Linux nodes to settle (60s)..." && \
+	  sleep 60 && \
+	  echo "==> Applying fabric config..." && \
+	  bash $(ROOT)scripts/apply-fabric-config.sh && \
+	  echo "==> deployment.host = $(KTRANS_HOST)" && \
+	  echo "==> Starting telemetry compose stack..." && \
+	  cd $(ROOT) && $(COMPOSE) up -d && \
+	  $(MAKE) -C $(ROOT) --no-print-directory _post-up-config'
 else
-	@cd $(ROOT) && bash scripts/staggered-up.sh
+	$(LAB_RUN) up -- bash $(ROOT)scripts/staggered-up.sh
 endif
 	@echo ""
-	@echo "Lab is up. Next: make status && make traffic && make emit-events"
-	@echo "Grafana: count by (device_name, service_name) (kentik_snmp_DeviceMetrics)"
+	@echo "Lab is up — SNMP, flows, syslog, traps, sFlow, and gNMI should be streaming."
+	@echo "Verify: make status"
+	@echo "Grafana SNMP:  count by (device_name) (kentik_snmp_CPU)"
+	@echo "Grafana flows: count(network_io_by_flow_bytes)"
+	@echo "Opt out of auto workloads: LAB_AUTO_TRAFFIC=0 LAB_AUTO_INTERNET_PROBES=0 LAB_AUTO_EVENTS=0 in .env"
 
 .PHONY: up-parallel
 up-parallel: ## Legacy parallel bring-up (LAB_STAGGER=0)
@@ -131,17 +145,7 @@ _post-up-config:
 	fi
 	@echo "==> Discovering SRL devices (GROUP=srl)..."
 	cd $(ROOT) && bash scripts/run-discovery-all.sh || echo "WARNING: discovery failed — check snmpwalk / groups/*.env"
-	@bash $(ROOT)scripts/lab-topology-exporter.sh post-config
-	@echo "==> Starting softflowd on clients..."
-	bash $(ROOT)scripts/softflowd.sh
-	@echo "==> Configuring SR Linux sFlow → ktranslate_sflow..."
-	@bash $(ROOT)scripts/sflow-config.sh || echo "WARNING: sflow config failed — check sr_cli syntax"
-	@echo "==> Configuring SR Linux syslog → ktranslate_syslog..."
-	bash $(ROOT)scripts/syslog-config.sh || echo "WARNING: syslog config failed — check sr_cli syntax"
-	@echo "==> Configuring SR Linux SNMP traps → ktranslate_snmp_srl..."
-	bash $(ROOT)scripts/snmp-trap-config.sh || echo "WARNING: snmp trap config failed — check sr_cli syntax"
-	@echo "==> Exporting SR Linux mgmt API catalog (live + mock)..."
-	bash $(ROOT)scripts/mgmt-api-mock.sh emit || echo "WARNING: mgmt-api-mock export failed — check go + alloy OTLP"
+	@bash $(ROOT)scripts/post-telemetry-config.sh
 
 .PHONY: sync-clab-workdir
 sync-clab-workdir: ## (internal) sync clab deploy dir when CLAB_FORCE_EXT4=1
@@ -149,18 +153,19 @@ sync-clab-workdir: ## (internal) sync clab deploy dir when CLAB_FORCE_EXT4=1
 
 .PHONY: fabric-up
 fabric-up: sync-clab-workdir ## Deploy SRL fabric only (no o11y/NetBox)
-	@bash $(ROOT)scripts/clab.sh deploy
-	@echo "==> Waiting for SR Linux nodes to settle (60s)..."
-	@sleep 60
-	@bash $(ROOT)scripts/apply-fabric-config.sh
+	$(LAB_RUN) fabric-up -- bash -c '\
+	  bash $(ROOT)scripts/clab.sh deploy && \
+	  echo "==> Waiting for SR Linux nodes to settle (60s)..." && \
+	  sleep 60 && \
+	  bash $(ROOT)scripts/apply-fabric-config.sh && \
+	  bash $(ROOT)scripts/fabric-watch.sh start || true'
 	@echo ""
 	@echo "Fabric is up. Try: docker exec spine1 sr_cli -ec 'show network-instance summary'"
 	@echo "Client ping: docker exec client2 ping -c 2 172.17.0.1"
-	@bash $(ROOT)scripts/fabric-watch.sh start || true
 
 .PHONY: fabric-stabilize
 fabric-stabilize: ## Start stopped SRL nodes (or redeploy); no collectors
-	bash $(ROOT)scripts/fabric-stabilize.sh
+	$(LAB_RUN) fabric-stabilize -- bash $(ROOT)scripts/fabric-stabilize.sh
 
 .PHONY: fabric-watch fabric-watch-stop fabric-watch-status
 fabric-watch: ## Background: recover SRL if containers stop (poll 60s)
@@ -174,19 +179,15 @@ fabric-watch-status: ## Show fabric-watch status / recent log
 
 .PHONY: fabric-apply
 fabric-apply: sync-clab-workdir ## Apply configs/fabric/*.cfg via sr_cli
-	bash $(ROOT)scripts/apply-fabric-config.sh
+	$(LAB_RUN) fabric-apply -- bash $(ROOT)scripts/apply-fabric-config.sh
 
 .PHONY: stabilize
 stabilize: ## Recover lab without clab --reconfigure (start SRL, apply config, discover)
-	bash $(ROOT)scripts/stabilize-lab.sh
+	$(LAB_RUN) stabilize -- bash $(ROOT)scripts/stabilize-lab.sh
 
 .PHONY: down
 down: ## Destroy fabric + stop compose
-	@bash $(ROOT)scripts/fabric-watch.sh stop || true
-	@echo "==> Stopping compose..."
-	cd $(ROOT) && $(COMPOSE) down || true
-	@echo "==> Destroying ContainerLab topology..."
-	@bash $(ROOT)scripts/clab.sh destroy || true
+	$(LAB_RUN) down -- bash $(ROOT)scripts/lab-down.sh
 
 .PHONY: status
 status: ## Show clab nodes, compose, and a quick ping check
@@ -201,7 +202,18 @@ status: ## Show clab nodes, compose, and a quick ping check
 
 .PHONY: snmp-targets
 snmp-targets: ## Rewrite groups/srl.env TARGETS from live clab mgmt IPs + regenerate
-	bash $(ROOT)scripts/update-snmp-targets.sh
+	$(LAB_RUN) snmp-targets -- bash $(ROOT)scripts/update-snmp-targets.sh
+
+.PHONY: snmp-check snmp-recover
+snmp-check: ## Diagnose TARGETS vs live IPs, snmpget, poller logs
+	bash $(ROOT)scripts/snmp-check.sh
+
+snmp-recover: ## Refresh TARGETS, enable SNMP, discover, reload poller (after clab redeploy)
+	$(LAB_RUN) snmp-recover -- bash $(ROOT)scripts/finish-bringup.sh
+
+.PHONY: finish-flows
+finish-flows: ## EVPN + softflowd + traffic + verify flows in Grafana
+	$(LAB_RUN) finish-flows -- bash $(ROOT)scripts/finish-flows.sh
 
 .PHONY: topology-exporter-image
 topology-exporter-image: ## Download release binary and build local topology-exporter image
@@ -211,6 +223,16 @@ topology-exporter-image: ## Download release binary and build local topology-exp
 	       https://github.com/grafana/network-topology-exporter/releases/download/v1.0.0/topology-exporter-linux-amd64
 	@chmod +x $(ROOT)topology-exporter/build/topology-exporter-linux-amd64
 	cd $(ROOT)topology-exporter && docker build -t srl-local/network-topology-exporter:v1.0.0 .
+
+.PHONY: ktranslate-dev-image
+ktranslate-dev-image: ## Build ktranslate with OTLP CHF fix (Mesverrum fix/otel-chf-flow-only)
+	bash $(ROOT)scripts/build-ktranslate-dev-image.sh
+
+.PHONY: ktranslate-dev-recreate
+ktranslate-dev-recreate: ## Recreate all ktranslate containers (set KTRANSLATE_IMAGE in .env first)
+	@test -n "$$(grep -E '^KTRANSLATE_IMAGE=.+' $(ROOT).env 2>/dev/null)" \
+	  || { echo "Set KTRANSLATE_IMAGE=srl-local/ktranslate:otel-chf-dev in local/.env first"; exit 1; }
+	$(COMPOSE) up -d --pull never --force-recreate ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog
 
 .PHONY: netbox-bootstrap netbox-sync
 netbox-bootstrap netbox-sync: ## Populate NetBox Cloud + sync clab mgmt IPs
@@ -239,15 +261,30 @@ topology-up: check generate topology-exporter-image ## Start optional topology_e
 
 .PHONY: softflowd
 softflowd: ## (Re)start softflowd on clients
-	bash $(ROOT)scripts/softflowd.sh
+	$(LAB_RUN) softflowd -- bash $(ROOT)scripts/softflowd.sh
 
 .PHONY: sflow
 sflow: ## (Re)apply spine sFlow → ktranslate_sflow:6343
-	bash $(ROOT)scripts/sflow-config.sh
+	$(LAB_RUN) sflow -- bash $(ROOT)scripts/sflow-config.sh
+
+.PHONY: flow-dns
+flow-dns: ## Regenerate flow_dns PTR records from device catalog (+ clab overlay)
+	bash $(ROOT)scripts/refresh-flow-dns.sh
+
+.PHONY: lab-dns
+lab-dns: flow-dns ## Deprecated alias for flow-dns
 
 .PHONY: syslog
 syslog: ## (Re)apply syslog remote-server on SR Linux nodes
 	bash $(ROOT)scripts/syslog-config.sh
+
+.PHONY: wan-ifalias
+wan-ifalias: ## Set WAN interface descriptions (ifAlias) on spine/leaves
+	python3 $(ROOT)scripts/apply-wan-ifalias.py
+
+.PHONY: network-alerts
+network-alerts: ## Provision Grafana network alert rules (marcnetterfield1 / network-lab folder)
+	python3 $(ROOT)scripts/provision-network-alerts.py
 
 .PHONY: snmp-traps-config
 snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate_snmp_srl
@@ -271,11 +308,11 @@ events-status: ## Show events-loop status / recent log
 
 .PHONY: traffic
 traffic: ## Start ongoing UDP workloads (steady+burst+reverse+ping)
-	bash $(ROOT)scripts/traffic.sh start
+	$(LAB_RUN) traffic -- bash $(ROOT)scripts/traffic.sh start
 
 .PHONY: traffic-stop
 traffic-stop: ## Stop traffic workloads
-	bash $(ROOT)scripts/traffic.sh stop
+	$(LAB_RUN) traffic-stop -- bash $(ROOT)scripts/traffic.sh stop
 
 .PHONY: validate-flow-counts
 validate-flow-counts: ## Sanity-check flow series/rates vs lab traffic (see scripts/validate-flow-counts.py)
@@ -284,6 +321,34 @@ validate-flow-counts: ## Sanity-check flow series/rates vs lab traffic (see scri
 .PHONY: traffic-status
 traffic-status: ## Show traffic workload status
 	bash $(ROOT)scripts/traffic.sh status
+
+.PHONY: north-south-flows
+north-south-flows: ## Restart dual softflowd (eth0+eth1) + internet probes on running lab
+	python3 $(ROOT)scripts/apply-north-south-flows.py
+
+.PHONY: flow-dashboard-download
+flow-dashboard-download: ## Download live ktranslate-flow-summary v2 manifest from Grafana
+	python3 $(ROOT)scripts/download-flow-dashboard.py
+
+.PHONY: dash-live-sync
+dash-live-sync: ## Pull all ktranslate dashboards 00–04 + refresh agent docs
+	python3 $(ROOT)scripts/sync-ktranslate-dashboards-live.py --pull
+
+.PHONY: verify-flow-countries
+verify-flow-countries: ## List public network_peer_country values in flow metrics
+	python3 $(ROOT)scripts/verify-flow-countries.py
+
+.PHONY: internet-probes
+internet-probes: ## Start HTTPS probes for geomap country codes (mgmt eth0)
+	$(LAB_RUN) internet-probes -- bash $(ROOT)scripts/internet-probes.sh start
+
+.PHONY: internet-probes-stop
+internet-probes-stop: ## Stop internet HTTPS probes
+	$(LAB_RUN) internet-probes-stop -- bash $(ROOT)scripts/internet-probes.sh stop
+
+.PHONY: internet-probes-status
+internet-probes-status: ## Show internet probe status
+	bash $(ROOT)scripts/internet-probes.sh status
 
 .PHONY: join-app
 join-app: ## Build+deploy OTel Clos join demo (client1→client2 EVPN + traces→Alloy)
@@ -352,3 +417,13 @@ traps-loop: ## Foreground trap suite loop (default every 180s; prefer events-loo
 .PHONY: logs
 logs: ## Tail compose logs
 	cd $(ROOT) && $(COMPOSE) logs -f --tail=100
+
+.PHONY: lab-log-events lab-log-events-stop lab-log-status
+lab-log-events: ## Start background docker events log (state/docker-events.log)
+	bash $(ROOT)scripts/lab-log-events.sh start
+
+lab-log-events-stop: ## Stop docker events log
+	bash $(ROOT)scripts/lab-log-events.sh stop
+
+lab-log-status: ## Show recent lab-actions + docker-events logs
+	bash $(ROOT)scripts/lab-log-status.sh $(LINES)

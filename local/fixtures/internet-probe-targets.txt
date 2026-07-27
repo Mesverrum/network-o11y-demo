@@ -1,0 +1,30 @@
+# North-south HTTPS probe targets for flow geomap demos.
+# ktranslate sets network_peer_country from MaxMind GeoIP on the peer IP.
+#
+# Format: hostname[|optionalIP]
+#   hostname only — client DNS (may hit nearest CDN; often US from a US lab)
+#   host|ip       — connect to pinned IP; TLS SNI uses hostname (reliable country)
+#
+# Refresh pins occasionally if a site moves. Verify: make internet-probes-status
+
+# US (baseline — DNS)
+grafana.com
+github.com
+www.kentik.com
+
+# Pinned — usually reachable; forces GeoIP for that country
+www.yandex.ru|77.88.55.242
+www.yahoo.co.jp|202.12.27.33
+www.naver.com|223.130.197.6
+# CN pin often blocked from US/corp networks — DNS only (may still geolocate US)
+www.baidu.com
+
+# National TLDs — usually in-country GeoIP (DNS)
+www.gov.uk
+www.bund.de
+www.lemonde.fr
+www.gov.br
+www.gov.au
+www.gov.sg
+www.ec.gc.ca
+www.gov.in

@@ -23,7 +23,8 @@ deploy() {
   bin=$(clab_bin)
   dir="$CLAB_DEPLOY_DIR"
   echo "==> ${bin} deploy from ${dir}"
-  (cd "$dir" && "$bin" deploy -t topology.clab.yml "$@")
+  lab_log_clab "deploy from ${dir} extra_args=$*"
+  (cd "$dir" && lab_run "$bin" deploy -t topology.clab.yml "$@")
 }
 
 destroy() {
@@ -32,7 +33,8 @@ destroy() {
   for dir in "$CLAB_DEPLOY_DIR" "$LAB_REPO_ROOT"; do
     [[ -f "${dir}/topology.clab.yml" ]] || continue
     echo "==> ${bin} destroy in ${dir}"
-    (cd "$dir" && "$bin" destroy -t topology.clab.yml --cleanup "$@") || true
+    lab_log_clab "destroy in ${dir} extra_args=$*"
+    (cd "$dir" && lab_run "$bin" destroy -t topology.clab.yml --cleanup "$@") || true
   done
 }
 

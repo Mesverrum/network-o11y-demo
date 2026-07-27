@@ -14,6 +14,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATE_DIR="${ROOT}/state"
+# shellcheck source=lab-path.sh
+source "${ROOT}/scripts/lab-path.sh"
 PID_FILE="${STATE_DIR}/fabric-watch.pid"
 LOG_FILE="${STATE_DIR}/fabric-watch.log"
 INTERVAL_SEC="${FABRIC_WATCH_INTERVAL_SEC:-60}"
@@ -86,6 +88,7 @@ run_supervisor() {
     fi
 
     echo "[$(date -Is)] SRL unhealthy — running fabric-stabilize"
+    lab_log_action watch "SRL unhealthy — running fabric-stabilize"
     set +e
     bash "${ROOT}/scripts/fabric-stabilize.sh"
     rc=$?

@@ -36,12 +36,17 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 - `apply-fabric-config.sh` / `make fabric-apply` / `make fabric-up` — load `configs/fabric/*.cfg` (default path: SNMP-only via `enable-snmp-srl.sh`; `FULL_FABRIC=1` pipes entire flat cfg — risky on running lab)
 - `staggered-up.sh` — default `make up` path: fabric nodes then collectors one-by-one (`LAB_STAGGER_SECS`, logs RAM)
 - `stabilize-lab.sh` / `make stabilize` — recover without `clab deploy --reconfigure` (start SRL, apply fabric, discover)
+- `snmp-check.sh` / `make snmp-check` — TARGETS vs live clab IPs, snmpget, devices yaml, poller logs, Grafana `kentik_snmp_*` (not `DeviceMetrics`)
+- `finish-bringup.sh` / `make snmp-recover` — after clab IP drift: refresh TARGETS → enable SNMP → discover → reload poller
+- `finish-flows.sh` / `make finish-flows` — EVPN check, softflowd, traffic, verify `network_io_by_flow_bytes` in Grafana
+- `lab-log.sh` / `lab-log-status` / `lab-log-events` — audit trail in `state/lab-actions.log` + `docker-events.log` (container die/stop correlation)
 - `enable-snmp-srl.sh` — restore SNMP on mgmt NI: delete clab `SNMPv2-RO-Community`, set `ag1` + `community-entry ce1 community public` (used by `fabric-apply` and recovery)
 - `restore-mgmt-ni.sh` — recreate `network-instance mgmt` when wiped; then run `enable-snmp-srl.sh`
 - `apply-fabric-node.sh` — pipe one node's `configs/fabric/<node>.cfg` (debug/recovery only; prefer `make fabric-apply`)
 - `softflowd.sh` — clients → `ktranslate_flow:9995`
 - `syslog-config.sh` — `docker exec -i` + `sr_cli` → `ktranslate_syslog:1514` (requires `system logging network-instance mgmt`)
 - `snmp-trap-config.sh` — SRL `trap-group ktranslate` via mgmt → **same** `ktranslate_snmp_srl` container UDP `1620` / `public` (not a separate collector)
+- `post-telemetry-config.sh` — after discovery: flow-dns, softflowd, sFlow, syslog, traps, mgmt-api-mock, traffic, events-loop (`LAB_AUTO_TRAFFIC` / `LAB_AUTO_EVENTS`)
 - `emit-events.sh` — apply syslog+trap config, flap leaf client/spine links for real traps+syslog
 - `events-loop.sh` — background traps every 3m + emit-events every 5m (`make events-loop|events-stop|events-status`)
 - `traffic.sh` — ongoing client1↔client2 UDP workloads (steady 3M, burst 8M/20s, reverse 1M, ping 1/s); TCP iperf can stall, but short HTTP (join-app) works
@@ -51,7 +56,7 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 
 ## Operator commands
 
-`make -C local up|up-parallel|down|status|stabilize|fabric-up|fabric-apply|traffic|traffic-stop|traffic-status|join-app|join-app-stop|join-app-status|join-fault|join-fault-stop|join-fault-status|events-loop|events-stop|events-status|logs|generate|discover|discover-all|topology-up|topology-exporter-image|topology-targets|netbox-sync|netbox-sync-mgmt` or root `make local-up`. On Windows, agents run via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` (ext4 clone only).
+`make -C local up|up-parallel|down|status|stabilize|fabric-up|fabric-apply|snmp-check|snmp-recover|finish-flows|lab-log-status|traffic|traffic-stop|traffic-status|join-app|join-app-stop|join-app-status|join-fault|join-fault-stop|join-fault-status|events-loop|events-stop|events-status|logs|generate|discover|discover-all|topology-up|topology-exporter-image|topology-targets|netbox-sync|netbox-sync-mgmt` or root `make local-up`. On Windows, agents run via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` (ext4 clone only).
 
 **Agent rule:** never `clab deploy --reconfigure` unless the user explicitly requests it. Use `make stabilize` to recover stopped SRL nodes. On Windows, never run the lab from `/mnt/c` — use a WSL ext4 clone.
 
