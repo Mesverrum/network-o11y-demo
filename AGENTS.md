@@ -11,7 +11,10 @@ Companion demo for the blog series **Network Observability Without the Lock-in**
 | Where it runs | How you start it |
 |---------------|------------------|
 | **Laptop** (macOS / Windows / Linux) | [`local/`](local/) + [`oneclick/`](oneclick/) — ContainerLab + Compose |
-| **AWS / EKS** | [`terraform/`](terraform/) + [`k8s/`](k8s/) — same ktranslate roles as Kubernetes Deployments |
+| **AWS colocated** | [`terraform/colocated-network-lab/`](terraform/colocated-network-lab/) — ContainerLab fabric + **k3s** (`make -C local colocated-lab-up`) |
+| **AWS / EKS (legacy blog)** | [`terraform/`](terraform/) + [`k8s/telemetry/`](k8s/telemetry/) — Clabbernetes reference only |
+
+**Source of truth for collector config:** `local/` → `make generate` (Compose) or `make generate-k8s` → `k8s/ktranslate-golden/` (Kubernetes). Do not hand-edit generated manifests.
 
 Do **not** lift-and-shift the EKS/Clabbernetes **networking** stack onto a laptop. Local work belongs under `local/`. Alloy is the OTLP sink on all paths; **SNMP, flow, sFlow, and syslog are always ktranslate**, not Alloy-native collectors.
 
@@ -33,6 +36,7 @@ Do **not** lift-and-shift the EKS/Clabbernetes **networking** stack onto a lapto
 | Work under `local/` only | Port EKS/Clabbernetes networking into `local/` |
 | Ask the user for **their** Grafana Cloud OTLP creds if `.env` is missing or placeholder | Assume `networko11ydev`, `marcnetterfield1`, or any stack baked into the repo |
 | Run `make check` before `make up` | Commit `local/.env`, `local/groups/*.env`, `local/config/`, or `local/state/` |
+| **Run lab diagnostics and fixes yourself** (WSL/bash, Grafana MCP PromQL) — `make softflowd`, `make traffic`, `make stabilize`, etc. | Tell the user to run operator commands you can execute in the shell |
 | Use `make stabilize` when SRL nodes stop | Run `clab deploy --reconfigure` unless the user explicitly asks |
 | Use `python3 local/scripts/retarget-otlp-gc.py --write` (env vars) on any OS | Rely on `retarget-otlp-networko11ydev.py` / `marcnetterfield1` on Mac (Windows CredMgr only) |
 
@@ -64,7 +68,7 @@ The operator must supply values from **their** Grafana Cloud stack:
 Optional:
 
 - `LAB_TESTER_ID` — label for topology/entity metrics (default `network-lab`; set to operator name on shared stacks)
-- `KTRANS_HOST` — overrides hostname tag on all telemetry (else auto from machine hostname)
+- `KTRANS_HOST` — optional override for `deployment_host` / `service_name` host suffix. Leave blank: `make generate` writes `compose-host.generated.env` from hostname (`host-id.sh`). All compose paths load `.env` + that file — do not hardcode per-machine hostnames in `.env`.
 
 **Merge helper (any OS):**
 
@@ -151,7 +155,7 @@ Expect **11** running containers (5 fabric + 6 collectors) when healthy. With op
 | SRL container **exit 143** | SIGTERM (sleep, `make down`, `clab --reconfigure`, Docker Desktop stop) — **not OOM** | `make -C local stabilize`; never `clab deploy --reconfigure` |
 | BGP/EVPN/SNMP missing after deploy | Fabric config not applied or postdeploy race | `make -C local fabric-apply` or `make stabilize`; confirm repo is on **WSL ext4**, not `/mnt/c` |
 | `leaf1` stuck / yang reload | Fabric boot race | Wait; or `docker restart leaf1` then `make stabilize` |
-| No flows in Grafana | softflowd not running, EVPN down, or wrong PromQL (`rate()` on rollup) | `bash scripts/finish-flows.sh` or `make softflowd` + `make traffic`; verify `count(network_io_by_flow_bytes)` |
+| No flows in Grafana | **softflowd target IP stale** after `ktranslate_flow` recreate (clab IP drift), softflowd not running, or wrong PromQL (`rate()` on rollup) | Agent: compare `docker exec client1 pgrep -a softflowd` `-n` IP vs `docker inspect ktranslate_flow` clab IP; `make -C local softflowd` + `make traffic`; wait ~90s; verify `count(network_io_by_flow_bytes)` |
 | SNMP looks empty in Grafana but poller healthy | Wrong PromQL (`kentik_snmp_DeviceMetrics` does not exist) or MCP on different stack than lab | `make snmp-check`; use `count by (device_name) (kentik_snmp_CPU)` — see [Metric names](#metric-names--promql-ktranslate-otlp-path) |
 | ktranslate SNMP `connection refused` on :161 | Stale device IP **or** SNMP agent down on mgmt NI | `make snmp-check` (compare TARGETS vs live clab IPs); if IPs drifted: `make snmp-recover`; if snmpget times out: `bash scripts/enable-snmp-srl.sh` |
 | `FULL_FABRIC=1` / broken `apply-fabric-node` | Can wedge `net_inst_mgr` or wipe mgmt NI | **Do not** set unless user asks; prefer `make fabric-apply` (SNMP-only path) or `make down && make up` |
@@ -169,7 +173,7 @@ Expect **11** running containers (5 fabric + 6 collectors) when healthy. With op
 | Symptom | First command | What it tells you |
 |---------|---------------|-------------------|
 | "SNMP broken" | `make -C local snmp-check` | TARGETS vs live `clab` IPs, `snmpget`, `state/devices-srl.yaml`, poller logs, Grafana `kentik_snmp_*` count |
-| "No flows" | `make -C local finish-flows` | EVPN ping, softflowd, traffic, Grafana `network_io_by_flow_bytes` |
+| "No flows" | Agent runs `make -C local softflowd` + `make traffic` (or `finish-flows` if EVPN/fabric suspect) | Compare softflowd `-n` IP vs `ktranslate_flow` clab IP; then Grafana `count(network_io_by_flow_bytes)` |
 | "Containers keep dying" | `make -C local lab-log-status` | `state/lab-actions.log` (our scripts) + `docker-events.log` (which container stopped) |
 
 **Decision tree (SNMP):**
@@ -182,8 +186,11 @@ Expect **11** running containers (5 fabric + 6 collectors) when healthy. With op
 **Decision tree (flows):**
 
 1. **`count(network_io_by_flow_bytes)` > 0** → flows OK; dashboard may use wrong metric or `rate()`.
-2. **No series** → `docker exec client1 ip link show eth1` (missing after partial restart); `make softflowd`; `make traffic`; wait ~90s for rollup.
-3. **EVPN down** (`client2` cannot ping `172.17.0.1`) → `make fabric-apply` or `finish-flows.sh` (applies fabric, then softflowd).
+2. **No series** → check softflowd collector IP first (common after `ktranslate_flow` / `make ktranslate-dev-recreate`):
+   - `docker inspect ktranslate_flow` → clab IP; `docker exec client1 pgrep -a softflowd` → `-n <ip>:9995`
+   - Mismatch → `make -C local softflowd` + `make traffic`; wait ~90s for 60s rollup.
+3. **softflowd IP OK but still empty** → `docker exec client1 ip link show eth1` (missing after partial restart); `make -C local finish-flows`.
+4. **EVPN ICMP ping fails** (`client2` cannot ping `172.17.0.1`) **but UDP iperf may still work** — do not treat ping alone as "no flows". If no traffic at all: `make fabric-apply` or `make finish-flows`.
 
 **Container exit 143:** SIGTERM, not OOM (`OOMKilled=false`). Common causes: `clab deploy --reconfigure`, `make down`, Docker Desktop Resource Saver, staggered collector restarts. `journalctl -u docker` may show `hasBeenManuallyStopped=true`. Do not treat as memory pressure.
 
@@ -459,7 +466,7 @@ JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-j
 
 **Flow dashboard:** UID `lab-ktranslate-flow` (local lab) or `ktranslate-flow-summary` (marcnetterfield1). Adapted from the ktranslate **02. Network Flow Summary** pattern. Rebuild/import lab copy: `python3 local/scripts/build-ktranslate-flow-dashboard.py` then `python3 local/scripts/import-ktranslate-flow-dashboard.py` (prefers `gcx --context networko11ydev`). Pull live Assistant edits: `python3 local/scripts/download-flow-dashboard.py`. Patch helpers: `patch-ktranslate-flow-dashboard.py`, `patch-flow-dashboard-sections.py`, `verify-flow-countries.py`. Playbook: [`docs/grafana-dashboard-playbook.md`](../docs/grafana-dashboard-playbook.md) § Flow Summary dashboard.
 
-**Join demo:** UID `lab-network-join-demo`, folder `network-lab`. Section **0** pairs Tempo `clos-join-demo` spans with softflowd flows on shared `$peer_addr`/`$peer_port` (default `172.17.0.2:8080`). Rebuild/import: `python3 local/scripts/build-network-join-demo.py` then `python3 local/scripts/import-network-join-demo-gcx.py` (or `import-network-join-demo.sh` with `GRAFANA_URL` + `GRAFANA_TOKEN`). After compose recreate, `make -C local softflowd` (collector IP drift).
+**Join demo:** UID `lab-network-join-demo`, folder `network-lab`. Section **0** pairs Tempo `clos-join-demo` spans with softflowd flows on shared `$peer_addr`/`$peer_port` (default `172.17.0.2:8080`). Rebuild/import: `python3 local/scripts/build-network-join-demo.py` then `python3 local/scripts/import-network-join-demo-gcx.py` (or `import-network-join-demo.sh` with `GRAFANA_URL` + `GRAFANA_TOKEN`). After `ktranslate_flow` recreate, agent runs `make -C local softflowd` (also automatic after `make ktranslate-dev-recreate`).
 
 **Clos join app (phase 2 traces):** minimal OTel Go HTTP client/server on EVPN clients — `make -C local join-app` (`local/join-app/`, `scripts/join-app.sh`). client1 `172.17.0.1` → client2 `172.17.0.2:8080` over the Clos; traces → Alloy `:4317` as `service.name=clos-join-demo` with `network.peer.*` / `server.address` for 5-tuple join vs softflowd (`network_peer_port="8080"`). Also exports `clos_join_entity_info` / `clos_join_edge_info` for the dashboard subway overlay (`runs_on` / `attached`). Stop: `make -C local join-app-stop`. Talk-track fault: `make -C local join-fault` / `join-fault-stop` (`scripts/join-fault.sh` — tc netem on client `eth1`); Investigation row on `lab-network-join-demo`. **Identity tabs:** parallel `entity_demo_*` datasets (`demo_model=hostname|hostname_poison|mac_alias|address|iface|edge_attrs|vrf`) prove/disprove OTel entity open questions — Q3: attrs-on-edge vs MAC-VRF as `network.vrf`.
 

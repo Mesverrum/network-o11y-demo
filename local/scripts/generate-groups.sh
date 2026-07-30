@@ -336,5 +336,7 @@ EOF
   done
 } > "${CATALOG_COMPOSE_OUT}"
 
+bash "${REPO_ROOT}/scripts/write-compose-host-env.sh"
+
 echo
-echo "wrote $(ls "${CONFIG_DIR}"/discovery-*.yaml 2>/dev/null | wc -l) discovery configs, $(ls "${CONFIG_DIR}"/poller-*.yaml 2>/dev/null | wc -l) poller configs, ${CATALOG_OUT}, ${CATALOG_COMPOSE_OUT}, and ${COMPOSE_OUT}"
+echo "wrote $(ls "${CONFIG_DIR}"/discovery-*.yaml 2>/dev/null | wc -l) discovery configs, $(ls "${CONFIG_DIR}"/poller-*.yaml 2>/dev/null | wc -l) poller configs, ${CATALOG_OUT}, ${CATALOG_COMPOSE_OUT}, ${COMPOSE_OUT}, and compose-host.generated.env"

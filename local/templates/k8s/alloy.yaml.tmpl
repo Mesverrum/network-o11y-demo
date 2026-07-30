@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  namespace: network-lab
+  labels:
+    app: alloy
+    component: ktranslate-golden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: alloy
+          image: grafana/alloy:latest
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy/data
+            - --server.http.listen-addr=0.0.0.0:12346
+            - --stability.level=experimental
+          env:
+            - name: GC_OTLP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_URL
+            - name: GC_OTLP_ACCOUNT
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_ACCOUNT
+            - name: GC_OTLP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_KEY
+            - name: OTEL_METRIC_EXPORT_INTERVAL
+              value: "1000"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.host=__KTRANS_HOST__"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: ui
+              containerPort: 12346
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy/config.alloy
+              subPath: config.alloy
+              readOnly: true
+            - name: storage
+              mountPath: /var/lib/alloy/data
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: storage
+          emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket

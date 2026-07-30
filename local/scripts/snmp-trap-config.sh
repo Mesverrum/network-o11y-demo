@@ -18,11 +18,13 @@ info() { echo "==> $*"; }
 TRAP_PORT="$(awk -F= '/^TRAP_PORT=/{print $2; exit}' "${GROUP_ENV}" 2>/dev/null || echo 1620)"
 TRAP_COMMUNITY="$(awk -F= '/^TRAP_COMMUNITY=/{print $2; exit}' "${GROUP_ENV}" 2>/dev/null || echo public)"
 
-cid="$(docker ps -qf name=ktranslate_snmp_srl | head -1 || true)"
-[[ -n "$cid" ]] || die "ktranslate_snmp_srl not running — make up first"
-
-trap_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" "$cid" 2>/dev/null || true)"
-[[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "ktranslate_snmp_srl not on network ${CLAB_NET}"
+trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" snmp 2>/dev/null || true)"
+if [[ -z "$trap_ip" || "$trap_ip" == "<no value>" ]]; then
+  cid="$(docker ps -qf name=ktranslate_snmp_srl | head -1 || true)"
+  [[ -n "$cid" ]] || die "snmp collector not running — make up or set KTRANSLATE_CLAB_HOST"
+  trap_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" "$cid" 2>/dev/null || true)"
+fi
+[[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "snmp collector not on network ${CLAB_NET}"
 
 info "Trap destination: ${trap_ip}:${TRAP_PORT}/udp (community ${TRAP_COMMUNITY}, network-instance mgmt)"
 

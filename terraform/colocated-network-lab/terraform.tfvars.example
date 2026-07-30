@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars or run: make -C local colocated-lab-discover
+
+aws_region = "us-east-1"
+lab_enabled = true
+
+vpc_id            = "vpc-REPLACE"
+private_subnet_id = "subnet-REPLACE"
+
+instance_type  = "m5.2xlarge"
+root_volume_gb = 120
+ktrans_host    = "aws-colocated-lab"
+lab_tester_id  = "aws-colocated-lab"
+
+# OTLP creds passed from local/.env by colocated-lab-up.sh — do not commit secrets here.

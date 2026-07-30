@@ -10,6 +10,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_ARGS=(
   --env-file "${REPO_ROOT}/.env"
+  --env-file "${REPO_ROOT}/compose-host.generated.env"
   -f "${REPO_ROOT}/compose-base.yaml"
   -f "${REPO_ROOT}/compose-groups.generated.yaml"
   -f "${REPO_ROOT}/compose-catalog.generated.yaml"

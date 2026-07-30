@@ -13,8 +13,8 @@ CLIENTS=(client1 client2)
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-kt_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" ktranslate_flow 2>/dev/null || true)"
-[[ -n "$kt_ip" ]] || die "ktranslate_flow not on network ${CLAB_NET} — is compose up?"
+kt_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" flow 2>/dev/null || true)"
+[[ -n "$kt_ip" ]] || die "flow collector not reachable on ${CLAB_NET} — compose up or set KTRANSLATE_CLAB_HOST"
 
 info "NetFlow collector: ${kt_ip}:9995"
 

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmic
+  namespace: network-lab
+  labels:
+    app: gnmic
+    component: ktranslate-golden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnmic
+  template:
+    metadata:
+      labels:
+        app: gnmic
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: gnmic
+          image: ghcr.io/openconfig/gnmic:latest
+          args:
+            - --config
+            - /app/gnmic.yaml
+            - subscribe
+          volumeMounts:
+            - name: config
+              mountPath: /app/gnmic.yaml
+              subPath: gnmic.yaml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: gnmic-config

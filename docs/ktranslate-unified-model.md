@@ -23,8 +23,8 @@
 1. **One ktranslate container per traffic type** — SNMP polling and SNMP traps share **`ktranslate_snmp_*`** (same process, same config file). NetFlow, sFlow, and syslog each get their own container. Never combine SNMP with flow or syslog in one instance.
 2. **Alloy is the OTLP sink** — ktranslate instances export gRPC OTLP to Alloy; Alloy forwards to Grafana Cloud.
 3. **SNMP uses discover → poller** on the laptop lab (`make discover`); EKS uses a static device list in `k8s/telemetry/ktranslate-config.yaml`.
-4. **Metric names are `kentik_snmp_*` and `network_io_by_flow*`** — dashboards in `local/dashboards/` and the oneclick import path target these names.
-5. **Flow, sFlow, and syslog mount a generated device catalog** (`config/catalog.yaml`) that `@`-includes every group's `state/devices-<group>.yaml`. ktranslate matches flows/syslog to devices by `device_ip` and applies `global.user_tags` / per-device `user_tags` without polling (`--flow_only=true` on flow/sFlow). After any group's discovery run changes a device list, `reload-ktranslate-devices.sh` restarts all catalog consumers and all SNMP pollers.
+4. **Metric names are `kentik_snmp_*` and `network_io_by_flow*`** — dashboards in `local/dashboards/` and the oneclick import path target these names. Flow **rollups** get datapoint label `integration=ktranslate-netflow` in Alloy (not `service_name`); CHF and logs keep `ktranslate-*` per container. **Flow dashboard labels, geomap, and PromQL pitfalls:** [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) § Flow Summary dashboard.
+5. **Flow, sFlow, and syslog mount a generated device catalog** (`config/catalog.yaml`) that `@`-includes every group's `state/devices-<group>.yaml`. ktranslate matches flows/syslog to devices by `device_ip` and applies `global.user_tags` / per-device `user_tags` without polling (`--flow_only=true` on flow, sFlow, and syslog). **`flow_dns`** (dnsmasq sidecar) supplies reverse PTR for `src_host`/`dst_host` from the device catalog plus optional lab extras; upstream recursion reaches host DNS. After any group's discovery run changes a device list, `reload-ktranslate-devices.sh` refreshes DNS and restarts catalog consumers and SNMP pollers.
 
 ```mermaid
 flowchart LR
@@ -52,8 +52,9 @@ The **telemetry model is identical**. Only *how you start the lab* changes:
 |----------|------------|---------------|
 | **macOS** | `make deploy` or `./oneclick/deploy.sh` | OrbStack Ubuntu VM |
 | **Windows** | `.\oneclick\deploy.ps1` | WSL2 Ubuntu |
-| **Linux laptop** | `bash oneclick/lab-linux.sh deploy` | Host |
-| **AWS/EKS** | `make post-03` … `make post-06` / `scripts/deploy-telemetry.sh` | Kubernetes |
+| **Linux laptop** | `bash oneclick/lab-linux.sh deploy` | Host Docker Compose |
+| **AWS colocated** | `make -C local colocated-lab-up` | ContainerLab on EC2 + k3s (`k8s/ktranslate-golden/`) |
+| **AWS/EKS (legacy blog)** | `make post-03` … `make post-06` | Clabbernetes + hand-maintained `k8s/telemetry/` |
 
 All paths land the same signals in Grafana Cloud with the same metric names.
 
@@ -73,13 +74,31 @@ Or one command: `.\oneclick\deploy.ps1` (Windows), `make deploy` (macOS).
 **Verify:**
 
 ```promql
-count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count by (device_name) (kentik_snmp_CPU)
+count(network_io_by_flow_bytes)
 topk(20, network_io_by_flow_bytes)
 ```
 
+(ktranslate OTLP path — no `kentik_snmp_DeviceMetrics`; see `AGENTS.md` → *Metric names & PromQL*.)
+
 ---
 
-## Operator quick start (EKS)
+## Operator quick start (Kubernetes — generated golden path)
+
+```bash
+cd local
+cp .env.example .env          # GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
+cp groups/srl.env.sample groups/srl.env
+make fabric-up && make discover GROUP=srl
+make generate-k8s
+bash scripts/deploy-ktranslate-golden.sh
+export KTRANSLATE_CLAB_HOST=$(docker network inspect clab -f '{{(index .IPAM.Config 0).Gateway}}')
+make softflowd traffic
+```
+
+Colocated AWS (fabric + k3s on one EC2): `make -C local colocated-lab-up` — see [`terraform/colocated-network-lab/README.md`](../terraform/colocated-network-lab/README.md).
+
+## Operator quick start (EKS — legacy blog path)
 
 After cluster + topology are up:
 
@@ -114,6 +133,7 @@ Real switches export NetFlow/sFlow natively — the lab's `softflowd` step is **
 | One-click deploy | [`oneclick/README.md`](../oneclick/README.md) |
 | Agent bring-up | [`AGENTS.md`](../AGENTS.md) |
 | Networking concepts | [`docs/network-observability-primer.md`](network-observability-primer.md) |
+| Grafana dashboards / gcx / flow panels | [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) |
 | EKS manifests | [`k8s/telemetry/`](../k8s/telemetry/) |
 | SNMP profiles (upstream) | [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) · [writing a profile](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) |
 

@@ -8,6 +8,7 @@ Companion repo for **Network Observability Without the Lock-in**: a Nokia SR Lin
 | Path | Best for | Start here |
 |------|----------|------------|
 | **Local laptop** (16 GB) | Field demos, your own Grafana Cloud stack, fast iteration | [`oneclick/`](oneclick/) or [`local/README.md`](local/README.md) |
+| **AWS EC2** (colocated) | Always-on ContainerLab fabric + k3s ktranslate-golden in your AWS account | [`terraform/colocated-network-lab/README.md`](terraform/colocated-network-lab/README.md) → `make -C local colocated-lab-up` |
 | **AWS / EKS** | Full blog-series Clos (2 spines, 3 leaves), NetBox, Ansible | `make deploy` (AWS) or [`make help`](#aws--eks) below |
 
 **AI agents / new operators:** [`AGENTS.md`](AGENTS.md) → *Agent playbook*. **New to ktranslate or Clos?** [`docs/network-observability-primer.md`](docs/network-observability-primer.md).
@@ -45,8 +46,11 @@ Full steps, macOS OrbStack guide, troubleshooting: **[`local/README.md`](local/R
 **Verify** (Explore → Prometheus on *your* stack):
 
 ```promql
-count by (device_name, service_name) (kentik_snmp_DeviceMetrics)
+count by (device_name) (kentik_snmp_CPU)
+count(network_io_by_flow_bytes)
 ```
+
+(ktranslate path — not `kentik_snmp_DeviceMetrics`; see [`AGENTS.md`](AGENTS.md) → *Investigation playbook*.)
 
 Never commit `local/.env`, `local/groups/*.env`, or generated `local/config/` / `local/state/`.
 
@@ -91,6 +95,19 @@ Access via bastion: `bash scripts/access.sh` (NetBox :8080, Alloy :12345, gnmic 
 
 **Cost:** ~\$0.95/hour (2× m5.2xlarge nodes + NAT + bastion). Scale node group to 0 to pause.
 
+### Colocated EC2 + k3s demo (reference AWS deployment)
+
+ContainerLab **fabric** on EC2; **ktranslate-golden** collectors on k3s (generated from `local/`). SSM access, no EKS.
+
+```bash
+aws sso login --profile <your-account-profile>
+export AWS_PROFILE=<your-account-profile>
+make -C local colocated-lab-discover
+make -C local colocated-lab-up    # OTLP from local/.env
+```
+
+Details: [`terraform/colocated-network-lab/README.md`](terraform/colocated-network-lab/README.md).
+
 ---
 
 ## Blog series
@@ -118,7 +135,7 @@ Posts **3–6** map to `make post-03` … `make post-06` / `make all` on the AWS
 ├── oneclick/          One-click deploy/teardown (Windows / macOS / Linux)
 ├── local/             Laptop lab (ContainerLab + ktranslate golden path)
 ├── blog/              Series drafts (posts 1–7) + blog-series-overview.md
-├── docs/              Primer, architecture notes, macOS OrbStack guide
+├── docs/              Primer, architecture notes, Grafana dashboard playbook, macOS OrbStack guide
 ├── k8s/               EKS manifests (topology, telemetry, NetBox, reconciler)
 ├── terraform/         AWS VPC + EKS + bastion
 ├── grafana/           Dashboard JSON + provisioning scripts
@@ -139,7 +156,7 @@ Posts **3–6** map to `make post-03` … `make post-06` / `make all` on the AWS
 | Ansible backup/drift | — | ✓ |
 | Topology exporter | ✓ | — |
 
-Architecture deep-dive (optional): [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md).
+Architecture deep-dive (optional): [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md). **Grafana dashboard patches (TabsLayout-safe):** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md).
 
 ---
 

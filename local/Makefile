@@ -32,7 +32,7 @@ LAB_RUN := bash $(ROOT)scripts/lab-run.sh
 LAB_LOG_EVENTS ?= 1
 export LAB_LOG_EVENTS
 
-COMPOSE := docker compose --env-file .env \
+COMPOSE := docker compose --env-file .env --env-file compose-host.generated.env \
   $(shell bash $(ROOT)scripts/lab-topology-exporter.sh profile 2>/dev/null) \
   -f compose-base.yaml \
   -f compose-groups.generated.yaml \
@@ -228,11 +228,16 @@ topology-exporter-image: ## Download release binary and build local topology-exp
 ktranslate-dev-image: ## Build ktranslate with OTLP CHF fix (Mesverrum fix/otel-chf-flow-only)
 	bash $(ROOT)scripts/build-ktranslate-dev-image.sh
 
+.PHONY: compose-host-env
+compose-host-env: ## Write compose-host.generated.env (deployment.host for compose)
+	@bash $(ROOT)scripts/write-compose-host-env.sh
+
 .PHONY: ktranslate-dev-recreate
-ktranslate-dev-recreate: ## Recreate all ktranslate containers (set KTRANSLATE_IMAGE in .env first)
+ktranslate-dev-recreate: compose-host-env ## Recreate all ktranslate containers (set KTRANSLATE_IMAGE in .env first)
 	@test -n "$$(grep -E '^KTRANSLATE_IMAGE=.+' $(ROOT).env 2>/dev/null)" \
 	  || { echo "Set KTRANSLATE_IMAGE=srl-local/ktranslate:otel-chf-dev in local/.env first"; exit 1; }
 	$(COMPOSE) up -d --pull never --force-recreate ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog
+	@$(MAKE) softflowd
 
 .PHONY: netbox-bootstrap netbox-sync
 netbox-bootstrap netbox-sync: ## Populate NetBox Cloud + sync clab mgmt IPs
@@ -253,7 +258,7 @@ topology-targets: ## Rewrite topology-exporter target hosts from live clab mgmt 
 .PHONY: topology-up
 topology-up: check generate topology-exporter-image ## Start optional topology_exporter (set LAB_TOPOLOGY_EXPORTER=1 in .env)
 	@echo "==> Starting topology_exporter (compose profile topology)..."
-	@cd $(ROOT) && LAB_TOPOLOGY_EXPORTER=1 docker compose --env-file .env --profile topology \
+	@cd $(ROOT) && LAB_TOPOLOGY_EXPORTER=1 docker compose --env-file .env --env-file compose-host.generated.env --profile topology \
 	  -f compose-base.yaml -f compose-groups.generated.yaml -f compose-catalog.generated.yaml \
 	  -f compose-limits.generated.yaml up -d topology_exporter
 	@cd $(ROOT) && LAB_TOPOLOGY_EXPORTER=1 bash scripts/update-topology-targets.sh
@@ -427,3 +432,43 @@ lab-log-events-stop: ## Stop docker events log
 
 lab-log-status: ## Show recent lab-actions + docker-events logs
 	bash $(ROOT)scripts/lab-log-status.sh $(LINES)
+
+.PHONY: aws-lab-discover aws-lab-up aws-lab-down
+aws-lab-discover: ## Write terraform/aws-dashboard-lab/terraform.tfvars from live VPC discovery
+	bash $(ROOT)scripts/aws-lab-discover.sh
+
+aws-lab-up: ## NLB + traffic hosts for Cloud Network dashboards (set AWS_PROFILE)
+	bash $(ROOT)scripts/aws-lab-up.sh
+
+aws-lab-down: ## Destroy AWS dashboard lab (run between sessions)
+	bash $(ROOT)scripts/aws-lab-down.sh
+
+.PHONY: generate-k8s deploy-ktranslate-golden
+generate-k8s: generate ## Render k8s/ktranslate-golden from local/ golden path
+	python3 $(ROOT)scripts/generate-k8s-telemetry.py
+
+deploy-ktranslate-golden: generate-k8s ## kubectl apply -k k8s/ktranslate-golden (+ GC secret)
+	bash $(ROOT)scripts/deploy-ktranslate-golden.sh
+
+.PHONY: colocated-lab-discover colocated-lab-up colocated-lab-down
+colocated-lab-discover: ## Write terraform/colocated-network-lab/terraform.tfvars
+	bash $(ROOT)scripts/colocated-lab-discover.sh
+
+colocated-lab-up: ## EC2 ContainerLab fabric + k3s ktranslate-golden (reads GC_OTLP_* from .env)
+	bash $(ROOT)scripts/colocated-lab-up.sh
+
+colocated-lab-down: ## Destroy colocated network lab
+	bash $(ROOT)scripts/colocated-lab-down.sh
+
+.PHONY: hybrid-probe-laptop hybrid-probe-aws hybrid-probe-once hybrid-dash-import
+hybrid-probe-laptop: ## Laptop mesh probe → OTLP (listens :18080 for AWS callbacks)
+	bash $(ROOT)scripts/hybrid-probe-laptop.sh
+
+hybrid-probe-once: ## One probe cycle from laptop targets (no listener)
+	python3 $(ROOT)scripts/hybrid-probe-once.py
+
+hybrid-probe-aws: ## Deploy mesh probe to AWS lab EC2 via SSM (needs SSM agent)
+	python3 $(ROOT)scripts/hybrid-probe-deploy-aws.py
+
+hybrid-dash-import: ## Build + import dashboards 05–06 (connectivity + capacity)
+	python3 $(ROOT)scripts/build-aws-hybrid-dashboards.py --import

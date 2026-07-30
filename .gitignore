@@ -18,8 +18,11 @@ local/state/
 local/compose-groups.generated.yaml
 local/compose-catalog.generated.yaml
 local/compose-limits.generated.yaml
+local/compose-host.generated.env
 local/snmp.yaml
 local/.dash-payloads/
+local/.ssm-*.json
+local/.pr-bodies/
 local/.ref-KtransToGrafana/
 local/clab-srl-local/
 
@@ -37,6 +40,8 @@ network-o11y-demo.pem
 
 # Grafana Cloud credentials (copy from .example, fill in, never commit)
 k8s/telemetry/grafana-cloud-secret.yaml
+k8s/ktranslate-golden/*.yaml
+!k8s/ktranslate-golden/README.md
 
 # NetBox credentials (copy from .example, fill in, never commit)
 k8s/netbox/netbox-secret.yaml

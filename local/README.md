@@ -103,6 +103,10 @@ lab DNS**, starts **client traffic**, **internet probes**, and the **events-loop
 periodic link flaps). Disable auto workloads in `.env`: `LAB_AUTO_TRAFFIC=0`
 and/or `LAB_AUTO_EVENTS=0`.
 
+`make generate` also writes `compose-host.generated.env` (resolved `KTRANS_HOST` /
+`deployment.host`) so every compose path gets hostname suffixes without editing
+`.env` per machine.
+
 `make up` prints `deployment.host`, starts the stack, rewrites `groups/srl.env`
 TARGETS from ContainerLab mgmt `/32`s, then runs `make discover GROUP=srl`.
 

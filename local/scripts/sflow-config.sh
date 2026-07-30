@@ -15,8 +15,8 @@ SFLOW_DEVICES="${SFLOW_DEVICES:-spine1}"
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-sflow_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" ktranslate_sflow 2>/dev/null || true)"
-[[ -n "$sflow_ip" && "$sflow_ip" != "<no value>" ]] || die "ktranslate_sflow not on network ${CLAB_NET} — run: docker compose up -d ktranslate_sflow"
+sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" sflow 2>/dev/null || true)"
+[[ -n "$sflow_ip" && "$sflow_ip" != "<no value>" ]] || die "sflow collector not reachable on ${CLAB_NET}"
 
 info "sFlow collector: ${sflow_ip}:${SFLOW_PORT}/udp (network-instance mgmt)"
 

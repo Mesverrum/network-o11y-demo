@@ -53,7 +53,7 @@ if [[ -f "${DEVICES_OUT}" ]]; then
   cp "${DEVICES_OUT}" "${DEVICES_PREV}"
 fi
 
-COMPOSE_ARGS=(--env-file "${REPO_ROOT}/.env" -f "${REPO_ROOT}/compose-base.yaml" -f "${REPO_ROOT}/compose-groups.generated.yaml" -f "${REPO_ROOT}/compose-catalog.generated.yaml")
+COMPOSE_ARGS=(--env-file "${REPO_ROOT}/.env" --env-file "${REPO_ROOT}/compose-host.generated.env" -f "${REPO_ROOT}/compose-base.yaml" -f "${REPO_ROOT}/compose-groups.generated.yaml" -f "${REPO_ROOT}/compose-catalog.generated.yaml")
 
 if [[ ! -f "${REPO_ROOT}/compose-groups.generated.yaml" ]]; then
   echo "missing generated compose file. Run ./scripts/generate-groups.sh first." >&2

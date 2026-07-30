@@ -3,6 +3,7 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLAB_NET="${CLAB_NETWORK:-clab}"
 DEVICES=(spine1 leaf1 leaf2)
 PORT=1514
@@ -10,8 +11,8 @@ PORT=1514
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-syslog_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" ktranslate_syslog 2>/dev/null || true)"
-[[ -n "$syslog_ip" && "$syslog_ip" != "<no value>" ]] || die "ktranslate_syslog not on network ${CLAB_NET} — is compose up?"
+syslog_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" syslog 2>/dev/null || true)"
+[[ -n "$syslog_ip" && "$syslog_ip" != "<no value>" ]] || die "syslog collector not reachable on ${CLAB_NET}"
 
 info "Syslog destination: ${syslog_ip}:${PORT}/udp"
 
