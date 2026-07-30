@@ -20,12 +20,16 @@ spec:
       containers:
         - name: ktranslate
           image: quay.io/kentik/ktranslate:v2
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: ktranslate-syslog
           args:
             - "--format=otel"
             - "--format_metric=otel"
             - "--otel.protocol=grpc"
             - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
             - "--snmp=/etc/ktranslate/poller.yaml"
+            - "--flow_only=true"
             - "--syslog.source=0.0.0.0:1514"
             - "--metalisten=0.0.0.0:9998"
             - "--sinks=otel"

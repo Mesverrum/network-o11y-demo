@@ -27,9 +27,9 @@ variable "private_subnet_id" {
 }
 
 variable "instance_type" {
-  description = "Lab host — ContainerLab fabric + k3s collectors (≥16 GB RAM)"
+  description = "Lab host — HQ + 2 branches (5 SRL + 4 clients + k3s). ≥32 GB RAM recommended."
   type        = string
-  default     = "m5.2xlarge"
+  default     = "m5.4xlarge"
 }
 
 variable "root_volume_gb" {

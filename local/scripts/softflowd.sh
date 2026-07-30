@@ -6,9 +6,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh" 2>/dev/null || true
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 
 CLAB_NET="${CLAB_NETWORK:-clab}"
-CLIENTS=(client1 client2)
+CLIENTS=("${CLIENT_NODES[@]}")
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -31,8 +33,8 @@ for c in "${CLIENTS[@]}"; do
     done
     ip link show eth1 >/dev/null 2>&1 || { echo 'eth1 missing — run: make fabric-up'; exit 1; }
     ip link set eth1 up 2>/dev/null || true
-    ip address show dev eth1 | grep -q 172.17.0 || {
-      echo 'eth1 has no 172.17.0.x address — re-run clab deploy for this client'
+    ip address show dev eth1 | grep -q 'inet 172.17.' || {
+      echo 'eth1 has no 172.17.x address — re-run clab deploy for this client'
       exit 1
     }
     # Alpine softflowd 1.1.0 accepts only one -i per process — run two exporters.

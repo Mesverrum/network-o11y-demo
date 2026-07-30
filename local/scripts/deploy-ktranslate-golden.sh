@@ -30,4 +30,15 @@ kubectl -n network-lab create secret generic grafana-cloud-credentials \
 
 kubectl apply -k "${K8S}"
 kubectl -n network-lab rollout status deployment/alloy --timeout=180s
+for dep in ktranslate-snmp-srl ktranslate-flow ktranslate-sflow ktranslate-syslog gnmic; do
+  if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
+    kubectl -n network-lab rollout status "deployment/${dep}" --timeout=180s
+  fi
+done
+
+export COLLECTOR_RUNTIME=k3s
+if ! bash "${LOCAL}/scripts/verify-ktranslate-service-names.sh"; then
+  echo "ERROR: ktranslate OTEL_SERVICE_NAME verification failed" >&2
+  exit 1
+fi
 echo "ktranslate-golden applied (namespace=network-lab)"

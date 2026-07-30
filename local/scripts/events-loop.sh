@@ -13,6 +13,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=collector-runtime-ready.sh
+source "${ROOT}/scripts/collector-runtime-ready.sh"
 STATE_DIR="${ROOT}/state"
 PID_FILE="${STATE_DIR}/events-loop.pid"
 LOG_FILE="${STATE_DIR}/events-loop.log"
@@ -105,14 +107,21 @@ start() {
     sleep 1
   fi
 
-  docker ps -qf name=ktranslate_snmp_srl | grep -q . \
-    || die "ktranslate_snmp_srl not running — make up first"
+  export_colocated_clab_host
+
+  if ! collector_snmp_ready; then
+    die "SNMP collector not running (compose ktranslate_snmp_srl or k3s deployment/ktranslate-snmp-srl)"
+  fi
 
   info "Starting events-loop (traps every ${TRAPS_INTERVAL_SEC}s, emit every ${EMIT_INTERVAL_SEC}s)"
   # New session + nohup so exiting make/wsl does not SIGHUP the loops.
   setsid nohup env \
     TRAPS_INTERVAL_SEC="${TRAPS_INTERVAL_SEC}" \
     EMIT_INTERVAL_SEC="${EMIT_INTERVAL_SEC}" \
+    COLLECTOR_RUNTIME="${COLLECTOR_RUNTIME:-}" \
+    KTRANSLATE_CLAB_HOST="${KTRANSLATE_CLAB_HOST:-}" \
+    CLAB_NETWORK="${CLAB_NETWORK:-clab}" \
+    LAB_FABRIC_PROFILE="${LAB_FABRIC_PROFILE:-}" \
     bash "${ROOT}/scripts/events-loop.sh" _run \
     >>"${LOG_FILE}" 2>&1 < /dev/null &
   echo $! >"${PID_FILE}"

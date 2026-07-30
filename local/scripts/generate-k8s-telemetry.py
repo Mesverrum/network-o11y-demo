@@ -34,12 +34,11 @@ def read_text(path: Path) -> str:
 
 
 def load_ktrans_host() -> str:
-    host_file = LOCAL / "compose-host.generated.env"
-    if host_file.exists():
-        for line in host_file.read_text(encoding="utf-8").splitlines():
-            if line.startswith("KTRANS_HOST="):
-                return line.split("=", 1)[1].strip()
-    return subprocess.check_output(["bash", str(LOCAL / "scripts" / "host-id.sh")], text=True).strip()
+    # Always resolve from .env / host-id.sh on this machine — never a stale
+    # compose-host.generated.env from another laptop checked into the tree.
+    return subprocess.check_output(
+        ["bash", str(LOCAL / "scripts" / "host-id.sh")], text=True
+    ).strip()
 
 
 def write_manifest(name: str, body: str, dry_run: bool) -> None:
@@ -459,7 +458,16 @@ data:
         args.dry_run,
     )
 
-    gnmic = patch_gnmic_config(read_text(LOCAL / "gnmic" / "gnmic.yaml"))
+    gnmic_path = LOCAL / "gnmic" / "gnmic.yaml"
+    env_file = LOCAL / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("LAB_FABRIC_PROFILE="):
+                profile = line.split("=", 1)[1].strip().lower()
+                if profile in {"colocated", "hq-branches", "aws"}:
+                    gnmic_path = LOCAL / "gnmic" / "gnmic-colocated.yaml"
+                break
+    gnmic = patch_gnmic_config(read_text(gnmic_path))
     write_manifest(
         "gnmic-configmap.yaml",
         f"""apiVersion: v1

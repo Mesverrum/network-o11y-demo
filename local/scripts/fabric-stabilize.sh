@@ -5,8 +5,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 
-SRL=(spine1 leaf1 leaf2)
+SRL=("${SRL_NODES[@]}")
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }

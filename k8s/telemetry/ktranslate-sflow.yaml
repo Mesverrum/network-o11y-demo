@@ -20,6 +20,9 @@ spec:
       containers:
         - name: ktranslate
           image: quay.io/kentik/ktranslate:v2
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: ktranslate-sflow
           args:
             - "--format=otel"
             - "--format_metric=otel"

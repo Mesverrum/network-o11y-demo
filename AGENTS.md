@@ -425,12 +425,12 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 
 | Stream | PromQL / check |
 |--------|----------------|
-| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. |
+| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. Alloy stamps `site` (`hq` on laptop; `hq`/`branch1`/`branch2` colocated) and `device_role` (`spine`/`leaf`/`branch-edge`) on `kentik_snmp_*`. |
 | NetFlow | `count(network_io_by_flow_bytes)`; throughput `sum(network_io_by_flow_bytes) * 8 / 60` — **not** `rate(network_io_by_flow[…])` |
 | Syslog | OTLP logs via ktranslate `--tee_logs` (`service_name` ≈ `ktranslate`, `tags.container_service=syslog`) |
 | Docker stdout | Alloy `loki.source.docker` → OTLP (`collector=docker`, `service_name` = container: `topology_exporter`, `spine1`, …). ktranslate containers skipped (already teed) |
 | gNMI | `{job="gnmic"}` — OTEL metric names often use `:` separators, e.g. `gnmi_bgp_neighbors_…:bgp_neighbor_session_state` |
-| Topology devices | `network_topology_device_info{tester_id="network-lab"}` (OTLP may rename `device_id` → `device`) |
+| Topology devices | `network_topology_device_info{tester_id="network-lab"}` — `site` label `hq` (laptop) or `hq`/`branch1`/`branch2` (colocated) |
 | Topology edges | `network_topology_edge_info{tester_id="network-lab"}` (gnmic LLDP → Alloy remap) |
 | Mgmt API catalog | `srl_mgmt_api_capability_info{tester_id="network-lab"}` — live APIs (`enabled_in_lab="true"`) plus **mock** entries for documented APIs not turned on in the lab (NETCONF, JSON-RPC, gNOI, gRIBI). Catalog: `local/fixtures/srl-mgmt-api-catalog.json`; samples: `local/fixtures/srl-mock/`. Re-export: `make -C local mgmt-api-mock`. |
 | Flex gap-fill (optional) | `srl_flex_poc_ssh_up` / `srl_flex_poc_bgp_peers_up` from `make -C local telegraf-poc` (SSH + jq parse → OTLP; nri-flex analog — `local/telegraf-flex-poc/`) |

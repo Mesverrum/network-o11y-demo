@@ -25,6 +25,7 @@ data:
       }
     }
 
+    // Flow rollups: semconv rename + integration datapoint label (not resource.service.name).
     otelcol.processor.transform "preprocessing" {
       error_mode = "ignore"
 
@@ -32,7 +33,6 @@ data:
         context = "metric"
         statements = [
           `set(metric.name,"network.io.by_flow") where metric.name == "kentik.rollup.bytes_by_flow"`,
-          `set(resource.attributes["service.name"],"integrations/ktranslate-netflow") where metric.name == "network.io.by_flow"`,
           `set(metric.unit,"By") where metric.name == "network.io.by_flow"`,
         ]
       }
@@ -40,9 +40,13 @@ data:
       metric_statements {
         context = "datapoint"
         statements = [
+          `set(datapoint.attributes["integration"],"ktranslate-netflow") where metric.name == "network.io.by_flow"`,
           `set(datapoint.attributes["device_role"],"spine") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"spine.*")`,
-          `set(datapoint.attributes["device_role"],"leaf") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"leaf.*")`,
-          `set(datapoint.attributes["site"],"network-lab") where IsMatch(metric.name,"kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
+          `set(datapoint.attributes["device_role"],"branch-edge") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"leaf-br.*")`,
+          `set(datapoint.attributes["device_role"],"leaf") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"^leaf[0-9]+$")`,
+          `set(datapoint.attributes["site"],"hq") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"^(spine1|leaf1|leaf2)$")`,
+          `set(datapoint.attributes["site"],"branch1") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"leaf-br1")`,
+          `set(datapoint.attributes["site"],"branch2") where IsMatch(metric.name,"kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"],"leaf-br2")`,
           `set(datapoint.attributes["platform"],"sr-linux") where IsMatch(metric.name,"kentik_snmp_.*")`,
           `set(datapoint.attributes["tenant"],"network-o11y-demo") where IsMatch(metric.name,"kentik_snmp_.*")`,
           `set(datapoint.attributes["network.transport"],datapoint.attributes["protocol"]) where metric.name == "network.io.by_flow"`,

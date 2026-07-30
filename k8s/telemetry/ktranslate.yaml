@@ -21,17 +21,23 @@ spec:
       containers:
         - name: ktranslate
           image: quay.io/kentik/ktranslate:v2
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: ktranslate-flow
           args:
             - "--format=otel"
+            - "--format_metric=otel"
             - "--otel.protocol=grpc"
             # Alloy's OTLP gRPC endpoint (same namespace)
             - "--otel.endpoint=http://alloy.network-lab.svc.cluster.local:4317"
             - "--snmp=/etc/ktranslate/poller.yaml"
             - "--flow_only=true"
+            - "--metalisten=0.0.0.0:9996"
+            - "--sinks=otel"
+            - "--metrics=jchf"
             # NetFlow v9 reception from softflowd on client nodes — port 6343
             - "--nf.source=netflow9"
             - "--nf.port=9995"
-            - "--sinks=otel"
             - "--rollup_interval=60"
             - "--tee_logs=true"
             - "--service_name=flow"
@@ -44,8 +50,8 @@ spec:
             - name: netflow
               containerPort: 9995
               protocol: UDP
-            - name: otlp-health
-              containerPort: 8082
+            - name: meta
+              containerPort: 9996
               protocol: TCP
           securityContext:
             capabilities:

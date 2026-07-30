@@ -69,19 +69,22 @@ output:
 targets:
   - host: 172.20.20.3
     port: 161
-    site: srl-local
+    site: hq
     labels:
       role: spine
+      device_name: spine1
       tester_id: network-lab
   - host: 172.20.20.2
     port: 161
-    site: srl-local
+    site: hq
     labels:
       role: leaf
+      device_name: leaf1
       tester_id: network-lab
   - host: 172.20.20.5
     port: 161
-    site: srl-local
+    site: hq
     labels:
       role: leaf
+      device_name: leaf2
       tester_id: network-lab

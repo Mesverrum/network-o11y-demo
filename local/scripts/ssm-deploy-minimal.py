@@ -12,6 +12,14 @@ PATHS = [
     "local/scripts/colocated-fabric-bringup.sh",
     "local/scripts/colocated-telemetry-bringup.sh",
     "local/scripts/deploy-ktranslate-golden.sh",
+    "local/scripts/stop-compose-collectors.sh",
+    "local/scripts/verify-ktranslate-service-names.sh",
+    "local/scripts/collector-runtime-ready.sh",
+    "local/scripts/syslog-config.sh",
+    "local/scripts/snmp-trap-config.sh",
+    "local/scripts/emit-events.sh",
+    "local/scripts/events-loop.sh",
+    "local/scripts/trap-gen.sh",
     "local/scripts/collector-clab-ip.sh",
     "local/scripts/generate-k8s-telemetry.py",
     "local/scripts/write-compose-host-env.sh",
@@ -40,7 +48,7 @@ def main() -> None:
         if rel.endswith(".sh"):
             commands.append(f"chmod +x \"{dest}\"")
     commands += [
-        "sed -i 's/\\r$//' $ROOT/local/scripts/colocated-*.sh $ROOT/local/scripts/deploy-ktranslate-golden.sh $ROOT/local/scripts/collector-clab-ip.sh $ROOT/local/scripts/write-compose-host-env.sh $ROOT/local/scripts/host-id.sh || true",
+        "sed -i 's/\\r$//' $ROOT/local/scripts/colocated-*.sh $ROOT/local/scripts/deploy-ktranslate-golden.sh $ROOT/local/scripts/stop-compose-collectors.sh $ROOT/local/scripts/verify-ktranslate-service-names.sh $ROOT/local/scripts/collector-clab-ip.sh $ROOT/local/scripts/write-compose-host-env.sh $ROOT/local/scripts/host-id.sh || true",
         "nohup bash -lc 'systemctl reset-failed network-o11y-fabric; systemctl start network-o11y-fabric' >/tmp/fabric-nohup.log 2>&1 &",
         "echo started_fabric_background",
     ]

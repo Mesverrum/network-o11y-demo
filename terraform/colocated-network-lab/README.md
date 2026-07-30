@@ -1,9 +1,40 @@
 # Colocated network lab (reference AWS deployment)
 
-**Fabric:** ContainerLab on EC2 (`make fabric-up` via systemd).  
+**Fabric:** ContainerLab on EC2 — **HQ hub + two branch offices** (`topology-colocated.clab.yml`).  
 **Telemetry:** ktranslate-golden on **k3s** (same host, `hostNetwork` collectors).
 
 This replaces the deprecated `ec2-network-lab` all-in-compose path. Manifests are **generated** from `local/` — not hand-edited duplicates of `k8s/telemetry/`.
+
+The laptop lab (`make up`) keeps the reduced **5-node** fabric (`topology.clab.yml`). Only the colocated profile uses the expanded topology.
+
+## Architecture (HQ + branches)
+
+```
+                    ┌──────────── HQ (site=hq) ────────────┐
+                    │  spine1 (RR)                       │
+                    │   ├─ leaf1 ─ client1  172.17.0.1  │
+                    │   └─ leaf2 ─ client2  172.17.0.2  │
+                    └───┬───────────────────────┬────────┘
+                        │ WAN e1-3            │ WAN e1-4
+              ┌─────────▼─────────┐   ┌───────▼──────────┐
+              │ branch1          │   │ branch2           │
+              │ leaf-br1         │   │ leaf-br2          │
+              │  └─ client-br1   │   │  └─ client-br2    │
+              │     172.17.21.1  │   │     172.17.22.1   │
+              └──────────────────┘   └───────────────────┘
+```
+
+| Site | Nodes | Client subnet | EVPN |
+|------|-------|---------------|------|
+| HQ | spine1, leaf1, leaf2 | `172.17.0.0/24` (stretched L2) | EVI 1 |
+| Branch 1 | leaf-br1 | `172.17.21.0/24` | EVI 21 |
+| Branch 2 | leaf-br2 | `172.17.22.0/24` | EVI 22 |
+
+Underlay: eBGP from each leaf to spine1; branches use dedicated WAN links (`e1-3` / `e1-4`).
+
+**Default instance:** `m5.4xlarge` (32 GB) — 5 SR Linux + 4 clients + k3s collectors.
+
+Set `LAB_FABRIC_PROFILE=colocated` in EC2 `local/.env` (userdata does this automatically).
 
 ## Prerequisites
 
@@ -35,6 +66,19 @@ kubectl get pods -n network-lab
 ```
 
 ## Verify in Grafana Cloud
+
+```promql
+count by (service_name) (kentik_ktranslate_chf_kkc_jchfq{deployment_host="aws-colocated-lab"})
+```
+
+Expect suffixed names (`ktranslate-flow-aws-colocated-lab`, not bare `ktranslate-flow`). On the instance:
+
+```bash
+cd /opt/network-o11y-demo/local
+bash scripts/verify-ktranslate-service-names.sh --prometheus
+```
+
+`tags_container_service` stays short (`flow`, `flow-sflow`, `snmp-srl`) — that is ktranslate's internal `--service_name` flag. Dashboard **container_service** columns use OTLP `service_name` (the suffixed value above).
 
 ```promql
 count by (device_name) (kentik_snmp_CPU{deployment_host="aws-colocated-lab"})

@@ -10,26 +10,20 @@ log() { echo "$(date -Is) [colocated-telemetry] $*"; }
 export HOME="${HOME:-/root}"
 export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
 export COLLECTOR_RUNTIME=k3s
+export LAB_FABRIC_PROFILE=colocated
 export KTRANSLATE_OTEL_ENDPOINT="${KTRANSLATE_OTEL_ENDPOINT:-http://127.0.0.1:4317/}"
 
-log "deploying ktranslate-golden to k3s"
+log "stopping stray compose collectors (k3s owns telemetry on this host)"
+bash scripts/stop-compose-collectors.sh || true
 
-if [[ -f "${ROOT}/../k8s/ktranslate-golden/kustomization.yaml" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "${ROOT}/.env"
-  set +a
-  kubectl create namespace network-lab --dry-run=client -o yaml | kubectl apply -f -
-  kubectl -n network-lab create secret generic grafana-cloud-credentials \
-    --from-literal=GC_OTLP_URL="${GC_OTLP_URL}" \
-    --from-literal=GC_OTLP_ACCOUNT="${GC_OTLP_ACCOUNT}" \
-    --from-literal=GC_OTLP_KEY="${GC_OTLP_KEY}" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  kubectl apply -k "${ROOT}/../k8s/ktranslate-golden"
-  kubectl -n network-lab rollout status deployment/alloy --timeout=180s
-else
-  bash scripts/deploy-ktranslate-golden.sh
-fi
+log "deploying ktranslate-golden to k3s (regenerate manifests for this host)"
+bash scripts/deploy-ktranslate-golden.sh
+
+log "verifying collector service_name suffixes"
+bash scripts/verify-ktranslate-service-names.sh --prometheus || {
+  log "naming verification failed — check KTRANS_HOST in .env and regenerate"
+  exit 1
+}
 
 log "SNMP discovery (CIDR scan from groups/*.env → state/devices-*.yaml)"
 if ! bash scripts/run-discovery-all.sh; then

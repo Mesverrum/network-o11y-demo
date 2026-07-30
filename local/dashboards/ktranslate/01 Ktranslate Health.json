@@ -11,10 +11,9 @@
     "annotations": {
       "grafana.app/createdBy": "service-account:afseqskqsbtvka",
       "grafana.app/folder": "network-lab",
-      "grafana.app/message": "OTLP CHF relabel: service_name per container; flow rollups use integration label",
       "grafana.app/saved-from-ui": "Grafana Cloud",
-      "grafana.app/updatedBy": "service-account:afseqskqsbtvka",
-      "grafana.app/updatedTimestamp": "2026-07-26T04:17:37Z"
+      "grafana.app/updatedBy": "user:be0hf1vuhjcowf",
+      "grafana.app/updatedTimestamp": "2026-07-30T19:29:26Z"
     }
   },
   "spec": {
@@ -78,7 +77,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -182,7 +181,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -294,7 +293,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -364,7 +363,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -402,7 +401,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -440,7 +439,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -478,7 +477,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -540,7 +539,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -662,7 +661,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -784,7 +783,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -871,7 +870,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -954,7 +953,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -1017,7 +1016,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -1093,7 +1092,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -1174,7 +1173,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -1273,7 +1272,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -1328,23 +1327,57 @@
                   }
                 }
               ],
-              "transformations": [],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "labelsToFields",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "indexByName": {
+                        "Value": 1,
+                        "device_name": 0
+                      },
+                      "renameByName": {
+                        "Value": "Polling Status",
+                        "device_name": "Device"
+                      }
+                    }
+                  }
+                }
+              ],
               "queryOptions": {}
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "frameIndex": 2,
+                "frameIndex": 0,
                 "showHeader": true,
                 "sortBy": [
                   {
                     "desc": false,
-                    "displayName": "device_name"
+                    "displayName": "Device"
                   }
                 ]
               },
@@ -1355,11 +1388,11 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
+                        "color": "red"
                       },
                       {
                         "value": 0.5,
-                        "color": "red"
+                        "color": "green"
                       }
                     ]
                   },
@@ -1374,7 +1407,42 @@
                     "inspect": false
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Polling Status"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-background"
+                        }
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "0": {
+                                "color": "red",
+                                "index": 1,
+                                "text": "Not Polling"
+                              },
+                              "1": {
+                                "color": "green",
+                                "index": 0,
+                                "text": "Polling OK"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -1422,7 +1490,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -1545,7 +1613,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -1668,7 +1736,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -1791,7 +1859,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -1914,7 +1982,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2037,7 +2105,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2160,7 +2228,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2283,7 +2351,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2405,7 +2473,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "logs",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "dedupStrategy": "none",
@@ -2473,7 +2541,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2596,7 +2664,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -2715,7 +2783,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -2839,7 +2907,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -2995,7 +3063,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -3112,7 +3180,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -3207,7 +3275,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -3346,7 +3414,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -3402,7 +3470,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -3439,7 +3507,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "code": {
@@ -3476,9 +3544,14 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
                 "content": "## Metrics Pipeline — what data is landing in Prometheus?\n\nSNMP (`device_metrics`), syslog (`syslog_messages`), and flow (`netflow_flows` CHF + `network_io_by_flow_bytes{integration=\"ktranslate-netflow\"}` rollup). Use the **role stat row** on Overview and the flow/syslog panels below. Empty CHF with healthy SNMP usually means `--metrics=jchf` missing on that container or OTLP delivery gap — check **Queues & Delivery**.",
                 "mode": "markdown"
               },
@@ -3508,9 +3581,14 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "text",
-            "version": "",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
                 "content": "## Queues & Delivery — is ktranslate keeping up, and are batches reaching the backend?\n\nTracks internal backpressure (input/output/JCHF/syslog queue depths, message and delivery rates) and upload/delivery failures (gRPC ResourceExhausted, per-container and per-error-type breakdowns). Rising queue depth or non-zero upload errors mean ktranslate is falling behind or being rejected downstream — even if polling and collection upstream look fine.",
                 "mode": "markdown"
               },
@@ -3585,7 +3663,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -3704,7 +3782,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -3791,7 +3869,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -3913,7 +3991,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -4034,7 +4112,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -4119,7 +4197,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -4204,7 +4282,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -4289,7 +4367,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "colorMode": "background",
@@ -4397,7 +4475,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -4541,7 +4619,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -4681,7 +4759,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -4800,7 +4878,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -4919,7 +4997,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "annotations": {
@@ -5052,7 +5130,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.0-29854286369",
+            "version": "13.2.0-30402795349",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -5218,7 +5296,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 23,
+                                  "y": 25,
                                   "width": 24,
                                   "height": 6,
                                   "element": {
@@ -5231,7 +5309,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 29,
+                                  "y": 31,
                                   "width": 6,
                                   "height": 4,
                                   "element": {
@@ -5244,7 +5322,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 6,
-                                  "y": 29,
+                                  "y": 31,
                                   "width": 6,
                                   "height": 4,
                                   "element": {
@@ -5257,7 +5335,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 12,
-                                  "y": 29,
+                                  "y": 31,
                                   "width": 6,
                                   "height": 4,
                                   "element": {
@@ -5270,7 +5348,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 18,
-                                  "y": 29,
+                                  "y": 31,
                                   "width": 6,
                                   "height": 4,
                                   "element": {
@@ -5500,6 +5578,19 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
+                                  "y": 36,
+                                  "width": 24,
+                                  "height": 8,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-50"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 0,
                                   "y": 44,
                                   "width": 24,
                                   "height": 6,
@@ -5532,19 +5623,6 @@
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-44"
-                                  }
-                                }
-                              },
-                              {
-                                "kind": "GridLayoutItem",
-                                "spec": {
-                                  "x": 0,
-                                  "y": 36,
-                                  "width": 24,
-                                  "height": 8,
-                                  "element": {
-                                    "kind": "ElementReference",
-                                    "name": "panel-50"
                                   }
                                 }
                               }
@@ -6015,7 +6093,7 @@
     ],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-6h",
+      "from": "now-1h",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [

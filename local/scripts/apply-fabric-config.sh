@@ -6,7 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
-NODES=(spine1 leaf1 leaf2)
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
+NODES=("${SRL_NODES[@]}")
 
 # ext4 workdir (clab.sh) lets postdeploy commit startup-config; do not auto-pipe the
 # full flat config again — that wedges net_inst_mgr on /mnt/c repos. SNMP-only unless

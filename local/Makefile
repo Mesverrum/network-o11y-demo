@@ -440,9 +440,12 @@ aws-lab-up: ## NLB + traffic hosts for Cloud Network dashboards (set AWS_PROFILE
 aws-lab-down: ## Destroy AWS dashboard lab (run between sessions)
 	bash $(ROOT)scripts/aws-lab-down.sh
 
-.PHONY: generate-k8s deploy-ktranslate-golden
+.PHONY: generate-k8s deploy-ktranslate-golden verify-ktranslate-names
 generate-k8s: generate ## Render k8s/ktranslate-golden from local/ golden path
 	python3 $(ROOT)scripts/generate-k8s-telemetry.py
+
+verify-ktranslate-names: ## Assert OTEL_SERVICE_NAME host suffix on compose/k3s (+ optional Prom)
+	bash $(ROOT)scripts/verify-ktranslate-service-names.sh --prometheus
 
 deploy-ktranslate-golden: generate-k8s ## kubectl apply -k k8s/ktranslate-golden (+ GC secret)
 	bash $(ROOT)scripts/deploy-ktranslate-golden.sh

@@ -7,7 +7,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-COMPOSE=(docker compose --env-file "${ROOT}/.env"
+COMPOSE=(docker compose --env-file "${ROOT}/.env" --env-file "${ROOT}/compose-host.generated.env"
   -f "${ROOT}/compose-base.yaml"
   -f "${ROOT}/compose-groups.generated.yaml"
   -f "${ROOT}/compose-catalog.generated.yaml"

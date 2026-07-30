@@ -84,6 +84,13 @@ PATCH_ROLLUP_BYPASS_NEW = """\t\tcase msgs := <-kc.metricsChan:
 \t\t\t}"""
 
 
+PATCHED_MARKER = "exportJchfBatches"
+
+
+def is_patched(text: str) -> bool:
+    return PATCHED_MARKER in text or PATCH_ROLLUP_BYPASS_NEW in text
+
+
 def apply_patch(text: str, name: str, old: str, new: str) -> tuple[str, bool]:
     if new in text:
         print(f"already patched ({name})")
@@ -115,7 +122,7 @@ def main() -> int:
     text, c = apply_patch(text, "rollup-bypass-batched", PATCH_ROLLUP_BYPASS_SIMPLE_OLD, PATCH_ROLLUP_BYPASS_NEW)
     changed = changed or c
 
-    if not changed and PATCH_ROLLUP_BYPASS_NEW not in path.read_text(encoding="utf-8"):
+    if not changed and not is_patched(path.read_text(encoding="utf-8")):
         return 1
     if changed:
         path.write_text(text, encoding="utf-8")

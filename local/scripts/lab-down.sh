@@ -7,7 +7,7 @@ cd "${ROOT}"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
 
-COMPOSE=(docker compose --env-file .env
+COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
   -f compose-base.yaml
   -f compose-groups.generated.yaml
   -f compose-catalog.generated.yaml

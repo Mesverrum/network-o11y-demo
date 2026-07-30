@@ -15,6 +15,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 
 STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
 STAGGER_FABRIC="${LAB_STAGGER_FABRIC:-1}"
@@ -23,7 +25,7 @@ SR_CLI_TRIES_SPINE="${LAB_SR_CLI_TRIES_SPINE:-90}"
 SR_CLI_TRIES_LEAF="${LAB_SR_CLI_TRIES_LEAF:-120}"
 SR_CLI_TRIES_ALL="${LAB_SR_CLI_TRIES_ALL:-90}"
 
-SRL_ORDER=(spine1 leaf1 leaf2 client1 client2)
+SRL_ORDER=("${SRL_NODES[@]}" "${CLIENT_NODES[@]}")
 COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 
 COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
@@ -95,7 +97,7 @@ wait_sr_cli() {
 wait_all_sr_cli() {
   local n
   info "Waiting for sr_cli on all SRL nodes (yang-reload aware, up to $(( SR_CLI_TRIES_ALL * 2 ))s each)..."
-  for n in spine1 leaf1 leaf2; do
+  for n in "${SRL_NODES[@]}"; do
     wait_sr_cli "$n" "${SR_CLI_TRIES_ALL}"
     info "${n}: sr_cli ready"
   done
@@ -116,7 +118,8 @@ deploy_fabric() {
     wait_sr_cli spine1 "${SR_CLI_TRIES_SPINE}"
     info "spine1: sr_cli ready"
     stagger_wait
-    for n in leaf1 leaf2; do
+    for n in "${SRL_NODES[@]}"; do
+      [[ "$n" == "spine1" ]] && continue
       wait_sr_cli "$n" "${SR_CLI_TRIES_LEAF}"
       info "${n}: sr_cli ready"
       stagger_wait

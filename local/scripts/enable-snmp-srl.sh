@@ -3,7 +3,11 @@
 # Also the default path from make fabric-apply (without FULL_FABRIC=1).
 set -euo pipefail
 
-NODES=(spine1 leaf1 leaf2)
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
+
+NODES=("${SRL_NODES[@]}")
 if [[ "${1:-}" == "--node" && -n "${2:-}" ]]; then
   NODES=("$2")
 fi

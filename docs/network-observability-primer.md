@@ -271,8 +271,8 @@ join-app ──traces/metrics─────────────────
 **Suggested 30-minute walkthrough for a new teammate:**
 
 1. Bring up the lab (`make up`, `make traffic`).
-2. In Grafana Cloud Explore, run `count by (device_name) (kentik_snmp_DeviceMetrics)` — confirm SNMP.
-3. Run `sum by (device_name) (rate(network_io_by_flow[5m]))` — confirm flows.
+2. In Grafana Cloud Explore, run `count by (device_name) (kentik_snmp_CPU)` — confirm SNMP (not `kentik_snmp_DeviceMetrics`; see `AGENTS.md`).
+3. Run `count(network_io_by_flow_bytes)` and `sum(network_io_by_flow_bytes) * 8 / 60` — confirm flows (not `rate(network_io_by_flow[…])` on ktranslate rollups).
 4. Open **Network join demo** dashboard; run `make join-app`; see traces and flows align on `172.17.0.2:8080`.
 5. Optional: `make join-fault` — watch app latency rise while flows continue (talk track: “network path degraded, not blackholed”).
 

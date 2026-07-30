@@ -1,6 +1,6 @@
 # Dashboard query & UI lessons (agent notes)
 
-**Source of truth:** live pulls in `local/.dash-payloads/marcnetterfield-live/` (refreshed 2026-07-26 22:53 UTC). Committed exports: `local/dashboards/ktranslate/`. Re-sync: `make -C local dash-live-sync`.
+**Source of truth:** live pulls in `local/.dash-payloads/marcnetterfield-live/` (refreshed 2026-07-30 20:22 UTC). Committed exports: `local/dashboards/ktranslate/`. Re-sync: `make -C local dash-live-sync`.
 
 Compared prior agent patches vs operator/Assistant edits on all five ktranslate dashboards (00–04).
 
@@ -12,8 +12,9 @@ Compared prior agent patches vs operator/Assistant edits on all five ktranslate 
 | **Interface bps** | `(kentik_snmp_ifHCInOctets{...}) * 8 / 60` | `rate(kentik_snmp_ifHC*Octets[...])` |
 | **Interface errors/s** | `(kentik_snmp_ifInErrors{...}) / 60` | `rate(kentik_snmp_if*Errors[...])` |
 | **Flow bytes** | `max_over_time(network_io_by_flow_bytes[...])` | `rate(network_io_by_flow_bytes[...])` |
-| **Trap volume** | Loki `count_over_time({service_name=~"ktranslate.*"} \|= "KSnmpTrap" [$__interval])` | `rate(kentik_ktranslate_chf_kkc_snmp_traps[5m])` |
-| **Syslog volume** | Loki `count_over_time` + `\| json \| severity` | `rate(kentik_ktranslate_chf_kkc_syslog_messages[5m])` |
+| **Trap volume** | Loki `{service_name=~"ktranslate.*"} \| json \| eventType="KSnmpTrap"` | `\|= "KSnmpTrap"`, `\|= "trapdata"`, `rate(kentik_ktranslate_chf_kkc_snmp_traps[5m])` |
+| **Syslog volume** | Loki `{service_name=~"ktranslate.*"} \| json \| instrumentation_name="ktranslate-syslog"` (+ `severity` for breakdown) | `\|= "ktranslate-syslog"`, keyword regex on message |
+| **Internal collector logs** | Loki `{service_name=~"ktranslate.*"} != "{"` (plain-text `ktranslate/<component>` lines) | Mixing with `\| json` trap/syslog panels |
 | **CHF metrics** | Collector health / heartbeat only | Device telemetry or event volume |
 | **Fleet stats** | `count(...) OR vector(0)` | Bare `count(...)` → "No data" |
 | **Stale series** | `max by(device_name)(...)` on device drill-downs | Raw selectors when ghost `src_addr` series exist |
@@ -22,12 +23,12 @@ Compared prior agent patches vs operator/Assistant edits on all five ktranslate 
 
 ## Live stack counts (all dashboards)
 
-- PromQL panel queries: **329**
+- PromQL panel queries: **324**
 - Loki queries: **0**
 - `MemoryUtilization`: **4** vs manual memory ratios: **1**
 - BPS `* 8 / 60`: **15** vs `rate(kentik_snmp_*`: **6**
 - Flow `max_over_time`: **31** vs `rate(network_io_by_flow`: **0**
-- Loki trap panels: **3** vs CHF trap rate: **0**
+- Loki trap panels: **5** vs CHF trap rate: **0**
 - `OR vector(0)` guards: **16**
 - `max by(device_name)` collapses: **41**
 - Ping (`kentik_ping_*`): **8** panels
@@ -38,7 +39,7 @@ Compared prior agent patches vs operator/Assistant edits on all five ktranslate 
 
 GridLayout markdown + links. Sync text from `build-ktrans-arch-dashboard.py`; do not flatten to classic panels API.
 
-### 01. Ktranslate Health (`ktranslate-health`, gen 3)
+### 01. Ktranslate Health (`ktranslate-health`, gen 5)
 
 TabsLayout CHF/jchf collector health. Facet by `service_name` (`ktranslate-snmp-*`, `ktranslate-flow-*`, …). `snmp_fail`: **1=healthy**, >1 failure codes. 6h lookback panels can show stale leaf failures after IP recovery.
 
@@ -46,11 +47,11 @@ TabsLayout CHF/jchf collector health. Facet by `service_name` (`ktranslate-snmp-
 
 RowsLayout. Group flows by `src_host`/`dst_host` **with** IPs in legends. Country panels: `network_peer_country!~"Private IP|undefined"`. Use `max_over_time` on `network_io_by_flow_bytes`.
 
-### 03. Network Device Summary (`ktranslate-device-summary`, gen 34)
+### 03. Network Device Summary (`ktranslate-device-summary`, gen 40)
 
 TabsLayout fleet view. Selector: `provider` + `device_name`. Collection Health uses Loki for traps/syslog, CHF for collector counts. Memory fleet panels use `MemoryUtilization`.
 
-### 04. Network Device Details (`ktranslate-device-details`, gen 13)
+### 04. Network Device Details (`ktranslate-device-details`, gen 15)
 
 TabsLayout per-device drill-down. Variable **`instance`** (= `device_name`), filtered by **`provider`**. Ping uses `kentik_ping_*`. Memory panels query `MemoryUtilization` but `has_memory` gate still checks `hrStorageUsedPercent` (0 on SRL) — memory section visibility can be wrong; prefer `max by(device_name)` on overview queries to avoid ghost `src_addr` series.
 

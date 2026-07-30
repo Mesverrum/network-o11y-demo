@@ -1,7 +1,7 @@
 # DEPRECATED — use compose-base.yaml + compose-groups.generated.yaml
 #
 # The local lab follows the KtransToGrafana golden path:
-#   docker compose --env-file .env \
+#   docker compose --env-file .env --env-file compose-host.generated.env \
 #     -f compose-base.yaml \
 #     -f compose-groups.generated.yaml \
 #     -f compose-limits.generated.yaml up -d

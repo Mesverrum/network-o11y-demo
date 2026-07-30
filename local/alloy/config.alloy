@@ -159,10 +159,13 @@ otelcol.processor.transform "preprocessing" {
       `set(metric.name, "network_topology_edge_port_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
 
       `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, "network_topology_.*")`,
-      // NetBox inventory labels on ktranslate SNMP metrics (device_name = NetBox device)
+      // Inventory labels on ktranslate SNMP (site/role aligned with colocated 3-site demo)
       `set(datapoint.attributes["device_role"], "spine") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*")`,
-      `set(datapoint.attributes["device_role"], "leaf") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "leaf.*")`,
-      `set(datapoint.attributes["site"], "network-lab") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
+      `set(datapoint.attributes["device_role"], "branch-edge") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "leaf-br.*")`,
+      `set(datapoint.attributes["device_role"], "leaf") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "^leaf[0-9]+$")`,
+      `set(datapoint.attributes["site"], "hq") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "^(spine1|leaf1|leaf2)$")`,
+      `set(datapoint.attributes["site"], "branch1") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "leaf-br1")`,
+      `set(datapoint.attributes["site"], "branch2") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "leaf-br2")`,
       `set(datapoint.attributes["platform"], "sr-linux") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*|leaf.*")`,
       `set(datapoint.attributes["tenant"], "network-o11y-demo") where IsMatch(metric.name, "kentik_snmp_.*") and datapoint.attributes["device_name"] != nil`,
       `set(datapoint.attributes["integration"], "ktranslate-netflow") where metric.name == "network.io.by_flow"`,

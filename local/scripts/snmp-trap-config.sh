@@ -8,8 +8,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=collector-runtime-ready.sh
+source "${ROOT}/scripts/collector-runtime-ready.sh"
+
+export_colocated_clab_host
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 CLAB_NET="${CLAB_NETWORK:-clab}"
-DEVICES=(spine1 leaf1 leaf2)
+DEVICES=("${SRL_NODES[@]}")
 GROUP_ENV="${ROOT}/groups/srl.env"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }

@@ -8,6 +8,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
+
 ENSURE_CONFIG="${ENSURE_CONFIG:-1}"
 FLAP_SECS="${FLAP_SECS:-5}"
 DO_BGP="${DO_BGP:-1}"
@@ -52,6 +55,12 @@ EOF
 set / interface ethernet-1/49 admin-state enable
 commit stay
 EOF
+fi
+
+if [[ "${LAB_FABRIC_PROFILE}" == "colocated" ]]; then
+  info "Branch office link flaps (leaf-br1 / leaf-br2 client ports)..."
+  flap_iface leaf-br1 ethernet-1/1
+  flap_iface leaf-br2 ethernet-1/1
 fi
 
 info "Events emitted. Wait ~30–60s then check:"

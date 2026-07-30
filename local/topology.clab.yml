@@ -20,19 +20,27 @@ topology:
   nodes:
     spine1:
       group: spine
+      labels:
+        site: hq
       startup-config: configs/fabric/spine1.cfg
 
     leaf1:
       group: leaf
+      labels:
+        site: hq
       startup-config: configs/fabric/leaf1.cfg
 
     leaf2:
       group: leaf
+      labels:
+        site: hq
       startup-config: configs/fabric/leaf2.cfg
 
     client1:
       kind: linux
       group: server
+      labels:
+        site: hq
       exec:
         - ip address add 172.17.0.1/24 dev eth1
         - ip -6 address add 2002::172:17:0:1/96 dev eth1
@@ -42,6 +50,8 @@ topology:
     client2:
       kind: linux
       group: server
+      labels:
+        site: hq
       exec:
         - ip address add 172.17.0.2/24 dev eth1
         - ip -6 address add 2002::172:17:0:2/96 dev eth1

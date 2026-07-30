@@ -1,0 +1,63 @@
+# gnmic — colocated HQ + branch offices (5 SR Linux nodes).
+# Used when LAB_FABRIC_PROFILE=colocated (AWS demo).
+
+username: admin
+password: NokiaSrl1!
+skip-verify: true
+encoding: json_ietf
+timeout: 10s
+retry-timer: 5s
+
+targets:
+  spine1:57400:
+    name: spine1
+  leaf1:57400:
+    name: leaf1
+  leaf2:57400:
+    name: leaf2
+  leaf-br1:57400:
+    name: leaf-br1
+  leaf-br2:57400:
+    name: leaf-br2
+
+subscriptions:
+  interface_stats:
+    paths:
+      - /interface[name=*]/statistics
+      - /interface[name=*]/oper-state
+      - /interface[name=*]/admin-state
+    stream-mode: sample
+    sample-interval: 30s
+
+  bgp_neighbors:
+    paths:
+      - /network-instance[name=default]/protocols/bgp/neighbor
+    stream-mode: sample
+    sample-interval: 30s
+
+  system_resources:
+    paths:
+      - /platform/control/cpu
+      - /platform/control/memory
+    stream-mode: sample
+    sample-interval: 30s
+
+  lldp_neighbors:
+    paths:
+      - /system/lldp/interface[name=*]/neighbor
+    stream-mode: sample
+    sample-interval: 30s
+
+outputs:
+  alloy:
+    type: otlp
+    endpoint: alloy:4317
+    protocol: grpc
+    timeout: 10s
+    metric-prefix: gnmi
+    append-subscription-name: true
+    strip-leading-underscore: true
+    strings-as-attributes: true
+    resource-attributes:
+      service.name: gnmic
+    debug: false

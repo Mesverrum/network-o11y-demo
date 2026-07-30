@@ -21,6 +21,8 @@ die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=collector-runtime-ready.sh
+source "${ROOT}/scripts/collector-runtime-ready.sh"
 # shellcheck disable=SC1091
 [[ -f "${ROOT}/.env" ]] && set -a && source "${ROOT}/.env" && set +a
 
@@ -110,9 +112,11 @@ send_burst() {
 
 DEST="$(resolve_dest)"
 
-# Ensure poller is up
-docker ps -qf name=ktranslate_snmp_srl | grep -q . \
-  || die "ktranslate_snmp_srl not running — make up / check compose"
+export_colocated_clab_host
+
+if ! collector_snmp_ready; then
+  die "SNMP collector not running (compose ktranslate_snmp_srl or k3s deployment/ktranslate-snmp-srl)"
+fi
 
 case "${1:-suite}" in
   suite|all|"")

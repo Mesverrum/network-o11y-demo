@@ -9,8 +9,10 @@ export HOME="${HOME:-/root}"
 
 log() { echo "$(date -Is) [colocated-fabric] $*"; }
 
-log "deployment.host=$(bash scripts/host-id.sh)"
+export LAB_FABRIC_PROFILE=colocated
+log "deployment.host=$(bash scripts/host-id.sh) fabric=${LAB_FABRIC_PROFILE}"
 bash scripts/write-compose-host-env.sh
+bash scripts/stage-fabric-profile.sh
 make generate bootstrap
 mkdir -p config state
 chown -R 1000:1000 config state 2>/dev/null || true
@@ -24,7 +26,8 @@ if docker ps --format '{{.Names}}' | grep -qE '^spine1$'; then
   log "fabric running — fabric-stabilize"
   make fabric-stabilize
 else
-  log "cold start — make fabric-up"
+  log "cold start — destroy stale lab (profile change) then fabric-up"
+  bash scripts/clab.sh destroy || true
   make fabric-up
 fi
 

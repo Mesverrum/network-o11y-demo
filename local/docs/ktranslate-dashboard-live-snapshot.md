@@ -1,15 +1,15 @@
 # ktranslate dashboards — live snapshot
 
-Pulled from Grafana Cloud (`local/.env`) on **2026-07-26 22:53 UTC**.
+Pulled from Grafana Cloud (`local/.env`) on **2026-07-30 20:22 UTC**.
 Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 
 | # | UID | Layout | Generation | PromQL | Loki |
 |---|-----|--------|------------|--------|------|
 | 00 | `ktranslate-architecture` | GridLayout | 2 | 0 | 0 |
-| 01 | `ktranslate-health` | TabsLayout | 3 | 52 | 0 |
+| 01 | `ktranslate-health` | TabsLayout | 5 | 52 | 0 |
 | 02 | `ktranslate-flow-summary` | RowsLayout | 14 | 19 | 0 |
-| 03 | `ktranslate-device-summary` | TabsLayout | 34 | 61 | 0 |
-| 04 | `ktranslate-device-details` | TabsLayout | 13 | 197 | 0 |
+| 03 | `ktranslate-device-summary` | TabsLayout | 40 | 60 | 0 |
+| 04 | `ktranslate-device-details` | TabsLayout | 15 | 193 | 0 |
 
 ## 00. Ktranslate Architecture (`ktranslate-architecture`)
 - **Generation:** 2
@@ -21,7 +21,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 |---------|-------|
 
 ## 01. Ktranslate Health (`ktranslate-health`)
-- **Generation:** 3
+- **Generation:** 5
 - **Layout:** TabsLayout
 
 ### Pattern counts
@@ -86,7 +86,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 - **Peer Destinations by Country:** `topk(25, sum by(network_peer_country, network_peer_address, dst_host) (max_over_time(network_io_by_flow_bytes{device_name=~"${device_name:pipe}",network_local_address=~"${src_addr:pipe}",network_peer_`
 
 ## 03. Network Device Summary (`ktranslate-device-summary`)
-- **Generation:** 34
+- **Generation:** 40
 - **Layout:** TabsLayout
 
 ### Pattern counts
@@ -97,7 +97,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 | bgp established str | 1 |
 | bps delta 60 | 8 |
 | errors per 60 | 1 |
-| loki traps | 1 |
+| loki traps | 2 |
 | max by device | 9 |
 | memory manual ratio | 1 |
 | memory utilization | 2 |
@@ -125,7 +125,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 - **Temperature Over Time:** `topk(10, max by(device_name) (kentik_snmp_tmnxHwTemperature{provider=~"$provider",device_name=~"$device_name"}))`
 
 ## 04. Network Device Details (`ktranslate-device-details`)
-- **Generation:** 13
+- **Generation:** 15
 - **Layout:** TabsLayout
 
 ### Pattern counts
@@ -135,7 +135,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 | bgp established 6 | 1 |
 | bps delta 60 | 6 |
 | errors per 60 | 1 |
-| loki traps | 2 |
+| loki traps | 3 |
 | max by device | 31 |
 | max over time flow | 13 |
 | memory utilization | 2 |

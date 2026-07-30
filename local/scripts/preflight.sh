@@ -96,6 +96,14 @@ if [[ -f scripts/host-id.sh ]]; then
     else
       _ok "deployment.host = ${HOST_ID} (auto from hostname; set KTRANS_HOST in .env to override)"
     fi
+    if [[ -f compose-host.generated.env ]]; then
+      GEN_HOST="$(grep -E '^KTRANS_HOST=' compose-host.generated.env | tail -n1 | cut -d= -f2- | tr -d '\r')"
+      if [[ "${GEN_HOST}" != "${HOST_ID}" ]]; then
+        _fail "compose-host.generated.env KTRANS_HOST=${GEN_HOST:-<empty>} != ${HOST_ID} — run: make generate"
+      else
+        _ok "compose-host.generated.env matches deployment.host"
+      fi
+    fi
   else
     _warn "could not resolve a host identifier; telemetry won't be host-tagged"
   fi

@@ -1,0 +1,106 @@
+# Colocated AWS demo — HQ hub + two branch offices.
+#
+#   HQ (EVPN MAC-VRF vrf-1, 172.17.0.0/24): spine1 + leaf1/leaf2 + client1/2
+#   Branch 1 (172.17.21.0/24): leaf-br1 + client-br1  — WAN e1-3 on spine1
+#   Branch 2 (172.17.22.0/24): leaf-br2 + client-br2  — WAN e1-4 on spine1
+#
+# Laptop lab keeps topology.clab.yml (reduced 5-node). Set LAB_FABRIC_PROFILE=colocated
+# on the EC2 host (userdata / colocated-fabric-bringup.sh).
+
+name: srl-colocated
+prefix: ""
+
+topology:
+  defaults:
+    kind: nokia_srlinux
+
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:24.10.1
+      type: ixrd2l
+    linux:
+      image: ghcr.io/srl-labs/network-multitool
+
+  nodes:
+    spine1:
+      group: spine
+      labels:
+        site: hq
+      startup-config: configs/fabric/spine1.cfg
+
+    leaf1:
+      group: leaf
+      labels:
+        site: hq
+      startup-config: configs/fabric/leaf1.cfg
+
+    leaf2:
+      group: leaf
+      labels:
+        site: hq
+      startup-config: configs/fabric/leaf2.cfg
+
+    leaf-br1:
+      group: leaf
+      labels:
+        site: branch1
+      startup-config: configs/fabric/leaf-br1.cfg
+
+    leaf-br2:
+      group: leaf
+      labels:
+        site: branch2
+      startup-config: configs/fabric/leaf-br2.cfg
+
+    client1:
+      kind: linux
+      group: server
+      labels:
+        site: hq
+      exec:
+        - ip address add 172.17.0.1/24 dev eth1
+        - ip -6 address add 2002::172:17:0:1/96 dev eth1
+        - iperf3 -s -p 5201 -D > /dev/null 2>&1
+        - iperf3 -s -p 5202 -D > /dev/null 2>&1
+
+    client2:
+      kind: linux
+      group: server
+      labels:
+        site: hq
+      exec:
+        - ip address add 172.17.0.2/24 dev eth1
+        - ip -6 address add 2002::172:17:0:2/96 dev eth1
+
+    client-br1:
+      kind: linux
+      group: server
+      labels:
+        site: branch1
+      exec:
+        - ip address add 172.17.21.1/24 dev eth1
+        - ip -6 address add 2002::172:17:21:1/96 dev eth1
+        - iperf3 -s -p 5201 -D > /dev/null 2>&1
+
+    client-br2:
+      kind: linux
+      group: server
+      labels:
+        site: branch2
+      exec:
+        - ip address add 172.17.22.1/24 dev eth1
+        - ip -6 address add 2002::172:17:22:1/96 dev eth1
+        - iperf3 -s -p 5201 -D > /dev/null 2>&1
+
+  links:
+    # HQ dual-homed leaves
+    - endpoints: ["spine1:e1-1", "leaf1:e1-49"]
+    - endpoints: ["spine1:e1-2", "leaf2:e1-49"]
+    # WAN to branches
+    - endpoints: ["spine1:e1-3", "leaf-br1:e1-49"]
+    - endpoints: ["spine1:e1-4", "leaf-br2:e1-49"]
+    # Site access
+    - endpoints: ["leaf1:e1-1", "client1:eth1"]
+    - endpoints: ["leaf2:e1-1", "client2:eth1"]
+    - endpoints: ["leaf-br1:e1-1", "client-br1:eth1"]
+    - endpoints: ["leaf-br2:e1-1", "client-br2:eth1"]
