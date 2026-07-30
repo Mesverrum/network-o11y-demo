@@ -7,8 +7,8 @@
 #
 # Exit codes (when SKIP_RELOAD=1): 0 = device list changed, 2 = unchanged, 1 = error.
 #
-# Intended to be invoked from host cron, e.g.:
-#   0 */6 * * * cd /opt/Grafana/KtransToGrafana && ./scripts/run-discovery.sh cisco >> /var/log/ktrans-discovery.log 2>&1
+# Colocated (k3s collectors): set COLLECTOR_RUNTIME=k3s and KTRANSLATE_OTEL_ENDPOINT
+# in .env so discovery uses host network and OTLP → k3s Alloy (no compose alloy).
 #
 # Requires: docker, docker compose, yq (https://github.com/mikefarah/yq).
 
@@ -22,9 +22,6 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Resolve the host identifier the same way `make up` does, so the discovery
-# container's service.name carries the host suffix even when this runs from cron
-# (where the Makefile's export isn't in scope).
 export KTRANS_HOST="$(bash "${REPO_ROOT}/scripts/host-id.sh")"
 
 SRC="${REPO_ROOT}/config/discovery-${GROUP}.yaml"
@@ -39,16 +36,9 @@ fi
 
 mkdir -p "${REPO_ROOT}/state"
 
-# Seed the runtime config from the git-tracked canonical config every run.
-# This intentionally discards any in-place edits ktranslate made last time
-# to the runtime file — git is source of truth for everything except the
-# discovered device list.
 cp "${SRC}" "${RUNTIME}"
 chown 1000:1000 "${RUNTIME}" 2>/dev/null || true
 
-# Snapshot the previous good device list before we touch anything, so a
-# discovery failure (empty result, network blip, container crash) can't
-# silently wipe the poller's device list.
 if [[ -f "${DEVICES_OUT}" ]]; then
   cp "${DEVICES_OUT}" "${DEVICES_PREV}"
 fi
@@ -64,23 +54,26 @@ if [[ ! -f "${REPO_ROOT}/compose-catalog.generated.yaml" ]]; then
   exit 1
 fi
 
-# Run the one-shot discovery container. The compose service is gated by
-# the "discovery" profile so it never starts as part of `docker compose up`.
+if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]]; then
+  if [[ ! -f "${REPO_ROOT}/compose-colocated.generated.yaml" ]]; then
+    echo "missing compose-colocated.generated.yaml. Run: make generate" >&2
+    exit 1
+  fi
+  COMPOSE_ARGS+=(-f "${REPO_ROOT}/compose-colocated.generated.yaml")
+  export KTRANSLATE_OTEL_ENDPOINT="${KTRANSLATE_OTEL_ENDPOINT:-http://127.0.0.1:4317/}"
+  echo "==> colocated discovery (host network, OTLP ${KTRANSLATE_OTEL_ENDPOINT})"
+fi
+
 docker compose "${COMPOSE_ARGS[@]}" \
   --profile discovery \
   run --rm "discover_${GROUP}"
 
-# Extract just the devices block from the post-discovery runtime file.
-# If discovery found nothing (or failed in a way that left an empty map),
-# roll back to the previous device list rather than publishing the empty one.
 DEVICE_COUNT="$(yq '.devices | length' "${RUNTIME}")"
 if [[ "${DEVICE_COUNT}" == "0" || "${DEVICE_COUNT}" == "null" ]]; then
   echo "discovery returned 0 devices for ${GROUP}; keeping previous device list" >&2
   exit 1
 fi
 
-# Write atomically: emit to a temp file and rename. The poller is reading
-# this path; a partial write would be bad.
 TMP="${DEVICES_OUT}.tmp.$$"
 yq '.devices' "${RUNTIME}" > "${TMP}"
 chown 1000:1000 "${TMP}" 2>/dev/null || true
@@ -88,8 +81,6 @@ mv "${TMP}" "${DEVICES_OUT}"
 
 echo "published ${DEVICE_COUNT} ${GROUP} devices to ${DEVICES_OUT}"
 
-# Only reload ktranslate if the device list actually changed. A cron tick where
-# discovery confirms the same set of devices doesn't need to disturb polling.
 if [[ -f "${DEVICES_PREV}" ]] && cmp -s "${DEVICES_PREV}" "${DEVICES_OUT}"; then
   echo "device list unchanged for ${GROUP}; skipping ktranslate reload"
   exit 2

@@ -9,12 +9,12 @@ log() { echo "$(date -Is) [colocated-telemetry] $*"; }
 
 export HOME="${HOME:-/root}"
 export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+export COLLECTOR_RUNTIME=k3s
+export KTRANSLATE_OTEL_ENDPOINT="${KTRANSLATE_OTEL_ENDPOINT:-http://127.0.0.1:4317/}"
 
 log "deploying ktranslate-golden to k3s"
-export HOME="${HOME:-/root}"
 
 if [[ -f "${ROOT}/../k8s/ktranslate-golden/kustomization.yaml" ]]; then
-  export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
   set -a
   # shellcheck disable=SC1091
   source "${ROOT}/.env"
@@ -29,6 +29,12 @@ if [[ -f "${ROOT}/../k8s/ktranslate-golden/kustomization.yaml" ]]; then
   kubectl -n network-lab rollout status deployment/alloy --timeout=180s
 else
   bash scripts/deploy-ktranslate-golden.sh
+fi
+
+log "SNMP discovery (CIDR scan from groups/*.env → state/devices-*.yaml)"
+if ! bash scripts/run-discovery-all.sh; then
+  log "SNMP discovery failed — check groups/srl.env TARGETS and fabric SNMP"
+  exit 1
 fi
 
 export KTRANSLATE_CLAB_HOST="$(

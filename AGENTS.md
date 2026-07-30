@@ -14,7 +14,7 @@ Companion demo for the blog series **Network Observability Without the Lock-in**
 | **AWS colocated** | [`terraform/colocated-network-lab/`](terraform/colocated-network-lab/) — ContainerLab fabric + **k3s** (`make -C local colocated-lab-up`) |
 | **AWS / EKS (legacy blog)** | [`terraform/`](terraform/) + [`k8s/telemetry/`](k8s/telemetry/) — Clabbernetes reference only |
 
-**Source of truth for collector config:** `local/` → `make generate` (Compose) or `make generate-k8s` → `k8s/ktranslate-golden/` (Kubernetes). Do not hand-edit generated manifests.
+**Source of truth for collector config:** `local/` → `make generate` (Compose) or `make generate-k8s` → `k8s/ktranslate-golden/` (Kubernetes). Do not hand-edit generated manifests. **Device lists** come from SNMP discovery (`make discover GROUP=<name>` scanning `TARGETS` CIDRs in `groups/*.env`) — never hand-populate `state/devices-*.yaml`. Colocated AWS runs the same discovery after k3s Alloy is up (`COLLECTOR_RUNTIME=k3s`).
 
 Do **not** lift-and-shift the EKS/Clabbernetes **networking** stack onto a laptop. Local work belongs under `local/`. Alloy is the OTLP sink on all paths; **SNMP, flow, sFlow, and syslog are always ktranslate**, not Alloy-native collectors.
 

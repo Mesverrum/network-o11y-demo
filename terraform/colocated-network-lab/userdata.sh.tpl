@@ -47,6 +47,8 @@ GC_OTLP_KEY=${gc_otlp_key}
 KTRANS_HOST=$KTRANS_HOST
 LAB_TESTER_ID=$LAB_TESTER_ID
 CLAB_NETWORK=clab
+COLLECTOR_RUNTIME=k3s
+KTRANSLATE_OTEL_ENDPOINT=http://127.0.0.1:4317
 KTRANSLATE_IMAGE=quay.io/kentik/ktranslate:latest
 GNMIC_IMAGE=ghcr.io/openconfig/gnmic:latest
 ENV

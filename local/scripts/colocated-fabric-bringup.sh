@@ -28,5 +28,4 @@ else
   make fabric-up
 fi
 
-make discover-all || log "discovery failed (non-fatal)"
-log "fabric ready"
+log "fabric ready (SNMP discovery runs after k3s telemetry in colocated-telemetry-bringup.sh)"

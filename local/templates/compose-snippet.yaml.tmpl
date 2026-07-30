@@ -74,7 +74,7 @@
       - --format=otel
       - --format_metric=otel
       - --otel.protocol=grpc
-      - --otel.endpoint=http://alloy:4317/
+      - --otel.endpoint=${KTRANSLATE_OTEL_ENDPOINT:-http://alloy:4317/}
       - --snmp=/snmp.yaml
       - -snmp_discovery=true
       - --sinks=otel

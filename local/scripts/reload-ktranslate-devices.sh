@@ -4,10 +4,41 @@
 # pollers pick up the latest @-included device maps.
 #
 # Usage: ./scripts/reload-ktranslate-devices.sh
+#
+# Colocated (k3s): set COLLECTOR_RUNTIME=k3s to rollout k8s deployments instead
+# of docker compose restart.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+_reload_k3s_collectors() {
+  export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+  if ! kubectl get namespace network-lab >/dev/null 2>&1; then
+    echo "network-lab namespace not found; k3s reload skipped" >&2
+    return 1
+  fi
+  bash "${REPO_ROOT}/scripts/refresh-flow-dns.sh"
+  local dep restarted=0
+  for dep in ktranslate-snmp-srl ktranslate-flow ktranslate-sflow ktranslate-syslog; do
+    if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
+      kubectl -n network-lab rollout restart "deployment/${dep}"
+      restarted=1
+    fi
+  done
+  if [[ "${restarted}" -eq 0 ]]; then
+    echo "no ktranslate deployments in network-lab; reload skipped" >&2
+    return 1
+  fi
+  echo "restarted ktranslate-golden deployments in network-lab"
+  return 0
+}
+
+if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]]; then
+  _reload_k3s_collectors
+  exit $?
+fi
+
 COMPOSE_ARGS=(
   --env-file "${REPO_ROOT}/.env"
   --env-file "${REPO_ROOT}/compose-host.generated.env"

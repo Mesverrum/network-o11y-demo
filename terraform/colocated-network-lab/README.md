@@ -20,8 +20,10 @@ make -C local colocated-lab-up         # ~3 min terraform + ~15 min bootstrap
 
 Bootstrap installs Docker, ContainerLab, k3s, clones this repo, then:
 
-1. `network-o11y-fabric.service` — ContainerLab + discovery (no compose collectors)
-2. `network-o11y-telemetry.service` — `generate-k8s-telemetry.py` + `kubectl apply -k k8s/ktranslate-golden`
+1. `network-o11y-fabric.service` — ContainerLab fabric (no compose collectors)
+2. `network-o11y-telemetry.service` — k3s collectors, then **SNMP CIDR discovery** (`groups/srl.env` → `TARGETS=172.20.20.0/24` → `state/devices-srl.yaml`), then softflowd/traffic
+
+Discovery uses the same golden path as the laptop lab: `discover_srl` compose profile with `COLLECTOR_RUNTIME=k3s` (host network, OTLP → k3s Alloy). **Do not** hand-populate `state/devices-*.yaml`.
 
 ## Monitor
 
@@ -39,18 +41,9 @@ count by (device_name) (kentik_snmp_CPU{deployment_host="aws-colocated-lab"})
 count(network_io_by_flow_bytes{deployment_host="aws-colocated-lab"})
 ```
 
-### SNMP profile (`Missing matched profile`)
+### SNMP profile / empty metrics
 
-Not a sysObjectID problem — SRL devices match `nokia-srlinux.yml` by OID (`1.3.6.1.4.1.6527.1.20.*`). If `state/devices-srl.yaml` was **hand-written** instead of produced by `run-discovery.sh`, ktranslate may only emit Uptime/PollingHealth with `profile_message="Missing matched profile"`.
-
-**Fix:** run discovery so devices get the full YAML ktranslate expects, or force the profile on each device:
-
-```yaml
-mib_profile: "!nokia-srlinux.yml"   # bang (!) forces profile binding
-provider: kentik-switch             # must match the profile's provider field
-```
-
-After editing `state/devices-srl.yaml`, restart the SNMP poller (`kubectl rollout restart deployment/ktranslate-snmp-srl -n network-lab`).
+Run discovery first (`make discover GROUP=srl` or colocated bootstrap). If metrics are still sparse, check poller logs for `profile_message` and compare `state/devices-srl.yaml` to a discovery-produced file (correct `mib_profile` + `provider` from ktranslate, not hand-written IPs).
 
 ## Destroy
 
