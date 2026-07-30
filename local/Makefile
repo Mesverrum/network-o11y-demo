@@ -104,8 +104,11 @@ discover: ## Run one-shot SNMP discovery (GROUP=srl)
 	@cd $(ROOT) && bash scripts/run-discovery.sh $(GROUP)
 
 .PHONY: discover-all
-discover-all: ## Run discovery for every group; reload catalog consumers if any list changed
-	@cd $(ROOT) && bash scripts/run-discovery-all.sh
+discover-all: ## Sync clab mgmt CIDR + run SNMP discovery for all groups
+	@bash $(ROOT)scripts/sync-snmp-discovery.sh
+
+.PHONY: snmp-discover
+snmp-discover: discover-all ## Alias: CIDR sync + discovery + collector reload
 
 .PHONY: up
 up: check generate bootstrap limits ## Staggered deploy (default): fabric + collectors + discover
@@ -137,14 +140,7 @@ up-parallel: ## Legacy parallel bring-up (LAB_STAGGER=0)
 
 .PHONY: _post-up-config
 _post-up-config:
-	@echo "==> Syncing NetBox Cloud inventory..."
-	@if grep -q '^DISCOVERY_SOURCE=netbox' "$(ROOT)groups/srl.env" 2>/dev/null; then \
-	  bash $(ROOT)scripts/netbox-bootstrap.sh; \
-	else \
-	  bash $(ROOT)scripts/update-snmp-targets.sh; \
-	fi
-	@echo "==> Discovering SRL devices (GROUP=srl)..."
-	cd $(ROOT) && bash scripts/run-discovery-all.sh || echo "WARNING: discovery failed — check snmpwalk / groups/*.env"
+	@bash $(ROOT)scripts/sync-snmp-discovery.sh
 	@bash $(ROOT)scripts/post-telemetry-config.sh
 
 .PHONY: sync-clab-workdir
@@ -160,7 +156,8 @@ fabric-up: sync-clab-workdir ## Deploy SRL fabric only (no o11y/NetBox)
 	  bash $(ROOT)scripts/apply-fabric-config.sh && \
 	  bash $(ROOT)scripts/fabric-watch.sh start || true'
 	@echo ""
-	@echo "Fabric is up. Try: docker exec spine1 sr_cli -ec 'show network-instance summary'"
+	@echo "Fabric is up. After collectors: make snmp-discover"
+	@echo "Try: docker exec spine1 sr_cli -ec 'show network-instance summary'"
 	@echo "Client ping: docker exec client2 ping -c 2 172.17.0.1"
 
 .PHONY: fabric-stabilize
@@ -201,14 +198,14 @@ status: ## Show clab nodes, compose, and a quick ping check
 	@docker exec client2 ping -c 2 -W 2 172.17.0.1 2>/dev/null || echo "(clients not ready)"
 
 .PHONY: snmp-targets
-snmp-targets: ## Rewrite groups/srl.env TARGETS from live clab mgmt IPs + regenerate
+snmp-targets: ## Sync groups/*.env TARGETS to live clab mgmt CIDR + regenerate
 	$(LAB_RUN) snmp-targets -- bash $(ROOT)scripts/update-snmp-targets.sh
 
 .PHONY: snmp-check snmp-recover
 snmp-check: ## Diagnose TARGETS vs live IPs, snmpget, poller logs
 	bash $(ROOT)scripts/snmp-check.sh
 
-snmp-recover: ## Refresh TARGETS, enable SNMP, discover, reload poller (after clab redeploy)
+snmp-recover: ## Sync mgmt CIDR, enable SNMP, discover, reload pollers (after clab redeploy)
 	$(LAB_RUN) snmp-recover -- bash $(ROOT)scripts/finish-bringup.sh
 
 .PHONY: finish-flows

@@ -26,7 +26,7 @@ SR_CLI_TRIES_ALL="${LAB_SR_CLI_TRIES_ALL:-90}"
 SRL_ORDER=(spine1 leaf1 leaf2 client1 client2)
 COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 
-COMPOSE=(docker compose --env-file .env
+COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
   -f compose-base.yaml
   -f compose-groups.generated.yaml
   -f compose-catalog.generated.yaml
@@ -152,19 +152,8 @@ start_collectors() {
 }
 
 post_up_config() {
-  if grep -q '^DISCOVERY_SOURCE=netbox' "${ROOT}/groups/srl.env" 2>/dev/null; then
-    info "Syncing NetBox Cloud inventory..."
-    bash "${ROOT}/scripts/netbox-bootstrap.sh"
-  else
-    bash "${ROOT}/scripts/update-snmp-targets.sh"
-  fi
-
-  info "Discovering SRL devices (GROUP=srl)..."
-  bash scripts/run-discovery-all.sh \
-    || echo "WARNING: discovery failed — check snmpwalk / groups/*.env"
-
+  bash "${ROOT}/scripts/sync-snmp-discovery.sh"
   bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config
-
   bash "${ROOT}/scripts/post-telemetry-config.sh"
 }
 

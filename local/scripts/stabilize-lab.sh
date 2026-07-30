@@ -82,7 +82,7 @@ bash "${ROOT}/scripts/apply-fabric-config.sh"
 
 info "Telemetry compose stack..."
 STAGGER_SECS="${LAB_STAGGER_SECS:-25}"
-COMPOSE=(docker compose --env-file .env
+COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
   -f compose-base.yaml
   -f compose-groups.generated.yaml
   -f compose-catalog.generated.yaml
@@ -106,17 +106,7 @@ else
   "${COMPOSE[@]}" up -d
 fi
 
-if grep -q '^DISCOVERY_SOURCE=netbox' "${ROOT}/groups/srl.env" 2>/dev/null; then
-  bash "${ROOT}/scripts/netbox-bootstrap.sh" || {
-    info "NetBox bootstrap failed — trying mgmt-only sync"
-    set -a && . "${ROOT}/.env" && set +a
-    python3 "${ROOT}/scripts/update-netbox-mgmt-ips.py" || true
-  }
-else
-  bash "${ROOT}/scripts/update-snmp-targets.sh"
-fi
-
-bash "${ROOT}/scripts/run-discovery-all.sh" || info "discovery returned 0 devices — check SNMP + NetBox mgmt IPs"
+bash "${ROOT}/scripts/sync-snmp-discovery.sh"
 bash "${ROOT}/scripts/post-telemetry-config.sh"
 
 info "Lab stabilized. Verify: make status"

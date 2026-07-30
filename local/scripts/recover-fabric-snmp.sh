@@ -51,13 +51,10 @@ if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]]; then
   export COLLECTOR_RUNTIME=k3s
   export KTRANSLATE_OTEL_ENDPOINT="${KTRANSLATE_OTEL_ENDPOINT:-http://127.0.0.1:4317/}"
   make generate
-  make discover GROUP=srl
+  bash scripts/run-discovery-all.sh
 else
-  bash "${ROOT}/scripts/update-snmp-targets.sh"
-  make generate
-  make discover GROUP=srl
+  bash "${ROOT}/scripts/sync-snmp-discovery.sh"
 fi
-bash "${ROOT}/scripts/reload-ktranslate-devices.sh"
 bash "${ROOT}/scripts/post-telemetry-config.sh"
 make traffic
 

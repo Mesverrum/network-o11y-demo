@@ -18,6 +18,46 @@ for n in spine1 leaf1 leaf2; do
 done
 
 echo ""
+echo "=== Discovery CIDR (groups/srl.env TARGETS) vs live mgmt IPs ==="
+python3 - <<'PY'
+import ipaddress
+import subprocess
+from pathlib import Path
+
+targets = ""
+for line in Path("groups/srl.env").read_text().splitlines():
+    if line.startswith("TARGETS="):
+        targets = line.split("=", 1)[1].strip()
+        break
+if not targets:
+    print("  (no TARGETS= in groups/srl.env)")
+    raise SystemExit(0)
+
+nets = []
+for part in targets.split(","):
+    part = part.strip()
+    if not part:
+        continue
+    try:
+        nets.append(ipaddress.ip_network(part, strict=False))
+    except ValueError:
+        print(f"  invalid TARGETS entry: {part}")
+        raise SystemExit(0)
+
+for n in ("spine1", "leaf1", "leaf2"):
+    ip = subprocess.check_output(
+        ["docker", "inspect", "-f", "{{(index .NetworkSettings.Networks \"clab\").IPAddress}}", n],
+        text=True,
+    ).strip()
+    if not ip or ip == "<no value>":
+        print(f"  {n}: (no clab IP)")
+        continue
+    addr = ipaddress.ip_address(ip)
+    ok = any(addr in net for net in nets)
+    print(f"  {n} {ip}: {'in TARGETS' if ok else 'OUTSIDE TARGETS — run make snmp-discover'}")
+PY
+
+echo ""
 echo "=== snmpget sysName (public) ==="
 for n in spine1 leaf1 leaf2; do
   ip=$(docker inspect -f '{{(index .NetworkSettings.Networks "clab").IPAddress}}' "$n" 2>/dev/null || true)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# finish-bringup.sh — SNMP recovery after clab IP drift (refresh targets + discover + poller).
+# finish-bringup.sh — SNMP recovery after clab IP drift (CIDR sync + discover + poller).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -11,11 +11,8 @@ for n in spine1 leaf1 leaf2; do
 done
 sleep 5
 
-bash "${ROOT}/scripts/update-snmp-targets.sh"
-make generate
 bash "${ROOT}/scripts/enable-snmp-srl.sh"
-make discover GROUP=srl
-bash "${ROOT}/scripts/reload-ktranslate-devices.sh"
+bash "${ROOT}/scripts/sync-snmp-discovery.sh"
 
 echo ""
 echo "=== snmpget after recovery ==="

@@ -107,8 +107,9 @@ and/or `LAB_AUTO_EVENTS=0`.
 `deployment.host`) so every compose path gets hostname suffixes without editing
 `.env` per machine.
 
-`make up` prints `deployment.host`, starts the stack, rewrites `groups/srl.env`
-TARGETS from ContainerLab mgmt `/32`s, then runs `make discover GROUP=srl`.
+`make up` prints `deployment.host`, starts the stack, syncs the clab mgmt **CIDR**
+into `groups/srl.env` TARGETS, then runs **SNMP discovery** (`make snmp-discover`)
+to populate `state/devices-srl.yaml` (no hand-edited device IPs).
 
 Tear down:
 
@@ -186,13 +187,13 @@ make topology-up
 | Target | Purpose |
 |--------|---------|
 | `make generate` | Render `config/*`, `compose-groups.generated.yaml`, `compose-catalog.generated.yaml` from `groups/*.env` |
-| `make discover GROUP=srl` | One-shot SNMP discovery → `state/devices-srl.yaml` + reload all ktranslate catalog consumers |
-| `make discover-all` | Discover every group; reload ktranslate if any device list changed |
+| `make discover GROUP=srl` | One-shot SNMP discovery for one group (requires alloy up) |
+| `make discover-all` / `make snmp-discover` | Sync clab mgmt CIDR + discover all groups + reload collectors |
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
-| `make snmp-targets` | Refresh `groups/srl.env` TARGETS (cidr discovery only) |
-| `make snmp-check` | Diagnose TARGETS vs live IPs, snmpget, poller logs, Grafana SNMP series |
-| `make snmp-recover` | After clab IP drift: TARGETS + discover + reload poller (`finish-bringup.sh`) |
+| `make snmp-targets` | Sync `groups/*.env` TARGETS to live clab mgmt CIDR + `make generate` |
+| `make snmp-check` | TARGETS CIDR vs live IPs, devices yaml, snmpget, Grafana SNMP series |
+| `make snmp-recover` | After clab IP drift: enable SNMP + `snmp-discover` (`finish-bringup.sh`) |
 | `make finish-flows` | EVPN + softflowd + traffic + verify flows in Grafana |
 | `make lab-log-status` | Tail `state/lab-actions.log` + `docker-events.log` (container stop audit) |
 | `make netbox-populate` | Seed NetBox Cloud with local lab topology |
@@ -291,7 +292,7 @@ bash scripts/enable-snmp-srl.sh   # if SNMP only: connection refused on :161
 make stabilize           # full recovery without clab --reconfigure
 ```
 
-**SRL up but no `kentik_snmp_*` in Grafana?** Run `make snmp-check` first. If `snmpget` works but Explore is empty, you may be querying `kentik_snmp_DeviceMetrics` (wrong — use `kentik_snmp_CPU` above) or MCP is on a different stack than `GC_OTLP_*` in `.env`. If `snmpget` times out: `bash scripts/enable-snmp-srl.sh`. If TARGETS ≠ live clab IPs: `make snmp-recover`. See `AGENTS.md` → *Investigation playbook*.
+**SRL up but no `kentik_snmp_*` in Grafana?** Run `make snmp-check` first. If `snmpget` works but Explore is empty, you may be querying `kentik_snmp_DeviceMetrics` (wrong — use `kentik_snmp_CPU` above) or MCP is on a different stack than `GC_OTLP_*` in `.env`. If `snmpget` times out: `bash scripts/enable-snmp-srl.sh`. If devices yaml is stale or IPs drifted: `make snmp-discover`. See `AGENTS.md` → *Investigation playbook*.
 
 **Avoid** `clab deploy --reconfigure` unless you intend to reset the whole lab — it SIGTERM-stops all nodes.
 

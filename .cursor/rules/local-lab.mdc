@@ -19,17 +19,18 @@ alwaysApply: false
 Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`. Optional: `topology_exporter` (compose profile `topology`, `LAB_TOPOLOGY_EXPORTER=1`).
 
 - Groups: `groups/srl.env` → `make generate` → poller/discovery configs under `config/` + `state/`
-- Discovery: `make discover GROUP=srl` or `make discover-all` (not `--snmp_discovery_on_start`)
+- Discovery: `make snmp-discover` (CIDR sync + discover all groups) or `make discover GROUP=srl` — not `--snmp_discovery_on_start`
 - SNMP profiles: bundled in the ktranslate image; discovery assigns `mib_profile` from `sysObjectID` — see [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) for edge cases
 - Alloy: `local/alloy/config.alloy` — comments must be `//` only. Receives OTLP; scrapes Docker logs for Clos + sidecars (skips ktranslate — those use `--tee_logs` OTLP); remaps gnmic LLDP → `network_topology_edge_info`; stamps `deployment.host`
 - gnmic: `local/gnmic/gnmic.yaml` (OTLP → Alloy; includes `lldp_neighbors` subscribe)
 - topology-exporter (optional): `local/topology-exporter/config.yaml` — `make topology-up` after `topology-exporter-image`
-- NetBox Cloud: optional — `scripts/netbox-populate.py` + `make netbox-sync` when `DISCOVERY_SOURCE=netbox` (`groups/srl.env.netbox.sample`); default sample uses CIDR + `update-snmp-targets.sh`
+- NetBox Cloud: optional — `scripts/netbox-populate.py` + `make netbox-sync` when `DISCOVERY_SOURCE=netbox` (`groups/srl.env.netbox.sample`); default uses CIDR discovery via `sync-snmp-discovery.sh`
 
 ## Scripts
 
 - LF line endings only (CRLF breaks bash under WSL).
-- `update-snmp-targets.sh` — /32 mgmt IPs into `groups/srl.env` TARGETS + regenerate
+- `sync-snmp-discovery.sh` — sync clab mgmt CIDR → `groups/*.env` TARGETS, run discovery, reload collectors (`make snmp-discover`)
+- `update-snmp-targets.sh` — clab IPAM subnet → TARGETS + `make generate` (called by sync-snmp-discovery)
 - `update-topology-targets.sh` — rewrite topology-exporter `host:` lines + sync `tester_id`
 - `netbox-bootstrap.sh` / `make netbox-sync` / `make netbox-sync-mgmt` — populate NetBox Cloud + mgmt IPs for SNMP discovery
 - `lab-path.sh` / `sync-clab-workdir.sh` / `clab.sh` — ContainerLab deploy helpers (internal; operators should use a WSL ext4 clone, not `/mnt/c`)
@@ -37,7 +38,7 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 - `staggered-up.sh` — default `make up` path: fabric nodes then collectors one-by-one (`LAB_STAGGER_SECS`, logs RAM)
 - `stabilize-lab.sh` / `make stabilize` — recover without `clab deploy --reconfigure` (start SRL, apply fabric, discover)
 - `snmp-check.sh` / `make snmp-check` — TARGETS vs live clab IPs, snmpget, devices yaml, poller logs, Grafana `kentik_snmp_*` (not `DeviceMetrics`)
-- `finish-bringup.sh` / `make snmp-recover` — after clab IP drift: refresh TARGETS → enable SNMP → discover → reload poller
+- `finish-bringup.sh` / `make snmp-recover` — after clab IP drift: enable SNMP → `sync-snmp-discovery.sh`
 - `finish-flows.sh` / `make finish-flows` — EVPN check, softflowd, traffic, verify `network_io_by_flow_bytes` in Grafana
 - `lab-log.sh` / `lab-log-status` / `lab-log-events` — audit trail in `state/lab-actions.log` + `docker-events.log` (container die/stop correlation)
 - `enable-snmp-srl.sh` — restore SNMP on mgmt NI: delete clab `SNMPv2-RO-Community`, set `ag1` + `community-entry ce1 community public` (used by `fabric-apply` and recovery)
