@@ -77,7 +77,8 @@ See also: [`grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) in th
 
 This repo's local lab uses the same skills with extra helpers under `local/`:
 
-- Live dashboard pulls: `make -C local dash-live-sync`
+- Dashboard JSON: [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` (push: `python3 scripts/push-dashboards.py`)
+- Lab drift check: `make -C local dash-live-sync` · push: `make -C local dash-push`
 - SNMP profiles: `local/snmp-profiles/`
 - Operator PromQL notes: `local/docs/dashboard-query-lessons.md`
 

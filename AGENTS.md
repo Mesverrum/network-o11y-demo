@@ -321,16 +321,14 @@ gcx --context <stack> --agent dashboards get <uid> -o json \
   | jq '.spec.layout.kind'    # expect "TabsLayout" when started as TabsLayout
 ```
 
-**marcnetterfield1 ktranslate set** (`local/.dash-payloads/marcnetterfield-live/`, gitignored):
+**KtransToGrafana dashboards (00–04):** JSON source of truth is **[KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/`** (`KTRANS_UPSTREAM` in `local/.env`, default `../KtransToGrafana`). Push to Grafana Cloud: `make -C local dash-push`. Drift check vs live stack: `make -C local dash-live-sync` (writes `local/.dash-payloads/marcnetterfield-live/`, gitignored).
 
 ```bash
-# Pull all 00–04 + refresh agent docs (after UI/Assistant edits)
-python3 local/scripts/sync-ktranslate-dashboards-live.py --pull
+# Drift check (optional — after UI/Assistant edits on the stack)
+make -C local dash-live-sync
 
-# Manifests only
-python3 local/scripts/reorganize-marcnetterfield-dashboards.py pull
-python3 local/scripts/reorganize-marcnetterfield-dashboards.py plan    # stage + inspect reorg/
-python3 local/scripts/reorganize-marcnetterfield-dashboards.py apply --delete-legacy
+# Push upstream JSON to stack (v2 API — preserves TabsLayout)
+make -C local dash-push
 ```
 
 Committed agent references: `docs/grafana-network-dashboard-design-patterns.md`, `docs/grafana-network-dashboard-expand-hardware.md`, `docs/grafana-network-dashboard-skills-README.md` (portable — recommend for any stack); `local/docs/dashboard-query-lessons.md`, `local/docs/ktranslate-dashboard-live-snapshot.md` (this lab).
@@ -365,7 +363,7 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 
 **MCP note:** prefer read-only MCP (`get_dashboard_summary`, PromQL) for verification. For writes on tabbed v2 dashboards, use **gcx v2** until you have confirmed your MCP `patch_dashboard` / `update_dashboard` path preserves `TabsLayout` (legacy-shaped payloads are unsafe).
 
-**Grafana Assistant:** `gcx login` then `gcx assistant dashboard "…"` or GUI Assistant for dashboard design. Requires OAuth — not the SA token in `.env`. After Assistant edits, run `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull` (all ktranslate boards) or `download-flow-dashboard.py` (flow only).
+**Grafana Assistant:** `gcx login` then `gcx assistant dashboard "…"` or GUI Assistant for dashboard design. Requires OAuth — not the SA token in `.env`. After Assistant edits, copy changes into **KtransToGrafana** `dashboards/` (or run `make -C local dash-live-sync` to detect drift), then `make -C local dash-push`.
 
 **Flow Summary (`ktranslate-flow-summary`):** RowsLayout; live JSON in `.dash-payloads/marcnetterfield-live/`. Use `max_over_time` on `network_io_by_flow_bytes` (not `rate()`). Keep IP + `src_host`/`dst_host` in group-by; country panels must match geomap filters (`network_peer_country!~"Private IP|undefined"`). North-south geomap traffic: client mgmt `172.20.20.*` + `make internet-probes`. Full playbook: [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md) § Grafana Assistant · § Flow Summary dashboard.
 
@@ -425,7 +423,7 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 
 | Stream | PromQL / check |
 |--------|----------------|
-| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. Alloy stamps `site` (`hq` on laptop; `hq`/`branch1`/`branch2` colocated) and `device_role` (`spine`/`leaf`/`branch-edge`) on `kentik_snmp_*`. |
+| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. Each poller stamps **`snmp_group`** (from `GROUP=` in `groups/*.env` via `global.user_tags`) on all SNMP series from that credential group. Alloy stamps `site` (`hq` on laptop; `hq`/`branch1`/`branch2` colocated) and `device_role` (`spine`/`leaf`/`branch-edge`) on `kentik_snmp_*`. Deeper inventory → NetBox / CMDB, not hand-edited device YAML. |
 | NetFlow | `count(network_io_by_flow_bytes)`; throughput `sum(network_io_by_flow_bytes) * 8 / 60` — **not** `rate(network_io_by_flow[…])` |
 | Syslog | OTLP logs via ktranslate `--tee_logs` (`service_name` ≈ `ktranslate`, `tags.container_service=syslog`) |
 | Docker stdout | Alloy `loki.source.docker` → OTLP (`collector=docker`, `service_name` = container: `topology_exporter`, `spine1`, …). ktranslate containers skipped (already teed) |
@@ -450,7 +448,7 @@ Topology dashboards (adapted for this lab):
 
 JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-join-demo.json`, `local/.dash-payloads/ktranslate-import/lab-ktranslate-flow.json`. Skip `topology-schedule` (long-running mutator harness only).
 
-**Ktranslate dashboards (marcnetterfield1 / Network Lab folder):** friendly UIDs, numbered 00–04. **Playbook:** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md). Re-pull and re-apply: `python3 local/scripts/reorganize-marcnetterfield-dashboards.py pull|plan|apply` (v2 API — preserves `TabsLayout`).
+**Ktranslate dashboards (marcnetterfield1 / Network Lab folder):** friendly UIDs, numbered 00–04. **Source of truth:** KtransToGrafana `dashboards/`. **Playbook:** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md). Push: `make -C local dash-push`. Drift check: `make -C local dash-live-sync`.
 
 | # | UID | Title |
 |---|-----|-------|

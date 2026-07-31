@@ -333,8 +333,12 @@ flow-dashboard-download: ## Download live ktranslate-flow-summary v2 manifest fr
 	python3 $(ROOT)scripts/download-flow-dashboard.py
 
 .PHONY: dash-live-sync
-dash-live-sync: ## Pull all ktranslate dashboards 00–04 + refresh agent docs
+dash-live-sync: ## Pull ktranslate dashboards from GC + drift check vs KtransToGrafana
 	python3 $(ROOT)scripts/sync-ktranslate-dashboards-live.py --pull
+
+.PHONY: dash-push
+dash-push: ## Push KtransToGrafana dashboards/ to Grafana Cloud (v2 API)
+	python3 $(ROOT)scripts/push-ktranslate-dashboards.py
 
 .PHONY: verify-flow-countries
 verify-flow-countries: ## List public network_peer_country values in flow metrics

@@ -2,6 +2,8 @@
 """Analyze pulled ktranslate dashboards and write agent reference docs.
 
 Reads local/.dash-payloads/marcnetterfield-live/*.json (from reorganize pull).
+Dashboard JSON source of truth: KtransToGrafana repo (KTRANS_UPSTREAM).
+
 Writes:
   - local/docs/ktranslate-dashboard-live-snapshot.md  (full per-dashboard inventory)
   - local/docs/dashboard-query-lessons.md             (operator patterns, refreshed)
@@ -22,9 +24,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ktranslate_upstream import DASHBOARD_FILES, dashboard_dir, resolve_upstream
+
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / ".dash-payloads" / "marcnetterfield-live"
-EXPORT = ROOT / "dashboards" / "ktranslate"
 SNAPSHOT = ROOT / "docs" / "ktranslate-dashboard-live-snapshot.md"
 LESSONS = ROOT / "docs" / "dashboard-query-lessons.md"
 
@@ -36,14 +39,8 @@ CATALOG = [
     ("ktranslate-device-details", "04. Network Device Details", "TabsLayout"),
 ]
 
-# Committed export filenames (match KtransToGrafana dashboards/ naming)
-EXPORT_NAMES = {
-    "ktranslate-architecture": "00 Ktranslate Architecture.json",
-    "ktranslate-health": "01 Ktranslate Health.json",
-    "ktranslate-flow-summary": "02 Network Flow Summary.json",
-    "ktranslate-device-summary": "03 Network Device Summary.json",
-    "ktranslate-device-details": "04 Network Device Details.json",
-}
+# Filenames in KtransToGrafana dashboards/
+EXPORT_NAMES = DASHBOARD_FILES
 
 
 def norm(expr: str) -> str:
@@ -258,9 +255,10 @@ def build_lessons(analyses: list[dict]) -> str:
 
     lines = [
         "# Dashboard query & UI lessons (agent notes)\n",
-        f"\n**Source of truth:** live pulls in `local/.dash-payloads/marcnetterfield-live/` "
-        f"(refreshed {now}). Committed exports: `local/dashboards/ktranslate/`. "
-        f"Re-sync: `make -C local dash-live-sync`.\n",
+        f"\n**Dashboard JSON:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` "
+        f"(set `KTRANS_UPSTREAM` in `local/.env` if not `../KtransToGrafana`). "
+        f"**Live drift check:** `local/.dash-payloads/marcnetterfield-live/` (refreshed {now}). "
+        f"Re-pull: `make -C local dash-live-sync`. Push to stack: `make -C local dash-push`.\n",
         "\nCompared prior agent patches vs operator/Assistant edits on all five ktranslate dashboards (00–04).\n",
         "\n## Operator patterns — always use these\n\n",
         "| Topic | Use | Do not use |\n",
@@ -378,19 +376,35 @@ def sanitize_manifest(manifest: dict) -> dict:
     return out
 
 
-def export_dashboards() -> list[tuple[str, Path]]:
-    """Write sanitized v2 manifests to local/dashboards/ktranslate/ (git-tracked)."""
-    EXPORT.mkdir(parents=True, exist_ok=True)
-    written: list[tuple[str, Path]] = []
-    for uid, _title, _layout in CATALOG:
-        src = LIVE / f"{uid}.json"
-        if not src.is_file():
-            raise FileNotFoundError(f"missing pulled dashboard: {src}")
-        manifest = sanitize_manifest(json.loads(src.read_text(encoding="utf-8")))
-        dest = EXPORT / EXPORT_NAMES[uid]
-        dest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        written.append((uid, dest))
-    return written
+def compare_upstream_drift() -> list[dict]:
+    """Report whether live Grafana manifests differ from KtransToGrafana dashboards/."""
+    upstream = resolve_upstream()
+    dash_dir = dashboard_dir()
+    rows: list[dict] = []
+    for uid, filename in EXPORT_NAMES.items():
+        live_path = LIVE / f"{uid}.json"
+        upstream_path = dash_dir / filename
+        row = {
+            "uid": uid,
+            "upstream": str(upstream_path),
+            "live": str(live_path),
+            "status": "missing-live",
+        }
+        if not live_path.is_file():
+            rows.append(row)
+            continue
+        if not upstream_path.is_file():
+            row["status"] = "missing-upstream"
+            rows.append(row)
+            continue
+        live = sanitize_manifest(json.loads(live_path.read_text(encoding="utf-8")))
+        upstream_manifest = sanitize_manifest(json.loads(upstream_path.read_text(encoding="utf-8")))
+        if live == upstream_manifest:
+            row["status"] = "in-sync"
+        else:
+            row["status"] = "drift"
+        rows.append(row)
+    return rows
 
 
 def analyze_all() -> list[dict]:
@@ -436,13 +450,20 @@ def main() -> int:
     SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
     SNAPSHOT.write_text(build_snapshot(analyses), encoding="utf-8")
     LESSONS.write_text(build_lessons(analyses), encoding="utf-8")
-    exported = export_dashboards()
+    drift = compare_upstream_drift()
 
     print(f"Wrote {SNAPSHOT}")
     print(f"Wrote {LESSONS}")
-    print(f"Exported {len(exported)} dashboards to {EXPORT}")
-    for uid, path in exported:
-        print(f"  {uid} -> {path.name}")
+    upstream = resolve_upstream()
+    print(f"Dashboard source of truth: {upstream / 'dashboards'}")
+    for row in drift:
+        print(f"  {row['uid']}: {row['status']}")
+    drifted = [r for r in drift if r["status"] == "drift"]
+    if drifted:
+        print(
+            f"WARNING: {len(drifted)} dashboard(s) differ from KtransToGrafana — "
+            "edit upstream, then `make -C local dash-push`"
+        )
     for a in analyses:
         print(f"  {a['uid']}: gen={a['generation']} queries={a['query_count']} layout={a['layout']}")
     return 0

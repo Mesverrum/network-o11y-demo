@@ -14,13 +14,21 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 _reload_k3s_collectors() {
   export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+  # shellcheck source=snmp-group-utils.sh
+  source "${REPO_ROOT}/scripts/snmp-group-utils.sh"
   if ! kubectl get namespace network-lab >/dev/null 2>&1; then
     echo "network-lab namespace not found; k3s reload skipped" >&2
     return 1
   fi
   bash "${REPO_ROOT}/scripts/refresh-flow-dns.sh"
   local dep restarted=0
-  for dep in ktranslate-snmp-srl ktranslate-flow ktranslate-sflow ktranslate-syslog; do
+  while IFS= read -r dep; do
+    if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
+      kubectl -n network-lab rollout restart "deployment/${dep}"
+      restarted=1
+    fi
+  done < <(k8s_snmp_deployment_names "${REPO_ROOT}")
+  for dep in ktranslate-flow ktranslate-sflow ktranslate-syslog; do
     if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
       kubectl -n network-lab rollout restart "deployment/${dep}"
       restarted=1

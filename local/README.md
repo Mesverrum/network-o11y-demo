@@ -147,7 +147,7 @@ topk(20, network_io_by_flow_bytes)
 
 **Flow dashboard** (ktranslate NetFlow/sFlow): UID `lab-ktranslate-flow` in folder `network-lab`. Panels use `network_io_by_flow_bytes` with exporter/src/dst/protocol variables (same layout as marcnetterfield1 **02. Network Flow Summary**, UID `ktranslate-flow-summary`). Rebuild/import: `python3 scripts/build-ktranslate-flow-dashboard.py` then `python3 scripts/import-ktranslate-flow-dashboard.py` (`gcx --context networko11ydev` preferred).
 
-**Grafana dashboard edits (v2 / TabsLayout):** see [`docs/grafana-network-dashboard-skills-README.md`](../docs/grafana-network-dashboard-skills-README.md) for portable Assistant skills (recommend to any ktranslate stack). Lab pulls: `make -C local dash-live-sync`. PromQL notes: `local/docs/dashboard-query-lessons.md`. Playbook: [`docs/grafana-dashboard-playbook.md`](../docs/grafana-dashboard-playbook.md).
+**Grafana dashboard edits (v2 / TabsLayout):** edit in **[KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/`**; push with `make -C local dash-push`; drift check `make -C local dash-live-sync`. Skills: [`docs/grafana-network-dashboard-skills-README.md`](../docs/grafana-network-dashboard-skills-README.md). PromQL notes: `local/docs/dashboard-query-lessons.md`. Playbook: [`docs/grafana-dashboard-playbook.md`](../docs/grafana-dashboard-playbook.md).
 
 **Sanity-check flow counting** (series count + byte rates vs known lab traffic):
 
@@ -214,7 +214,8 @@ make topology-up
 | `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP (**on by default** after `make up`; `LAB_AUTO_TRAFFIC=0` to skip) |
 | `make north-south-flows` | re-apply dual softflowd (eth0 mgmt + eth1 EVPN) + internet probes on a **running** lab |
 | `make internet-probes` / `internet-probes-stop` / `internet-probes-status` | HTTPS probes via client mgmt eth0 for **geomap** `network_peer_country` (**on by default**; targets in `fixtures/internet-probe-targets.txt`; `LAB_AUTO_INTERNET_PROBES=0` to skip) |
-| `make -C local dash-live-sync` | pull all ktranslate dashboards 00–04 + refresh `local/docs/dashboard-query-lessons.md` |
+| `make -C local dash-push` | push KtransToGrafana `dashboards/` to Grafana Cloud (v2 API) |
+| `make -C local dash-live-sync` | pull live 00–04 + drift check vs KtransToGrafana + refresh `local/docs/dashboard-query-lessons.md` |
 | `python3 scripts/download-flow-dashboard.py` | pull live `ktranslate-flow-summary` v2 manifest into `.dash-payloads/marcnetterfield-live/` |
 | `python3 scripts/patch-flow-dashboard-sections.py` | add/fix Country Breakdown + Transport & Ports rows (`--fix-country`) |
 | `python3 scripts/patch-ktranslate-flow-dashboard.py` | hostname + IP labels on flow endpoint panels |

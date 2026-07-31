@@ -104,11 +104,33 @@ def ktranslate_state_mount() -> str:
               readOnly: true"""
 
 
-def snmp_deployments(groups: list[tuple[str, str]], host: str) -> str:
+def load_group_listener_ports() -> dict[str, tuple[int, int]]:
+    ports: dict[str, tuple[int, int]] = {}
+    for env in sorted((LOCAL / "groups").glob("*.env")):
+        group = metal = trap = None
+        for line in env.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("GROUP="):
+                group = line.split("=", 1)[1].strip()
+            elif line.startswith("METALISTEN_PORT="):
+                metal = int(line.split("=", 1)[1].strip())
+            elif line.startswith("TRAP_PORT="):
+                trap = int(line.split("=", 1)[1].strip())
+        if group and metal is not None and trap is not None:
+            ports[group] = (metal, trap)
+    return ports
+
+
+def snmp_deployments(
+    groups: list[tuple[str, str]], host: str, listener_ports: dict[str, tuple[int, int]]
+) -> str:
     docs: list[str] = []
     for group, _ in groups:
         name = f"ktranslate-snmp-{group}"
         svc = f"snmp-{group}"
+        metal, trap = listener_ports.get(group, (9997, 1620))
         docs.append(
             f"""
 apiVersion: apps/v1
@@ -141,7 +163,7 @@ spec:
             - --otel.protocol=grpc
             - --otel.endpoint=http://127.0.0.1:4317/
             - --snmp=/etc/ktranslate/poller.yaml
-            - --metalisten=0.0.0.0:9997
+            - --metalisten=0.0.0.0:{metal}
             - --sinks=otel
             - --metrics=jchf
             - --tee_logs=true
@@ -149,10 +171,10 @@ spec:
             - --max_flows_per_message=100
           ports:
             - name: traps
-              containerPort: 1620
+              containerPort: {trap}
               protocol: UDP
             - name: meta
-              containerPort: 9997
+              containerPort: {metal}
               protocol: TCP
           securityContext:
             capabilities:
@@ -396,6 +418,7 @@ def main() -> int:
     run_generate_groups()
     host = load_ktrans_host()
     groups = load_poller_configs()
+    listener_ports = load_group_listener_ports()
     catalog_path = LOCAL / "config" / "catalog.yaml"
     if not catalog_path.exists():
         raise SystemExit(f"missing {catalog_path}")
@@ -487,7 +510,7 @@ data:
     )
 
     write_manifest("ktranslate-poller-configmaps.yaml", poller_configmaps(groups), args.dry_run)
-    write_manifest("ktranslate-snmp.yaml", snmp_deployments(groups, host), args.dry_run)
+    write_manifest("ktranslate-snmp.yaml", snmp_deployments(groups, host, listener_ports), args.dry_run)
     write_manifest(
         "ktranslate-flow.yaml",
         flow_collector("ktranslate-flow", "flow", host, 9995, "netflow9", 9996, ["--dns=127.0.0.1:53"]),

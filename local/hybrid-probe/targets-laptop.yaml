@@ -1,0 +1,18 @@
+# Laptop → AWS mesh (edit callback_url when running aws-lab-probe on EC2 hosts)
+agent_id: laptop-marc
+region: local
+interval_sec: 30
+
+targets:
+  - name: alb-akc
+    url: http://AKC-ALB-1036936801.us-east-1.elb.amazonaws.com/
+    type: alb
+    direction: laptop_to_aws
+  - name: alb-ecs-demo
+    url: http://ecs-demo-alb-536646715.us-east-1.elb.amazonaws.com/
+    type: alb
+    direction: laptop_to_aws
+  - name: aws-internet-baseline
+    url: https://aws.amazon.com/
+    type: internet
+    direction: laptop_to_aws

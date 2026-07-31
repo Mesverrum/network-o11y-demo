@@ -1,0 +1,2 @@
+# stdlib + PyYAML only (OTLP via JSON HTTP)
+pyyaml>=6.0.1

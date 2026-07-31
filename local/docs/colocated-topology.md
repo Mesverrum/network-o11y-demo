@@ -35,7 +35,19 @@ Or rely on `colocated-fabric-bringup.sh` / systemd on AWS.
 | `tester_id` | `LAB_TESTER_ID` or `KTRANS_HOST` | e.g. `aws-colocated-lab` |
 | `deployment_host` | `KTRANS_HOST` | e.g. `aws-colocated-lab` |
 
-SNMP discovery still scans `172.20.20.0/24` (clab mgmt) — all five SRL nodes appear after `make snmp-discover`.
+SNMP discovery still scans per-group `TARGETS` (site-scoped `/32`s when `SITE=` is set in `groups/srl-*.env`) — all five SRL nodes appear after `make snmp-discover` / `make discover-all`.
+
+### Multi-group SNMP (colocated demo)
+
+Three credential groups → three SNMP pollers (KtransToGrafana pattern):
+
+| Group | `snmp_group` | Devices | Trap port |
+|-------|--------------|---------|-----------|
+| `srl-hq` | `srl-hq` | spine1, leaf1, leaf2 | 1620 |
+| `srl-branch1` | `srl-branch1` | leaf-br1 | 1621 |
+| `srl-branch2` | `srl-branch2` | leaf-br2 | 1622 |
+
+Install: `LAB_FABRIC_PROFILE=colocated bash scripts/colocated-snmp-groups.sh` (runs automatically on colocated telemetry bring-up).
 
 ## Talk track
 

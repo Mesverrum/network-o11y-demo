@@ -30,7 +30,14 @@ kubectl -n network-lab create secret generic grafana-cloud-credentials \
 
 kubectl apply -k "${K8S}"
 kubectl -n network-lab rollout status deployment/alloy --timeout=180s
-for dep in ktranslate-snmp-srl ktranslate-flow ktranslate-sflow ktranslate-syslog gnmic; do
+# shellcheck source=snmp-group-utils.sh
+source "${LOCAL}/scripts/snmp-group-utils.sh"
+while IFS= read -r dep; do
+  if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
+    kubectl -n network-lab rollout status "deployment/${dep}" --timeout=180s
+  fi
+done < <(k8s_snmp_deployment_names "${LOCAL}")
+for dep in ktranslate-flow ktranslate-sflow ktranslate-syslog gnmic; do
   if kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
     kubectl -n network-lab rollout status "deployment/${dep}" --timeout=180s
   fi

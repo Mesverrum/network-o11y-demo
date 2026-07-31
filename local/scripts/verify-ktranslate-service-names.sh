@@ -79,7 +79,20 @@ _check_otel_name() {
 
 if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]] || kubectl get namespace network-lab >/dev/null 2>&1; then
   export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
-  for dep in ktranslate-flow ktranslate-sflow ktranslate-syslog ktranslate-snmp-srl; do
+  # shellcheck source=snmp-group-utils.sh
+  source "${ROOT}/scripts/snmp-group-utils.sh"
+  while IFS= read -r dep; do
+    if ! kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
+      continue
+    fi
+    otel="$(kubectl -n network-lab get deployment "${dep}" -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="OTEL_SERVICE_NAME")].value}' 2>/dev/null || true)"
+    if [[ -z "${otel}" ]]; then
+      _fail "k3s deployment/${dep}: missing OTEL_SERVICE_NAME env"
+      continue
+    fi
+    _check_otel_name "k3s/${dep}" "${otel}" "$(_expected_suffix "${dep}")"
+  done < <(k8s_snmp_deployment_names "${ROOT}")
+  for dep in ktranslate-flow ktranslate-sflow ktranslate-syslog; do
     if ! kubectl -n network-lab get deployment "${dep}" >/dev/null 2>&1; then
       continue
     fi

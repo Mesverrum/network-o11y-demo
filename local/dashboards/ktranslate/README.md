@@ -1,8 +1,10 @@
 # ktranslate dashboards (00–04)
 
-Git-tracked **v2 manifests** synced from the live Grafana Cloud stack (marcnetterfield1 Network Lab folder). These are the canonical copies for agents and for mirroring into [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana).
+**Source of truth:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` — not this repo.
 
-| File | UID | Layout |
+Clone alongside `network-o11y-demo` (default path `../KtransToGrafana`) or set `KTRANS_UPSTREAM` in `local/.env`.
+
+| File (in KtransToGrafana) | UID | Layout |
 |------|-----|--------|
 | `00 Ktranslate Architecture.json` | `ktranslate-architecture` | GridLayout |
 | `01 Ktranslate Health.json` | `ktranslate-health` | TabsLayout |
@@ -10,27 +12,38 @@ Git-tracked **v2 manifests** synced from the live Grafana Cloud stack (marcnette
 | `03 Network Device Summary.json` | `ktranslate-device-summary` | TabsLayout |
 | `04 Network Device Details.json` | `ktranslate-device-details` | TabsLayout |
 
-## Refresh
+## Workflow
 
-Requires `GRAFANA_URL` + `GRAFANA_TOKEN` in `local/.env`:
+1. **Edit** dashboards in the KtransToGrafana checkout (commit/push there).
+2. **Push** to your Grafana Cloud stack:
+
+```bash
+make -C local dash-push
+```
+
+Requires `GRAFANA_URL` + `GRAFANA_TOKEN` in `local/.env`.
+
+3. **Drift check** (optional — compare live stack vs upstream):
 
 ```bash
 make -C local dash-live-sync
 ```
 
-Pulls live manifests → updates this folder → refreshes `local/docs/dashboard-query-lessons.md` and `local/docs/ktranslate-dashboard-live-snapshot.md`.
+Pulls live manifests into `local/.dash-payloads/marcnetterfield-live/` and reports `in-sync` / `drift` vs KtransToGrafana. Refreshes `local/docs/dashboard-query-lessons.md`.
 
 ## Import (v2 — preserves TabsLayout)
 
-Use gcx or HTTP v2 PUT — **not** legacy `POST /api/dashboards/db` on tabbed boards.
+From the KtransToGrafana repo:
 
 ```bash
 gcx --context <your-stack> --agent dashboards update ktranslate-device-details \
-  -f local/dashboards/ktranslate/04\ Network\ Device\ Details.json
+  -f dashboards/04\ Network\ Device\ Details.json
 ```
 
-Or import via Grafana UI: **Dashboards → New → Import** and paste JSON.
+Or: `python3 scripts/push-dashboards.py` with `GRAFANA_URL` / `GRAFANA_TOKEN` set.
+
+**Do not** use legacy `POST /api/dashboards/db` on tabbed v2 boards.
 
 ## Skills
 
-Dashboard design and hardware expansion guides: [`docs/grafana-network-dashboard-skills-README.md`](../../../docs/grafana-network-dashboard-skills-README.md).
+Dashboard design guides: KtransToGrafana `skills/` (mirrored from `docs/grafana-network-dashboard-*.md` via `local/scripts/mirror-skills-to-upstream.py`).
