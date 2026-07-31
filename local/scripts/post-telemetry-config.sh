@@ -7,7 +7,8 @@
 # Opt out via .env:
 #   LAB_AUTO_TRAFFIC=0           skip client UDP/ICMP workloads (flows need traffic for volume)
 #   LAB_AUTO_INTERNET_PROBES=0   skip occasional HTTPS to public sites (mgmt eth0)
-#   LAB_AUTO_EVENTS=0            skip background traps + link-flap syslog loop
+#   LAB_AUTO_EVENTS=0            skip background link-flap emit-events loop
+#   LAB_AUTO_SYNTHETIC_TRAPS=1     opt-in host snmptrap suite (default off; SRL sends real traps)
 
 set -euo pipefail
 
@@ -62,7 +63,7 @@ else
 fi
 
 if [[ "${LAB_AUTO_EVENTS:-1}" == "1" ]]; then
-  info "Starting events-loop (synthetic traps + link flaps for syslog/traps)..."
+  info "Starting events-loop (link flaps for real SRL traps/syslog; synthetic traps off unless LAB_AUTO_SYNTHETIC_TRAPS=1)..."
   bash "${ROOT}/scripts/events-loop.sh" start \
     || warn "events-loop failed — run: make events-loop"
 else

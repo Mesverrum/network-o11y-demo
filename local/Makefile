@@ -297,7 +297,7 @@ emit-events: ## Flap links to emit real SRL traps + syslog (configures destinati
 	bash $(ROOT)scripts/emit-events.sh
 
 .PHONY: events-loop
-events-loop: ## Background: synthetic traps every 3m + emit-events every 5m
+events-loop: ## Background: link-flap emit-events every 5m (set LAB_AUTO_SYNTHETIC_TRAPS=1 for snmptrap suite)
 	bash $(ROOT)scripts/events-loop.sh start
 
 .PHONY: events-stop

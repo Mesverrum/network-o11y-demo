@@ -38,6 +38,7 @@ KTRANSLATE_IMAGE=quay.io/kentik/ktranslate:latest
 GNMIC_IMAGE=ghcr.io/openconfig/gnmic:latest
 FLOW_DNS_UPSTREAM=169.254.169.253
 LAB_AUTO_INTERNET_PROBES=0
+LAB_AUTO_SYNTHETIC_TRAPS=0
 ENV
 chmod 0600 "$LAB_ROOT/.env"
 

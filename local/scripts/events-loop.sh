@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# events-loop.sh — background periodic synthetic traps + real SRL emit-events
+# events-loop.sh — background periodic link-flap emit-events (real SRL traps/syslog)
 #
 # Usage:
-#   ./scripts/events-loop.sh start    # daemonize both loops
+#   ./scripts/events-loop.sh start
 #   ./scripts/events-loop.sh stop
 #   ./scripts/events-loop.sh status
 #
 # Intervals (seconds), overridable via env:
-#   TRAPS_INTERVAL_SEC=180   # synthetic trap suite (default 3m)
 #   EMIT_INTERVAL_SEC=300    # real link flaps (default 5m)
+#   LAB_AUTO_SYNTHETIC_TRAPS=1  # opt-in: host snmptrap suite via trap-gen.sh (off by default)
 
 set -euo pipefail
 
@@ -20,6 +20,7 @@ PID_FILE="${STATE_DIR}/events-loop.pid"
 LOG_FILE="${STATE_DIR}/events-loop.log"
 TRAPS_INTERVAL_SEC="${TRAPS_INTERVAL_SEC:-180}"
 EMIT_INTERVAL_SEC="${EMIT_INTERVAL_SEC:-300}"
+LAB_AUTO_SYNTHETIC_TRAPS="${LAB_AUTO_SYNTHETIC_TRAPS:-0}"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -55,7 +56,11 @@ stop() {
 status() {
   if is_running; then
     echo "events-loop: running (pid $(cat "${PID_FILE}"))"
-    echo "  traps every ${TRAPS_INTERVAL_SEC}s, emit-events every ${EMIT_INTERVAL_SEC}s"
+    if [[ "${LAB_AUTO_SYNTHETIC_TRAPS}" == "1" ]]; then
+      echo "  synthetic traps every ${TRAPS_INTERVAL_SEC}s, emit-events every ${EMIT_INTERVAL_SEC}s"
+    else
+      echo "  emit-events every ${EMIT_INTERVAL_SEC}s (device traps only; no synthetic snmptrap)"
+    fi
     echo "  log: ${LOG_FILE}"
     tail -n 12 "${LOG_FILE}" 2>/dev/null | sed 's/^/  | /' || true
   else
@@ -66,23 +71,25 @@ status() {
 
 # Long-lived supervisor (invoked under setsid/nohup as `_run`).
 run_supervisor() {
-  echo "[$(date -Is)] events-loop-worker start traps=${TRAPS_INTERVAL_SEC}s emit=${EMIT_INTERVAL_SEC}s"
+  echo "[$(date -Is)] events-loop-worker start synthetic=${LAB_AUTO_SYNTHETIC_TRAPS} emit=${EMIT_INTERVAL_SEC}s"
 
   # Initial config + one flap cycle (best-effort; do not exit on failure)
   set +e
   ENSURE_CONFIG=1 bash "${ROOT}/scripts/emit-events.sh"
   echo "[$(date -Is)] initial emit-events exit=$?"
 
-  (
-    exec -a events-loop-worker-traps bash -c '
-      ROOT="$1"; INTERVAL="$2"
-      while true; do
-        echo "[$(date -Is)] trap suite"
-        bash "${ROOT}/scripts/trap-gen.sh" suite || echo "[$(date -Is)] WARN: trap suite failed"
-        sleep "${INTERVAL}"
-      done
-    ' _ "${ROOT}" "${TRAPS_INTERVAL_SEC}"
-  ) &
+  if [[ "${LAB_AUTO_SYNTHETIC_TRAPS}" == "1" ]]; then
+    (
+      exec -a events-loop-worker-traps bash -c '
+        ROOT="$1"; INTERVAL="$2"
+        while true; do
+          echo "[$(date -Is)] trap suite"
+          bash "${ROOT}/scripts/trap-gen.sh" suite || echo "[$(date -Is)] WARN: trap suite failed"
+          sleep "${INTERVAL}"
+        done
+      ' _ "${ROOT}" "${TRAPS_INTERVAL_SEC}"
+    ) &
+  fi
 
   (
     exec -a events-loop-worker-emit bash -c '
@@ -113,11 +120,12 @@ start() {
     die "SNMP collector not running (compose ktranslate_snmp_srl or k3s deployment/ktranslate-snmp-srl)"
   fi
 
-  info "Starting events-loop (traps every ${TRAPS_INTERVAL_SEC}s, emit every ${EMIT_INTERVAL_SEC}s)"
+  info "Starting events-loop (emit every ${EMIT_INTERVAL_SEC}s; synthetic traps=${LAB_AUTO_SYNTHETIC_TRAPS})"
   # New session + nohup so exiting make/wsl does not SIGHUP the loops.
   setsid nohup env \
     TRAPS_INTERVAL_SEC="${TRAPS_INTERVAL_SEC}" \
     EMIT_INTERVAL_SEC="${EMIT_INTERVAL_SEC}" \
+    LAB_AUTO_SYNTHETIC_TRAPS="${LAB_AUTO_SYNTHETIC_TRAPS}" \
     COLLECTOR_RUNTIME="${COLLECTOR_RUNTIME:-}" \
     KTRANSLATE_CLAB_HOST="${KTRANSLATE_CLAB_HOST:-}" \
     CLAB_NETWORK="${CLAB_NETWORK:-clab}" \
@@ -137,7 +145,8 @@ case "${1:-}" in
   *)
     cat <<EOF
 Usage: $0 {start|stop|status}
-  TRAPS_INTERVAL_SEC=${TRAPS_INTERVAL_SEC}  EMIT_INTERVAL_SEC=${EMIT_INTERVAL_SEC}
+  LAB_AUTO_SYNTHETIC_TRAPS=${LAB_AUTO_SYNTHETIC_TRAPS}  EMIT_INTERVAL_SEC=${EMIT_INTERVAL_SEC}
+  TRAPS_INTERVAL_SEC=${TRAPS_INTERVAL_SEC}  (only when LAB_AUTO_SYNTHETIC_TRAPS=1)
 EOF
     exit 1
     ;;
