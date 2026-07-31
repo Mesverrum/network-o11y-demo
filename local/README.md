@@ -235,7 +235,9 @@ make topology-up
 - Flow rollups + Alloy preprocess match the official Grafana Cloud
   **ktranslate-netflow** integration: flow rollups use metric `network_io_by_flow` + datapoint label `integration=ktranslate-netflow` (CHF/logs keep `ktranslate-*` service names).
 - Add another credential group by copying `groups/srl.env.sample` →
-  `groups/<name>.env`, assigning unique ports, then `make generate && make up && make discover GROUP=<name>`.
+  `groups/<name>.env`, assigning unique `METALISTEN_PORT` / `TRAP_PORT`, then `make generate && make up && make discover GROUP=<name>`.
+  `GROUP=` becomes **`tags_snmp_group`** on SNMP metrics (poller `global.user_tags`).
+  Colocated EC2 uses `srl-hq`, `srl-branch1`, `srl-branch2` samples — see [`docs/colocated-topology.md`](docs/colocated-topology.md).
 
 Upstream docs: [KtransToGrafana README](https://github.com/Mesverrum/KtransToGrafana) ·
 [configuration](https://github.com/Mesverrum/KtransToGrafana/blob/main/docs/configuration.md) ·

@@ -423,7 +423,7 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 
 | Stream | PromQL / check |
 |--------|----------------|
-| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. Each poller stamps **`snmp_group`** (from `GROUP=` in `groups/*.env` via `global.user_tags`) on all SNMP series from that credential group. Alloy stamps `site` (`hq` on laptop; `hq`/`branch1`/`branch2` colocated) and `device_role` (`spine`/`leaf`/`branch-edge`) on `kentik_snmp_*`. Deeper inventory → NetBox / CMDB, not hand-edited device YAML. |
+| SNMP | `count by (device_name) (kentik_snmp_CPU)` → spine1, leaf1, leaf2; `count({__name__=~"kentik_snmp.*"})` for volume. **Not** `kentik_snmp_DeviceMetrics`. Each poller stamps **`tags_snmp_group`** (from `GROUP=` in `groups/*.env` via `global.user_tags.snmp_group`; filter with `tags_snmp_group=~"$snmp_group"` on dashboards). Alloy may also stamp `site` (`hq` on laptop; `hq`/`branch1`/`branch2` colocated) and `device_role` (`spine`/`leaf`/`branch-edge`) on `kentik_snmp_*`. Deeper inventory → NetBox / CMDB, not hand-edited device YAML. |
 | NetFlow | `count(network_io_by_flow_bytes)`; throughput `sum(network_io_by_flow_bytes) * 8 / 60` — **not** `rate(network_io_by_flow[…])` |
 | Syslog | OTLP logs via ktranslate `--tee_logs` (`service_name` ≈ `ktranslate`, `tags.container_service=syslog`) |
 | Docker stdout | Alloy `loki.source.docker` → OTLP (`collector=docker`, `service_name` = container: `topology_exporter`, `spine1`, …). ktranslate containers skipped (already teed) |

@@ -21,6 +21,8 @@ Reduced Clos: **1 spine, 2 leaves, 2 clients** — Docker + ContainerLab + Compo
 
 ### One-click (recommended)
 
+`oneclick/` is the **top-level orchestrator** — it asks **local laptop lab** vs **AWS/EKS** and remembers your choice. Local path runs ContainerLab + ktranslate under `local/`; AWS path runs `make infra` + `make all`.
+
 | OS | Command |
 |----|---------|
 | **Windows** | `.\oneclick\deploy.ps1` (PowerShell; needs WSL2 + Docker Desktop) |
@@ -132,18 +134,20 @@ Posts **3–6** map to `make post-03` … `make post-06` / `make all` on the AWS
 
 ```
 .
-├── oneclick/          One-click deploy/teardown (Windows / macOS / Linux)
+├── oneclick/          One-click deploy/teardown (local laptop or AWS/EKS — interactive)
 ├── local/             Laptop lab (ContainerLab + ktranslate golden path)
 ├── blog/              Series drafts (posts 1–7) + blog-series-overview.md
-├── docs/              Primer, architecture notes, Grafana dashboard playbook, macOS OrbStack guide
+├── docs/              Primer, ktranslate model, Grafana dashboard playbook
 ├── k8s/               EKS manifests (topology, telemetry, NetBox, reconciler)
-├── terraform/         AWS VPC + EKS + bastion
-├── grafana/           Dashboard JSON + provisioning scripts
+├── terraform/         AWS VPC + EKS + bastion + colocated-network-lab
+├── grafana/           Dashboard JSON + provisioning scripts (EKS/blog set)
 ├── ansible/           Playbooks (EKS runner pod)
 ├── scripts/           access.sh, traffic.sh, fix-networking.sh, deploy-*.sh
 ├── AGENTS.md          Agent playbook + dashboard patch rules
 └── Makefile           make deploy, post-03…06, local-up/down
 ```
+
+**Ktranslate dashboards 00–04:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` (not in this repo).
 
 ---
 
@@ -156,10 +160,18 @@ Posts **3–6** map to `make post-03` … `make post-06` / `make all` on the AWS
 | Ansible backup/drift | — | ✓ |
 | Topology exporter | ✓ | — |
 
-Architecture deep-dive (optional): [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md). **Grafana dashboard patches (TabsLayout-safe):** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md).
+Architecture deep-dive: [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md). **Ktranslate dashboards (00–04):** source of truth is **[KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/`** — push with `make -C local dash-push`, drift-check with `make -C local dash-live-sync`. **Grafana dashboard patches (TabsLayout-safe):** [`docs/grafana-dashboard-playbook.md`](docs/grafana-dashboard-playbook.md).
 
 ---
 
-## Grafana dashboards (EKS set)
+## Grafana dashboards
 
-Network Topology, Interface Health, BGP Session Status, NetFlow / Traffic Flows, Device Inventory, Device Details — under `grafana/dashboards/`. Local lab uses adapted UIDs in Grafana folder `network-lab`; see `local/README.md` and `AGENTS.md`.
+| Set | Location | Use |
+|-----|----------|-----|
+| **Ktranslate 00–04** (SNMP, flow, health) | [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) | Golden-path fleet boards; edit upstream, push to your stack |
+| **Lab-specific** (topology, join demo, flow lab UID) | `local/.dash-payloads/`, `local/dashboards/` | Adapted for this demo's UIDs (`lab-*`) |
+| **EKS / blog set** | `grafana/dashboards/` | AWS integrations path (`integrations/snmp`, gNMI) |
+
+**SNMP credential groups** stamp **`tags_snmp_group`** on metrics (from `GROUP=` in `groups/*.env` via poller `global.user_tags`). Filter fleet dashboards with `$snmp_group` / `tags_snmp_group=~"$snmp_group"`. Laptop default: one group `srl`. Colocated EC2: `srl-hq`, `srl-branch1`, `srl-branch2` — see [`local/docs/colocated-topology.md`](local/docs/colocated-topology.md).
+
+**Workflow:** edit JSON in KtransToGrafana → `make -C local dash-push` (needs `GRAFANA_URL` + `GRAFANA_TOKEN` in `local/.env`, clone at `../KtransToGrafana` or set `KTRANS_UPSTREAM`). Details: [`local/dashboards/ktranslate/README.md`](local/dashboards/ktranslate/README.md), [`AGENTS.md`](AGENTS.md).

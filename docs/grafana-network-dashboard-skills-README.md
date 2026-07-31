@@ -20,6 +20,7 @@ Imported dashboards may name the device selector differently. **Do not hardcode 
 
 | Role | Label in PromQL | Common variable names |
 |------|-----------------|-------------------------|
+| Credential group | `tags_snmp_group` | `$snmp_group` (dashboard variable; filters `tags_snmp_group=~"$snmp_group"`) |
 | Single device (Device Details) | `device_name` | `$instance`, `$device`, `$device_name` |
 | Fleet filter (Device Summary) | `device_name` + often `provider` | `$device_name`, `$provider` |
 | Interface drill-down | `if_interface_name` | `$interface_name`, `$interface` |
@@ -64,7 +65,7 @@ Adjust `/ 60` if your poll interval is not 60 seconds (`poll_time_sec` in ktrans
 1. Copy the markdown body of each skill file (below the title) into a new **Assistant skill** on your stack.
 2. Name them: `Network Dashboard — Design Patterns` and `Network Dashboard — Expanding for New Hardware`.
 3. Cross-reference: the expand skill should point assistants at the design patterns skill.
-4. After UI edits to dashboards, re-export manifests (gcx v2 or HTTP GET) — do not rely on stale JSON.
+4. After UI edits to dashboards, merge changes into [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) and push — do not rely on stale JSON in this repo.
 
 ## Safe dashboard edits (v2 TabsLayout)
 

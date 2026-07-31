@@ -2,31 +2,30 @@
 
 Operators and agents patching **Grafana Cloud v2** dashboards (especially tabbed ktranslate boards). Read this before any dashboard write.
 
-**Related:** [`AGENTS.md`](../AGENTS.md) → *Grafana dashboard updates* · [`grafana-network-dashboard-skills-README.md`](grafana-network-dashboard-skills-README.md) (portable Assistant skills) · [`local/docs/dashboard-query-lessons.md`](../local/docs/dashboard-query-lessons.md) (lab PromQL notes) · scripts under `local/scripts/`.
+**Related:** [`AGENTS.md`](../AGENTS.md) → *Grafana dashboard updates* · [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) (source of truth for 00–04) · [`grafana-network-dashboard-skills-README.md`](grafana-network-dashboard-skills-README.md) (portable Assistant skills) · [`local/docs/dashboard-query-lessons.md`](../local/docs/dashboard-query-lessons.md) (lab PromQL notes) · scripts under `local/scripts/`.
 
 ---
 
-## Rule zero: pull live before you edit
+## Rule zero: KtransToGrafana is source of truth (00–04)
 
-**Never** start from a stale file in `local/.dash-payloads/`, an old patch script output, or repo-exported JSON. The live stack (often after Grafana Assistant fixes) is the source of truth.
+**Ktranslate dashboards 00–04** live in **[KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards)** — not in `network-o11y-demo`. This repo does not commit those JSON files.
+
+| Step | Command |
+|------|---------|
+| Edit | Change manifests in your KtransToGrafana checkout (`KTRANS_UPSTREAM` in `local/.env`, default `../KtransToGrafana`) |
+| Push to stack | `make -C local dash-push` (or `python3 scripts/push-dashboards.py` inside KtransToGrafana) |
+| Drift check | `make -C local dash-live-sync` — compares live Grafana vs upstream; refreshes `local/docs/dashboard-query-lessons.md` |
+
+After Grafana Assistant edits on a live stack: port changes back into **KtransToGrafana**, then push. Use `dash-live-sync` to see what drifted.
+
+**Lab-only dashboards** (`lab-ktranslate-flow`, topology, join demo) still use `local/.dash-payloads/` and their import scripts — pull live with `download-flow-dashboard.py` or gcx when patching those UIDs.
+
+For ad-hoc edits without committing upstream, pull live first:
 
 ```bash
-# 1) Pull (note generation)
 gcx --context <stack> --agent dashboards get <uid> -o json > /tmp/dash-live.json
-# or HTTP v2 GET with GRAFANA_URL + GRAFANA_TOKEN (see § HTTP v2 API)
-
-# 2) Edit pulled manifest only (spec.elements[*] for TabsLayout)
-
-# 3) PUT with resourceVersion from GET
-
-# 4) Verify layout kind unchanged
-jq '.spec.layout.kind' /tmp/dash-live.json
-
-# 5) Before updating a patch script, diff live vs local payload
-python3 local/scripts/_compare-dashboard-live.py
+# edit spec.elements[*] for TabsLayout — then merge into KtransToGrafana dashboards/ and push
 ```
-
-Patch scripts that already GET live on each run (e.g. `patch-device-summary-tabs.py`) are OK for **push** — but when **changing the script's hardcoded queries**, pull live first and merge operator patterns from `dashboard-query-lessons.md`.
 
 ---
 
@@ -283,12 +282,14 @@ gcx assistant prompt "Continue: add drill-down links on the country table" --con
 | Pull live manifest to git | `download-flow-dashboard.py` or `reorganize-marcnetterfield-dashboards.py pull` |
 | Idempotent row from a script | `patch-flow-dashboard-sections.py` (then UI spot-check) |
 
-After Assistant edits: **pull** the manifest back into the repo so agents do not fight live state:
+After Assistant edits: merge changes into **KtransToGrafana `dashboards/`**, then push:
 
 ```bash
-python3 local/scripts/sync-ktranslate-dashboards-live.py --pull   # all 00–04 + agent docs
-# or flow only:
-python3 local/scripts/download-flow-dashboard.py   # → .dash-payloads/marcnetterfield-live/ktranslate-flow-summary.json
+make -C local dash-live-sync    # optional: see drift vs live stack
+make -C local dash-push         # push upstream JSON to Grafana Cloud
+
+# Lab flow UID only (not in KtransToGrafana 00–04 set):
+python3 local/scripts/download-flow-dashboard.py
 ```
 
 ---

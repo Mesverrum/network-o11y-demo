@@ -23,7 +23,7 @@
 1. **One ktranslate container per traffic type** — SNMP polling and SNMP traps share **`ktranslate_snmp_*`** (same process, same config file). NetFlow, sFlow, and syslog each get their own container. Never combine SNMP with flow or syslog in one instance.
 2. **Alloy is the OTLP sink** — ktranslate instances export gRPC OTLP to Alloy; Alloy forwards to Grafana Cloud.
 3. **SNMP uses discover → poller** on the laptop lab (`make discover`); EKS uses a static device list in `k8s/telemetry/ktranslate-config.yaml`.
-4. **Metric names are `kentik_snmp_*` and `network_io_by_flow*`** — dashboards in `local/dashboards/` and the oneclick import path target these names. Flow **rollups** get datapoint label `integration=ktranslate-netflow` in Alloy (not `service_name`); CHF and logs keep `ktranslate-*` per container. **Flow dashboard labels, geomap, and PromQL pitfalls:** [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) § Flow Summary dashboard.
+4. **Metric names are `kentik_snmp_*` and `network_io_by_flow*`** — verify with `count by (device_name) (kentik_snmp_CPU)` and `count(network_io_by_flow_bytes)` (**not** `kentik_snmp_DeviceMetrics`, which is the AWS integrations path). Each SNMP poller stamps **`tags_snmp_group`** (from `GROUP=` in `groups/*.env` via `global.user_tags.snmp_group`) on its series. Flow **rollups** get datapoint label `integration=ktranslate-netflow` in Alloy; CHF and logs keep `ktranslate-*` per container. **Ktranslate dashboards 00–04:** edit in [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/`; push with `make -C local dash-push`. **Flow dashboard labels, geomap, and PromQL pitfalls:** [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) § Flow Summary dashboard.
 5. **Flow, sFlow, and syslog mount a generated device catalog** (`config/catalog.yaml`) that `@`-includes every group's `state/devices-<group>.yaml`. ktranslate matches flows/syslog to devices by `device_ip` and applies `global.user_tags` / per-device `user_tags` without polling (`--flow_only=true` on flow, sFlow, and syslog). **`flow_dns`** (dnsmasq sidecar) supplies reverse PTR for `src_host`/`dst_host` from the device catalog plus optional lab extras; upstream recursion reaches host DNS. After any group's discovery run changes a device list, `reload-ktranslate-devices.sh` refreshes DNS and restarts catalog consumers and SNMP pollers.
 
 ```mermaid
@@ -119,7 +119,7 @@ You do **not** need to understand repo internals. For gear outside this demo:
 1. Stand up **one ktranslate container per traffic type** — SNMP (poll + traps together), NetFlow, sFlow, syslog (official ktranslate flags; OTLP to Alloy or Grafana Cloud).
 2. Point devices at the right destinations: SNMP community for polling; **trap destination = same SNMP container** (`trap.listen` / `TRAP_PORT` in the poller YAML); flow and syslog to their respective listeners.
 3. Run discovery — **MIBs and SNMP profiles are usually handled automatically.** ktranslate ships with [Kentik snmp-profiles](https://github.com/kentik/snmp-profiles); discovery matches each device's `sysObjectID` to a profile. If your platform is missing, follow the [ktranslate SNMP profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) and open a PR to [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) rather than maintaining a local override.
-4. Import dashboards from folder `network-lab` or `local/dashboards/`.
+4. Import dashboards from [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) (`python3 scripts/push-dashboards.py` or `make -C local dash-push` from the companion demo repo). Lab-specific boards live under `local/dashboards/` and `local/.dash-payloads/`.
 
 Real switches export NetFlow/sFlow natively — the lab's `softflowd` step is **simulator-only**.
 
@@ -133,7 +133,7 @@ Real switches export NetFlow/sFlow natively — the lab's `softflowd` step is **
 | One-click deploy | [`oneclick/README.md`](../oneclick/README.md) |
 | Agent bring-up | [`AGENTS.md`](../AGENTS.md) |
 | Networking concepts | [`docs/network-observability-primer.md`](network-observability-primer.md) |
-| Grafana dashboards / gcx / flow panels | [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) |
+| Grafana dashboards / gcx / flow panels | [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) · [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) |
 | EKS manifests | [`k8s/telemetry/`](../k8s/telemetry/) |
 | SNMP profiles (upstream) | [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) · [writing a profile](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) |
 
