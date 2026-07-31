@@ -5,6 +5,8 @@ lab_path_init() {
   [[ -n "${_LAB_PATH_INIT:-}" ]] && return 0
   _LAB_PATH_INIT=1
 
+  export HOME="${HOME:-/root}"
+
   if [[ -z "${LAB_REPO_ROOT:-}" ]]; then
     LAB_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi

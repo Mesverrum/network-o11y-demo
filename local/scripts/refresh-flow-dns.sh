@@ -157,6 +157,18 @@ if docker inspect "${FLOW_DNS_SERVICE}" >/dev/null 2>&1; then
   info "Reloading ${FLOW_DNS_SERVICE}..."
   docker restart "${FLOW_DNS_SERVICE}" >/dev/null
   info "${FLOW_DNS_SERVICE} reloaded"
+elif [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]] && command -v kubectl >/dev/null 2>&1; then
+  export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+  if kubectl get deployment flow-dns -n network-lab >/dev/null 2>&1; then
+    info "Regenerating k8s flow-dns ConfigMap..."
+    python3 "${REPO_ROOT}/scripts/generate-k8s-telemetry.py"
+    kubectl apply -f "${REPO_ROOT}/../k8s/ktranslate-golden/flow-dns.yaml"
+    kubectl -n network-lab rollout restart deployment/flow-dns
+    kubectl -n network-lab rollout status deployment/flow-dns --timeout=120s
+    info "flow-dns deployment reloaded (k3s)"
+  else
+    info "flow-dns deployment not found in network-lab — run deploy-ktranslate-golden"
+  fi
 else
   info "${FLOW_DNS_SERVICE} not running — start stack with: make up"
 fi

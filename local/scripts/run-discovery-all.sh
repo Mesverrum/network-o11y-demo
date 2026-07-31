@@ -24,7 +24,7 @@ for env_file in "${GROUP_FILES[@]}"; do
   [[ -z "${group}" ]] && continue
   echo "==> discovering group: ${group}"
   set +e
-  SKIP_RELOAD=1 bash "${REPO_ROOT}/scripts/run-discovery.sh" "${group}"
+  COLLECTOR_RUNTIME="${COLLECTOR_RUNTIME:-}" SKIP_RELOAD=1 bash "${REPO_ROOT}/scripts/run-discovery.sh" "${group}"
   rc=$?
   set -e
   case "${rc}" in

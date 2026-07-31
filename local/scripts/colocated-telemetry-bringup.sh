@@ -30,17 +30,27 @@ bash scripts/enable-snmp-srl.sh
 
 log "SNMP discovery (per-device TARGETS → state/devices-*.yaml)"
 bash scripts/update-snmp-targets.sh
+MIN_DEVICES="${COLOCATED_MIN_SRL_DEVICES:-5}"
+device_count="$(yq 'length' state/devices-srl.yaml 2>/dev/null || echo 0)"
+[[ "${device_count}" =~ ^[0-9]+$ ]] || device_count=0
 DISCOVERY_ATTEMPTS="${COLOCATED_DISCOVERY_ATTEMPTS:-3}"
 disc_ok=0
-for attempt in $(seq 1 "${DISCOVERY_ATTEMPTS}"); do
-  log "discovery attempt ${attempt}/${DISCOVERY_ATTEMPTS}"
-  if bash scripts/run-discovery-all.sh; then
-    disc_ok=1
-    break
-  fi
-  log "discovery failed — retry in 30s"
-  sleep 30
-done
+if [[ "${device_count}" -ge "${MIN_DEVICES}" ]]; then
+  log "devices-srl.yaml already has ${device_count} devices — syncing collectors"
+  export COLLECTOR_RUNTIME=k3s
+  bash scripts/reload-ktranslate-devices.sh || true
+  disc_ok=1
+else
+  for attempt in $(seq 1 "${DISCOVERY_ATTEMPTS}"); do
+    log "discovery attempt ${attempt}/${DISCOVERY_ATTEMPTS}"
+    if COLLECTOR_RUNTIME=k3s bash scripts/run-discovery-all.sh; then
+      disc_ok=1
+      break
+    fi
+    log "discovery failed — retry in 30s"
+    sleep 30
+  done
+fi
 [[ "${disc_ok}" -eq 1 ]] || {
   log "SNMP discovery failed after ${DISCOVERY_ATTEMPTS} attempts"
   exit 1

@@ -11,6 +11,8 @@
 
 set -euo pipefail
 
+export HOME="${HOME:-/root}"
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
