@@ -15,10 +15,18 @@ info() { echo "==> $*"; }
 [[ -f "${CLAB_TOPOLOGY_SOURCE}" ]] || die "missing ${CLAB_TOPOLOGY_SOURCE}"
 [[ -d "${FABRIC_SOURCE_DIR}" ]] || die "missing ${FABRIC_SOURCE_DIR}"
 
-mkdir -p "${LAB_REPO_ROOT}/configs/fabric"
-rm -rf "${LAB_REPO_ROOT}/configs/fabric"/*
-cp -a "${FABRIC_SOURCE_DIR}/." "${LAB_REPO_ROOT}/configs/fabric/"
-cp -f "${CLAB_TOPOLOGY_SOURCE}" "${LAB_REPO_ROOT}/topology.clab.yml"
+FABRIC_STAGING_DIR="${LAB_REPO_ROOT}/configs/fabric"
+TOPOLOGY_STAGING="${LAB_REPO_ROOT}/topology.clab.yml"
+
+# Laptop profile keeps configs in configs/fabric/ already; colocated copies from fabric-colocated/.
+if [[ "$(realpath "${FABRIC_SOURCE_DIR}")" != "$(realpath "${FABRIC_STAGING_DIR}")" ]]; then
+  mkdir -p "${FABRIC_STAGING_DIR}"
+  rm -rf "${FABRIC_STAGING_DIR}"/*
+  cp -a "${FABRIC_SOURCE_DIR}/." "${FABRIC_STAGING_DIR}/"
+fi
+if [[ "$(realpath "${CLAB_TOPOLOGY_SOURCE}")" != "$(realpath "${TOPOLOGY_STAGING}")" ]]; then
+  cp -f "${CLAB_TOPOLOGY_SOURCE}" "${TOPOLOGY_STAGING}"
+fi
 
 if [[ "${CLAB_USE_EXT4}" == "1" ]]; then
   mkdir -p "${CLAB_DEPLOY_DIR}/configs/fabric"

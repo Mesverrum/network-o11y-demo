@@ -50,7 +50,12 @@ per_device_targets_for_site() {
 }
 
 use_per_device=0
-if [[ "${LAB_FABRIC_PROFILE:-}" == "colocated" ]] || [[ "${SNMP_TARGETS_MODE:-}" == "per-device" ]]; then
+if [[ "${SNMP_TARGETS_MODE:-}" == "subnet" ]]; then
+  use_per_device=0
+elif [[ "${LAB_FABRIC_PROFILE:-}" == "colocated" ]] || [[ "${SNMP_TARGETS_MODE:-}" == "per-device" ]]; then
+  use_per_device=1
+elif per_device_targets_all >/dev/null 2>&1; then
+  # Laptop default: live clab mgmt /32s (3 devices) instead of scanning /24 (~30 min).
   use_per_device=1
 fi
 
