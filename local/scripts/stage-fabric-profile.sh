@@ -16,12 +16,14 @@ info() { echo "==> $*"; }
 [[ -d "${FABRIC_SOURCE_DIR}" ]] || die "missing ${FABRIC_SOURCE_DIR}"
 
 mkdir -p "${LAB_REPO_ROOT}/configs/fabric"
-rsync -a --delete "${FABRIC_SOURCE_DIR}/" "${LAB_REPO_ROOT}/configs/fabric/"
+rm -rf "${LAB_REPO_ROOT}/configs/fabric"/*
+cp -a "${FABRIC_SOURCE_DIR}/." "${LAB_REPO_ROOT}/configs/fabric/"
 cp -f "${CLAB_TOPOLOGY_SOURCE}" "${LAB_REPO_ROOT}/topology.clab.yml"
 
 if [[ "${CLAB_USE_EXT4}" == "1" ]]; then
   mkdir -p "${CLAB_DEPLOY_DIR}/configs/fabric"
-  rsync -a --delete "${FABRIC_SOURCE_DIR}/" "${CLAB_DEPLOY_DIR}/configs/fabric/"
+  rm -rf "${CLAB_DEPLOY_DIR}/configs/fabric"/*
+  cp -a "${FABRIC_SOURCE_DIR}/." "${CLAB_DEPLOY_DIR}/configs/fabric/"
   cp -f "${CLAB_TOPOLOGY_SOURCE}" "${CLAB_DEPLOY_DIR}/topology.clab.yml"
 fi
 

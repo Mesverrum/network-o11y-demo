@@ -32,7 +32,7 @@ LAB_REL="${LAB_DIR#${REPO_ROOT}/}"
 
 docker run --rm -i \
   -v "${REPO_ROOT}:/repo" -w "/repo/${LAB_REL}" \
-  -v "${AWS_DIR}:/root/.aws:ro" \
+  -v "${AWS_DIR}:/root/.aws" \
   -e AWS_PROFILE="${PROFILE}" \
   -e AWS_SDK_LOAD_CONFIG=1 \
   hashicorp/terraform:1.9 \

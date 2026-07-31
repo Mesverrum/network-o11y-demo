@@ -8,7 +8,7 @@ REPO_BRANCH="${repo_branch}"
 KTRANS_HOST="${ktrans_host}"
 LAB_TESTER_ID="${lab_tester_id}"
 
-dnf install -y docker git make gettext tar gzip which >/dev/null
+dnf install -y docker git make gettext tar gzip which rsync >/dev/null
 systemctl enable --now docker
 
 if ! docker compose version >/dev/null 2>&1; then

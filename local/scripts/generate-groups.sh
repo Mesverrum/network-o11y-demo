@@ -308,6 +308,7 @@ for env_file in "${GROUP_FILES[@]}"; do
   discover_${GROUP}:
     network_mode: host
     depends_on: !reset []
+    networks: !reset []
 EOF
 
     echo "  rendered ${GROUP}  (discovery=${DISCOVERY_SOURCE}  snmp=${SNMP_VERSION}  ports=${METALISTEN_PORT}/${TRAP_PORT})"
