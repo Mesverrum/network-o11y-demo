@@ -304,12 +304,12 @@ for env_file in "${GROUP_FILES[@]}"; do
     envsubst "${SUBST_VARS}" < "${TEMPLATES_DIR}/compose-snippet.yaml.tmpl" \
       >> "${COMPOSE_OUT}"
 
-    cat >> "${COLOCATED_COMPOSE_OUT}" <<EOF
-  discover_${GROUP}:
-    network_mode: host
-    depends_on: !reset []
-    networks: !reset []
-EOF
+    {
+      echo "  discover_${GROUP}:"
+      echo "    network_mode: host"
+      echo "    depends_on: !reset []"
+      echo "    networks: !reset []"
+    } >> "${COLOCATED_COMPOSE_OUT}"
 
     echo "  rendered ${GROUP}  (discovery=${DISCOVERY_SOURCE}  snmp=${SNMP_VERSION}  ports=${METALISTEN_PORT}/${TRAP_PORT})"
   )

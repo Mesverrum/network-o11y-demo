@@ -16,6 +16,7 @@ fi
 info "Syncing ContainerLab workdir to ext4: ${CLAB_DEPLOY_DIR}"
 bash "${ROOT}/scripts/stage-fabric-profile.sh"
 mkdir -p "${CLAB_DEPLOY_DIR}/configs/fabric"
-rsync -a --delete "${LAB_REPO_ROOT}/configs/fabric/" "${CLAB_DEPLOY_DIR}/configs/fabric/"
-rsync -a "${LAB_REPO_ROOT}/topology.clab.yml" "${CLAB_DEPLOY_DIR}/topology.clab.yml"
+rm -rf "${CLAB_DEPLOY_DIR}/configs/fabric"/*
+cp -a "${LAB_REPO_ROOT}/configs/fabric/." "${CLAB_DEPLOY_DIR}/configs/fabric/"
+cp -f "${LAB_REPO_ROOT}/topology.clab.yml" "${CLAB_DEPLOY_DIR}/topology.clab.yml"
 info "Synced topology.clab.yml + configs/fabric/ ($(find "${CLAB_DEPLOY_DIR}/configs/fabric" -maxdepth 1 -name '*.cfg' | wc -l) node configs)"

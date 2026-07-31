@@ -16,6 +16,8 @@ lab_path_init() {
     set +a
   fi
 
+  export HOME="${HOME:-/root}"
+
   lab_fs_type() {
     findmnt -n -o FSTYPE -T "$1" 2>/dev/null || echo unknown
   }

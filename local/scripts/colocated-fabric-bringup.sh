@@ -6,10 +6,13 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export HOME="${HOME:-/root}"
+export LAB_FABRIC_PROFILE=colocated
 
 log() { echo "$(date -Is) [colocated-fabric] $*"; }
 
-export LAB_FABRIC_PROFILE=colocated
+log "ensuring host dependencies"
+bash scripts/colocated-host-deps.sh
+
 log "deployment.host=$(bash scripts/host-id.sh) fabric=${LAB_FABRIC_PROFILE}"
 bash scripts/write-compose-host-env.sh
 bash scripts/stage-fabric-profile.sh
@@ -23,12 +26,13 @@ if ! make check; then
 fi
 
 if docker ps --format '{{.Names}}' | grep -qE '^spine1$'; then
-  log "fabric running — fabric-stabilize"
+  log "fabric already running — stabilize + sanity"
   make fabric-stabilize
+  bash scripts/colocated-fabric-sanity.sh
 else
-  log "cold start — destroy stale lab (profile change) then fabric-up"
+  log "cold start — destroy stale lab then staggered colocated fabric-up"
   bash scripts/clab.sh destroy || true
-  make fabric-up
+  bash scripts/colocated-fabric-up.sh
 fi
 
-log "fabric ready (SNMP discovery runs after k3s telemetry in colocated-telemetry-bringup.sh)"
+log "fabric ready"

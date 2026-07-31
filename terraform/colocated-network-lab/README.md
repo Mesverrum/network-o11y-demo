@@ -49,12 +49,14 @@ make -C local colocated-lab-discover   # writes terraform.tfvars
 make -C local colocated-lab-up         # ~3 min terraform + ~15 min bootstrap
 ```
 
-Bootstrap installs Docker, ContainerLab, k3s, clones this repo, then:
+Bootstrap installs host dependencies (`colocated-host-deps.sh`), clones this repo, then runs two **oneshot** systemd units with built-in sanity checks (no manual SSM steps):
 
-1. `network-o11y-fabric.service` — ContainerLab fabric (no compose collectors)
-2. `network-o11y-telemetry.service` — k3s collectors, then **SNMP CIDR discovery** (`groups/srl.env` → `TARGETS=172.20.20.0/24` → `state/devices-srl.yaml`), then softflowd/traffic
+1. `network-o11y-fabric.service` — stage colocated topology, staggered ContainerLab deploy (`colocated-fabric-up.sh`), fabric sanity
+2. `network-o11y-telemetry.service` — k3s collectors, SNMP CIDR discovery (`run-colocated-discovery.sh` via host-network `docker run`), post-telemetry wiring, telemetry sanity
 
-Discovery uses the same golden path as the laptop lab: `discover_srl` compose profile with `COLLECTOR_RUNTIME=k3s` (host network, OTLP → k3s Alloy). **Do not** hand-populate `state/devices-*.yaml`.
+Discovery uses CIDR from `groups/srl.env` (`TARGETS=172.20.20.0/24`) → `state/devices-srl.yaml`. **Do not** hand-populate device lists.
+
+Fresh EC2 packages installed before any lab scripts: `docker`, `git`, `make`, `gettext`, `rsync`, `python3`, `yq`, `containerlab`, `k3s`, `jq`, `curl`.
 
 ## Monitor
 

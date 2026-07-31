@@ -55,18 +55,13 @@ if [[ ! -f "${REPO_ROOT}/compose-catalog.generated.yaml" ]]; then
 fi
 
 if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]]; then
-  if [[ ! -f "${REPO_ROOT}/compose-colocated.generated.yaml" ]]; then
-    echo "missing compose-colocated.generated.yaml. Run: make generate" >&2
-    exit 1
-  fi
-  COMPOSE_ARGS+=(-f "${REPO_ROOT}/compose-colocated.generated.yaml")
   export KTRANSLATE_OTEL_ENDPOINT="${KTRANSLATE_OTEL_ENDPOINT:-http://127.0.0.1:4317/}"
-  echo "==> colocated discovery (host network, OTLP ${KTRANSLATE_OTEL_ENDPOINT})"
+  bash "${REPO_ROOT}/scripts/run-colocated-discovery.sh" "${GROUP}"
+else
+  docker compose "${COMPOSE_ARGS[@]}" \
+    --profile discovery \
+    run --rm "discover_${GROUP}"
 fi
-
-docker compose "${COMPOSE_ARGS[@]}" \
-  --profile discovery \
-  run --rm "discover_${GROUP}"
 
 DEVICE_COUNT="$(yq '.devices | length' "${RUNTIME}")"
 if [[ "${DEVICE_COUNT}" == "0" || "${DEVICE_COUNT}" == "null" ]]; then

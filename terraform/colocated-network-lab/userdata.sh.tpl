@@ -8,36 +8,20 @@ REPO_BRANCH="${repo_branch}"
 KTRANS_HOST="${ktrans_host}"
 LAB_TESTER_ID="${lab_tester_id}"
 
-dnf install -y docker git make gettext tar gzip which rsync >/dev/null
-systemctl enable --now docker
-
-if ! docker compose version >/dev/null 2>&1; then
-  mkdir -p /usr/local/lib/docker/cli-plugins
-  curl -fsSL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 \
-    -o /usr/local/lib/docker/cli-plugins/docker-compose
-  chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-fi
-
-if ! command -v containerlab >/dev/null 2>&1; then
-  curl -sL https://get.containerlab.dev | bash
-fi
-
-if ! command -v yq >/dev/null 2>&1; then
-  curl -sL "https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64" -o /usr/local/bin/yq
-  chmod +x /usr/local/bin/yq
-fi
-
-if ! command -v kubectl >/dev/null 2>&1; then
-  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644" sh -
-  export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-fi
+LAB_ROOT=/opt/network-o11y-demo/local
+REPO_ROOT=/opt/network-o11y-demo
 
 install -d -m 0755 /opt
-if [[ ! -d /opt/network-o11y-demo/.git ]]; then
-  git clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" /opt/network-o11y-demo
+if [[ ! -d "${REPO_ROOT}/.git" ]]; then
+  git clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" "$REPO_ROOT"
+else
+  git -C "$REPO_ROOT" fetch origin "$REPO_BRANCH" --depth 1
+  git -C "$REPO_ROOT" checkout "$REPO_BRANCH"
+  git -C "$REPO_ROOT" reset --hard "origin/${REPO_BRANCH}"
 fi
 
-LAB_ROOT=/opt/network-o11y-demo/local
+bash "${LAB_ROOT}/scripts/colocated-host-deps.sh"
+
 install -d -m 0755 "$LAB_ROOT/groups" "$LAB_ROOT/config" "$LAB_ROOT/state"
 
 cat >"$LAB_ROOT/.env" <<ENV
@@ -70,6 +54,8 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/network-o11y-demo/local
 Environment=HOME=/root
+Environment=LAB_FABRIC_PROFILE=colocated
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 ExecStart=/bin/bash /opt/network-o11y-demo/local/scripts/colocated-fabric-bringup.sh
 ExecStop=/bin/bash -lc 'cd /opt/network-o11y-demo/local && docker ps -q | xargs -r docker stop'
 TimeoutStartSec=3600
@@ -90,10 +76,14 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/network-o11y-demo/local
 Environment=HOME=/root
+Environment=LAB_FABRIC_PROFILE=colocated
+Environment=COLLECTOR_RUNTIME=k3s
 Environment=KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+Environment=KTRANSLATE_OTEL_ENDPOINT=http://127.0.0.1:4317/
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 ExecStart=/bin/bash /opt/network-o11y-demo/local/scripts/colocated-telemetry-bringup.sh
 ExecStop=/bin/bash -lc 'kubectl delete -k /opt/network-o11y-demo/k8s/ktranslate-golden --ignore-not-found=true || true'
-TimeoutStartSec=1800
+TimeoutStartSec=3600
 
 [Install]
 WantedBy=multi-user.target

@@ -11,7 +11,7 @@ Companion demo for the blog series **Network Observability Without the Lock-in**
 | Where it runs | How you start it |
 |---------------|------------------|
 | **Laptop** (macOS / Windows / Linux) | [`local/`](local/) + [`oneclick/`](oneclick/) — ContainerLab + Compose |
-| **AWS colocated** | [`terraform/colocated-network-lab/`](terraform/colocated-network-lab/) — ContainerLab fabric + **k3s** (`make -C local colocated-lab-up`) |
+| **AWS colocated** | [`terraform/colocated-network-lab/`](terraform/colocated-network-lab/) — ContainerLab fabric + **k3s** (`make -C local colocated-lab-up`). Fresh EC2: `userdata.sh.tpl` → `colocated-host-deps.sh` → systemd `network-o11y-fabric` / `network-o11y-telemetry` (staggered deploy, discovery retries, sanity scripts — no manual SSM). |
 | **AWS / EKS (legacy blog)** | [`terraform/`](terraform/) + [`k8s/telemetry/`](k8s/telemetry/) — Clabbernetes reference only |
 
 **Source of truth for collector config:** `local/` → `make generate` (Compose) or `make generate-k8s` → `k8s/ktranslate-golden/` (Kubernetes). Do not hand-edit generated manifests. **Device lists** come from SNMP discovery (`make discover GROUP=<name>` scanning `TARGETS` CIDRs in `groups/*.env`) — never hand-populate `state/devices-*.yaml`. Colocated AWS runs the same discovery after k3s Alloy is up (`COLLECTOR_RUNTIME=k3s`).

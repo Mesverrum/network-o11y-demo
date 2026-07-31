@@ -13,13 +13,16 @@ Used when `LAB_FABRIC_PROFILE=colocated` (AWS demo). Laptop labs use `topology.c
 
 ## Staging on EC2
 
+Bootstrap is fully automated via `userdata.sh.tpl` → systemd. Manual steps are only needed for debugging:
+
 ```bash
 export LAB_FABRIC_PROFILE=colocated
 bash scripts/stage-fabric-profile.sh
-make fabric-up
+bash scripts/colocated-fabric-up.sh    # staggered deploy + sanity
+bash scripts/colocated-telemetry-bringup.sh
 ```
 
-Or rely on `colocated-fabric-bringup.sh` (systemd on AWS).
+Or rely on `colocated-fabric-bringup.sh` / systemd on AWS.
 
 ## Observability labels
 

@@ -49,6 +49,8 @@ if [[ -n "$PROFILE" ]]; then
   PROFILE_LINE="aws_profile = \"${PROFILE}\""
 fi
 
+REPO_BRANCH="${COLOCATED_REPO_BRANCH:-main}"
+
 cat >"${LAB}/terraform.tfvars" <<EOF
 aws_region = "${REGION}"
 ${PROFILE_LINE}
@@ -57,8 +59,9 @@ lab_enabled = true
 vpc_id            = "${VPC_ID}"
 private_subnet_id = "${SUBNET_ID}"
 
-instance_type  = "m5.2xlarge"
+instance_type  = "m5.4xlarge"
 root_volume_gb = 120
+repo_branch    = "${REPO_BRANCH}"
 ktrans_host    = "aws-colocated-lab"
 lab_tester_id  = "aws-colocated-lab"
 EOF
