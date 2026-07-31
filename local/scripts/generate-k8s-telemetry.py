@@ -22,6 +22,10 @@ TEMPLATES = LOCAL / "templates" / "k8s"
 NAMESPACE = "network-lab"
 KTRANSLATE_IMAGE = "quay.io/kentik/ktranslate:latest"
 STATE_HOST_PATH = "/opt/network-o11y-demo/local/state"
+# hostNetwork pods cannot share host ports — avoid RollingUpdate (stuck Pending duplicates).
+HOST_NETWORK_STRATEGY = """  strategy:
+    type: Recreate
+"""
 
 
 def run_generate_groups() -> None:
@@ -117,7 +121,7 @@ metadata:
     component: ktranslate-golden
 spec:
   replicas: 1
-  selector:
+{HOST_NETWORK_STRATEGY}  selector:
     matchLabels:
       app: {name}
   template:
@@ -240,7 +244,7 @@ metadata:
     component: ktranslate-golden
 spec:
   replicas: 1
-  selector:
+{HOST_NETWORK_STRATEGY}  selector:
     matchLabels:
       app: {name}
   template:
@@ -339,7 +343,7 @@ metadata:
     component: ktranslate-golden
 spec:
   replicas: 1
-  selector:
+{HOST_NETWORK_STRATEGY}  selector:
     matchLabels:
       app: flow-dns
   template:
