@@ -43,7 +43,7 @@ fi
 
 if ! command -v kubectl >/dev/null 2>&1; then
   log "installing k3s"
-  curl -sfL https://get.k3s.io | $SUDO INSTALL_K3S_EXEC="--write-kubeconfig-mode 644" sh -
+  curl -sfL https://get.k3s.io | $SUDO env INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -
 fi
 
 export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
