@@ -11,7 +11,14 @@ TF="$(cd "$(dirname "$0")" && pwd)/aws-lab-terraform.sh"
 # shellcheck source=aws-cmd.sh
 source "$(cd "$(dirname "$0")" && pwd)/aws-cmd.sh"
 
-aws_cmd sts get-caller-identity --region "$REGION" >/dev/null
+if aws_cmd sts get-caller-identity --region "$REGION" >/dev/null 2>&1; then
+  : # creds OK
+elif ! command -v terraform >/dev/null 2>&1; then
+  echo "==> AWS STS preflight skipped (Docker terraform uses mounted ~/.aws)" >&2
+else
+  echo "ERROR: AWS credentials check failed — set AWS_PROFILE and ~/.aws" >&2
+  exit 1
+fi
 
 TF_EXTRA=()
 ENV_FILE="${ROOT}/local/.env"

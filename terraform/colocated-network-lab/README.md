@@ -41,6 +41,7 @@ Set `LAB_FABRIC_PROFILE=colocated` in EC2 `local/.env` (userdata does this autom
 - AWS profile with EC2 + SSM (e.g. `AWS_PROFILE=mvr`)
 - `local/.env` with `GC_OTLP_URL`, `GC_OTLP_ACCOUNT`, `GC_OTLP_KEY`
 - Private subnet with NAT (for OTLP egress)
+- **WSL on Windows:** Docker running in WSL (Terraform runs in `hashicorp/terraform:1.9` when no native `terraform` binary). `scripts/aws-cmd.sh` falls back to `amazon/aws-cli` in Docker when WSL cannot execute `aws.exe` / `powershell.exe`.
 
 ## Bring up
 
