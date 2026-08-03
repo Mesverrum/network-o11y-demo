@@ -56,7 +56,7 @@ Bootstrap installs host dependencies (`colocated-host-deps.sh`), clones this rep
 
 Discovery uses CIDR from `groups/srl-hq.env` (and branch site groups) → `state/devices-srl-hq.yaml` (plus branch device lists). **Do not** hand-populate device lists.
 
-Fresh EC2 packages installed before any lab scripts: `docker`, `git`, `make`, `gettext`, `rsync`, `python3`, `yq`, `containerlab`, `k3s`, `jq`, `curl`.
+Fresh EC2 packages installed before any lab scripts: userdata installs `git` via `dnf`, clones this repo, then `colocated-host-deps.sh` installs docker, containerlab, k3s, yq, etc.
 
 ## Monitor
 

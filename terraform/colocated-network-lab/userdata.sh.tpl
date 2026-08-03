@@ -12,6 +12,10 @@ LAB_ROOT=/opt/network-o11y-demo/local
 REPO_ROOT=/opt/network-o11y-demo
 
 install -d -m 0755 /opt
+# Fresh AL2023 has no git — install before clone; full toolchain after clone.
+if ! command -v git >/dev/null 2>&1; then
+  dnf install -y git
+fi
 if [[ ! -d "$${REPO_ROOT}/.git" ]]; then
   git clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" "$REPO_ROOT"
 else
