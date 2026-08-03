@@ -6,6 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=fabric-nodes.sh
 source "${ROOT}/scripts/fabric-nodes.sh"
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -19,8 +21,10 @@ for sample in srl-hq srl-branch1 srl-branch2; do
   [[ -f "${src}" ]] || die "missing ${src}"
   if [[ ! -f "${dst}" ]]; then
     cp "${src}" "${dst}"
+    normalize_env_file "${dst}"
     info "installed ${dst}"
   else
+    normalize_env_file "${dst}"
     info "present ${dst}"
   fi
 done

@@ -6,5 +6,6 @@ local/**/*.alloy text eol=lf
 local/**/*.yml text eol=lf
 local/**/*.yaml text eol=lf
 local/**/*.example text eol=lf
+local/groups/*.env.sample text eol=lf
 oneclick/**/*.sh text eol=lf
 terraform/**/*.tpl text eol=lf

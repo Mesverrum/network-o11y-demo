@@ -2,6 +2,15 @@
 # Helpers for multi-group SNMP (compose + k3s).
 set -euo pipefail
 
+# Windows checkouts may leave CRLF in *.env.sample; sourcing breaks on Linux.
+normalize_env_file() {
+  local f="$1"
+  [[ -f "${f}" ]] || return 0
+  if grep -q $'\r' "${f}" 2>/dev/null; then
+    sed -i 's/\r$//' "${f}"
+  fi
+}
+
 snmp_group_env_files() {
   local root="${1:-}"
   shopt -s nullglob

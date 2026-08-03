@@ -32,6 +32,7 @@ _migrate_legacy_snmp_state() {
 }
 
 if [[ -f "${HQ_ENV}" ]]; then
+  normalize_env_file "${HQ_ENV}"
   _migrate_legacy_snmp_state "${ROOT}"
   exit 0
 fi
@@ -39,6 +40,7 @@ fi
 if [[ -f "${LEGACY_ENV}" ]]; then
   bak="${ROOT}/groups/srl.env.legacy.bak"
   cp "${LEGACY_ENV}" "${HQ_ENV}"
+  normalize_env_file "${HQ_ENV}"
   if grep -q '^GROUP=srl$' "${HQ_ENV}" 2>/dev/null; then
     sed -i 's/^GROUP=srl$/GROUP=srl-hq/' "${HQ_ENV}"
   fi
@@ -58,4 +60,5 @@ fi
 
 [[ -f "${HQ_SAMPLE}" ]] || die "missing ${HQ_SAMPLE}"
 cp "${HQ_SAMPLE}" "${HQ_ENV}"
+normalize_env_file "${HQ_ENV}"
 info "installed ${HQ_ENV} from sample"
