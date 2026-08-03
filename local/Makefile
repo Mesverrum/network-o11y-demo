@@ -334,9 +334,13 @@ north-south-flows: ## Restart dual softflowd (eth0+eth1) + internet probes on ru
 flow-dashboard-download: ## Download live ktranslate-flow-summary v2 manifest from Grafana
 	python3 $(ROOT)scripts/download-flow-dashboard.py
 
-.PHONY: dash-live-sync
+.PHONY: dash-live-sync dash-upstream-sync
 dash-live-sync: ## Pull ktranslate dashboards from GC + drift check vs KtransToGrafana
 	python3 $(ROOT)scripts/sync-ktranslate-dashboards-live.py --pull
+
+dash-upstream-sync: ## Pull marcnetterfield1 00–04 into KtransToGrafana dashboards/
+	python3 $(ROOT)scripts/reorganize-marcnetterfield-dashboards.py pull
+	python3 $(ROOT)scripts/copy-live-dashboards-to-upstream.py
 
 .PHONY: dash-push
 dash-push: ## Push KtransToGrafana dashboards/ to Grafana Cloud (v2 API)
