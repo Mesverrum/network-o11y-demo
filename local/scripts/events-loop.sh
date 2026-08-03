@@ -117,7 +117,7 @@ start() {
   export_colocated_clab_host
 
   if ! collector_snmp_ready; then
-    die "SNMP collector not running (compose ktranslate_snmp_srl or k3s deployment/ktranslate-snmp-srl)"
+    die "SNMP collector not running (compose ktranslate_snmp_* or k3s deployment/ktranslate-snmp-*)"
   fi
 
   info "Starting events-loop (emit every ${EMIT_INTERVAL_SEC}s; synthetic traps=${LAB_AUTO_SYNTHETIC_TRAPS})"

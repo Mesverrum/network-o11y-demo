@@ -73,7 +73,7 @@ def main() -> int:
         print("WARNING: apply-fabric-config returned", fab.returncode)
 
     joined = ",".join(f"{ips[n]}/32" for n in ("spine1", "leaf1", "leaf2"))
-    env = ROOT / "groups" / "srl.env"
+    env = ROOT / "groups" / "srl-hq.env"
     text = env.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^DISCOVERY_SOURCE=.*$", "DISCOVERY_SOURCE=cidr", text, count=1)
     text = re.sub(r"(?m)^TARGETS=.*$", f"TARGETS={joined}", text, count=1)
@@ -102,7 +102,7 @@ def main() -> int:
     if up.returncode != 0:
         return up.returncode
 
-    disc = run(["make", "discover", "GROUP=srl"])
+    disc = run(["make", "discover", "GROUP=srl-hq"])
     if disc.returncode != 0:
         return disc.returncode
 

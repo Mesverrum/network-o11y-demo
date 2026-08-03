@@ -26,7 +26,13 @@ SR_CLI_TRIES_LEAF="${LAB_SR_CLI_TRIES_LEAF:-120}"
 SR_CLI_TRIES_ALL="${LAB_SR_CLI_TRIES_ALL:-90}"
 
 SRL_ORDER=("${SRL_NODES[@]}" "${CLIENT_NODES[@]}")
-COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
+COLLECTOR_SERVICES=(alloy flow_dns)
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
+while IFS= read -r _snmp_svc; do
+  COLLECTOR_SERVICES+=("${_snmp_svc}")
+done < <(snmp_poller_compose_services "${ROOT}")
+COLLECTOR_SERVICES+=(ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 
 COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
   -f compose-base.yaml

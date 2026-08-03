@@ -19,7 +19,7 @@
       "port": 161,
       "network_instance": "mgmt",
       "enabled_in_lab": true,
-      "lab_collector": "ktranslate_snmp_srl",
+      "lab_collector": "ktranslate_snmp_srl-hq",
       "mock": false,
       "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/snmp/snmp-intro.html"
     },
@@ -39,7 +39,7 @@
       "port": 162,
       "network_instance": "mgmt",
       "enabled_in_lab": true,
-      "lab_collector": "ktranslate_snmp_srl",
+      "lab_collector": "ktranslate_snmp_srl-hq",
       "mock": false,
       "docs_url": "https://documentation.nokia.com/srlinux/24-10/books/snmp/snmp-traps.html"
     },

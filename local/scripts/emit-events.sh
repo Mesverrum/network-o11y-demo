@@ -64,6 +64,6 @@ if [[ "${LAB_FABRIC_PROFILE}" == "colocated" ]]; then
 fi
 
 info "Events emitted. Wait ~30–60s then check:"
-info "  docker logs --since 2m \$(docker ps -qf name=ktranslate_snmp_srl) | grep -i trap"
+info "  docker logs --since 2m \$(docker ps -qf 'name=ktranslate_snmp' | head -1 | xargs -r docker logs --since 2m) | grep -i trap"
 info "  LogQL traps:  {service_name=\"ktranslate\"} |= \`\"eventType\":\"KSnmpTrap\"\` | json | device_name =~ \".+\""
 info "  LogQL syslog: {service_name=\"ktranslate\"} |= \`\"tags.container_service\":\"syslog\"\` | json | device_name =~ \"leaf|spine\""

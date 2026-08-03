@@ -21,11 +21,56 @@ snmp_group_names() {
   done < <(snmp_group_env_files "${root}")
 }
 
+# Compose service name for one credential group (e.g. ktranslate_snmp_srl-hq).
+snmp_poller_service_name() {
+  echo "ktranslate_snmp_${1}"
+}
+
+snmp_poller_compose_services() {
+  local root="${1:-}" group
+  while IFS= read -r group; do
+    snmp_poller_service_name "${group}"
+  done < <(snmp_group_names "${root}")
+}
+
+# HQ site group when present; else first configured group.
+primary_snmp_group() {
+  local root="${1:-}" names
+  names="$(snmp_group_names "${root}" 2>/dev/null || true)"
+  if [[ -z "${names}" ]]; then
+    echo "srl-hq"
+    return 0
+  fi
+  if grep -qx 'srl-hq' <<<"${names}"; then
+    echo "srl-hq"
+    return 0
+  fi
+  echo "${names}" | head -1
+}
+
+snmp_group_env_for() {
+  local root="$1" group="${2:-}"
+  [[ -n "${group}" ]] || group="$(primary_snmp_group "${root}")"
+  echo "${root}/groups/${group}.env"
+}
+
 k8s_snmp_deployment_names() {
   local root="${1:-}" group
   while IFS= read -r group; do
     echo "ktranslate-snmp-${group}"
   done < <(snmp_group_names "${root}")
+}
+
+# First running compose SNMP poller container id (any group).
+snmp_poller_container_id() {
+  docker ps -qf 'name=ktranslate_snmp' | head -1
+}
+
+snmp_poller_container_name() {
+  local cid
+  cid="$(snmp_poller_container_id)"
+  [[ -n "${cid}" ]] || return 1
+  docker inspect -f '{{.Name}}' "${cid}" | sed 's#^/##'
 }
 
 # TRAP_PORT for a fabric node from its SITE= group file (fallback 1620).

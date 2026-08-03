@@ -49,7 +49,7 @@ docker info       # must succeed before bring-up
 
 | Platform | How agents run commands | Extra setup |
 |----------|-------------------------|-------------|
-| **macOS** | **Inside an OrbStack Linux VM** — ContainerLab has no macOS binary, so run the whole lab in a VM (`orb -m ubuntu ...`). See [`docs/macos-orbstack-setup.md`](docs/macos-orbstack-setup.md). | `brew install --cask orbstack`; in the VM install `docker.io docker-compose-v2 make gettext-base`, ContainerLab via get.containerlab.dev, mikefarah `yq`; give the VM **10–12 GB** RAM; clone to the VM's native disk (not `/Users`); run discovery as **`sudo make discover GROUP=srl`** (VM user is uid 501, ktranslate expects uid 1000) |
+| **macOS** | **Inside an OrbStack Linux VM** — ContainerLab has no macOS binary, so run the whole lab in a VM (`orb -m ubuntu ...`). See [`docs/macos-orbstack-setup.md`](docs/macos-orbstack-setup.md). | `brew install --cask orbstack`; in the VM install `docker.io docker-compose-v2 make gettext-base`, ContainerLab via get.containerlab.dev, mikefarah `yq`; give the VM **10–12 GB** RAM; clone to the VM's native disk (not `/Users`); run discovery as **`sudo make discover GROUP=srl-hq`** (VM user is uid 501, ktranslate expects uid 1000) |
 | **WSL2 (Windows)** | Bash in WSL on a **native ext4 clone** (`~/projects/network-o11y-demo/local`) — **not** `/mnt/c/...` | `sudo apt install yq gettext-base`; `sudo chown -R 1000:1000 config state` after `make generate`. From Cursor on Windows, run commands via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` or use `.\oneclick\deploy.ps1` |
 | **Native Linux** | Bash in `local/` | `chown` only if preflight warns about uid ≠ 1000 on `config/` / `state/` |
 
@@ -85,7 +85,7 @@ Restart Alloy after OTLP changes: `docker compose -f local/compose-base.yaml …
 ```bash
 cd local
 cp .env.example .env
-cp groups/srl.env.sample groups/srl.env
+cp groups/srl-hq.env.sample groups/srl-hq.env
 # Edit .env: GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY (and optional LAB_TESTER_ID)
 
 make generate
@@ -99,7 +99,7 @@ make status
 
 From repo root: `make local-up` ≡ `make -C local up`.
 
-**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `flow_dns`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`) → refresh SNMP targets → `make discover GROUP=srl` → **`scripts/post-telemetry-config.sh`** (softflowd, sFlow, syslog, traps, flow DNS, traffic, events-loop) → **mgmt API catalog** OTLP export. Optional: `topology_exporter` via `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`. Opt out: `LAB_AUTO_TRAFFIC=0` / `LAB_AUTO_EVENTS=0` in `.env`.
+**What `make up` does:** deploy ContainerLab fabric (spine1 → leaf1 → leaf2 → client1 → client2 with settle pauses) → start collectors one-by-one (`alloy`, `flow_dns`, `ktranslate_snmp_srl-hq`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`, `gnmic`) → refresh SNMP targets → `make discover GROUP=srl-hq` → **`scripts/post-telemetry-config.sh`** (softflowd, sFlow, syslog, traps, flow DNS, traffic, events-loop) → **mgmt API catalog** OTLP export. Optional: `topology_exporter` via `LAB_TOPOLOGY_EXPORTER=1` + `make topology-up`. Opt out: `LAB_AUTO_TRAFFIC=0` / `LAB_AUTO_EVENTS=0` in `.env`.
 
 **Parallel / faster (less safe on 16 GB):** `make up-parallel` or `LAB_STAGGER=0 make up`.
 
@@ -218,7 +218,7 @@ ktranslate exports **per-metric OTLP names** (dots → underscores in Prometheus
 **Check locally first** (do not assume OTLP/stack misconfig until SNMP works):
 
 ```bash
-# From WSL — community public matches groups/srl.env
+# From WSL — community public matches groups/srl-hq.env
 snmpget -v2c -c public -t 2 172.20.20.2:161 1.3.6.1.2.1.1.5.0   # spine1
 
 docker exec spine1 sr_cli -ec 'info from state system snmp network-instance mgmt' | grep oper-state
@@ -273,7 +273,7 @@ cp /mnt/c/Users/<you>/projects/network-o11y-demo/local/scripts/*.sh ~/network-o1
 | Latency fault talk-track | `make -C local join-fault` / `join-fault-stop` |
 | Synthetic traps + link flaps | `make -C local events-loop` |
 | Import join dashboard | `python3 local/scripts/build-network-join-demo.py` then import script with user's `GRAFANA_URL` + token |
-| NetBox-driven discovery | `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, `make netbox-sync && make up` |
+| NetBox-driven discovery | `cp groups/srl-hq.env.netbox.sample groups/srl-hq.env`, set `NETBOX_*` in `.env`, `make netbox-sync && make up` |
 
 ### Grafana Cloud MCP
 
@@ -371,8 +371,8 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 
 - **Topology:** 1 spine (`spine1`) + 2 leaves (`leaf1`, `leaf2`) + 2 clients (`client1`, `client2`); all SR Linux `ixrd2l`
 - **Talk track:** eBGP underlay + EVPN MAC-VRF; clients `172.17.0.1` / `172.17.0.2`
-- **Collectors:** `ktranslate_snmp_srl` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors). Optional: **`topology_exporter`** (`LAB_TOPOLOGY_EXPORTER=1`, `make topology-up`)
-- **NetBox Cloud (optional):** `scripts/netbox-populate.py` + `update-netbox-mgmt-ips.py` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** discovery (`groups/srl.env.sample`). See `local/netbox/README.md`.
+- **Collectors:** `ktranslate_snmp_srl-hq` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors). Optional: **`topology_exporter`** (`LAB_TOPOLOGY_EXPORTER=1`, `make topology-up`)
+- **NetBox Cloud (optional):** `scripts/netbox-populate.py` + `update-netbox-mgmt-ips.py` when `DISCOVERY_SOURCE=netbox` in `groups/srl-hq.env` (`groups/srl-hq.env.netbox.sample`). Default bring-up uses **CIDR** discovery (`groups/srl-hq.env.sample`). See `local/netbox/README.md`.
 - **ktranslate model:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path — `groups/*.env` → `make generate` → discovery/polling split (`discover_srl` profile + read-only poller). No root `snmp.yaml` + `snmp_discovery_on_start`
 - **SNMP profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). Discovery matches `sysObjectID` → `mib_profile` automatically (e.g. Nokia SR Linux → `nokia-srlinux.yml`). Missing platform? [Profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) → PR upstream — do not bind-mount local profile overrides in normal bring-up.
 - **Alloy role:** OTLP receive + Docker log scrape (lab containers except ktranslate) → preprocess → OTLP HTTP to Grafana Cloud. ktranslate already tees its own logs (and device syslog/traps) over OTLP via `--tee_logs=true`.
@@ -385,7 +385,7 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 ```bash
 cd local
 cp .env.example .env          # set GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
-cp groups/srl.env.sample groups/srl.env
+cp groups/srl-hq.env.sample groups/srl-hq.env
 make generate
 # Linux/WSL only: sudo chown -R 1000:1000 config state
 make up
@@ -402,7 +402,7 @@ uses amd64 emulation — slower but supported. See `local/README.md` → macOS q
 (default 25) pauses. Use `make up-parallel` or `LAB_STAGGER=0` to disable.
 `make stabilize` honors `LAB_STAGGER` for collector bring-up.
 
-Optional NetBox Cloud discovery: `cp groups/srl.env.netbox.sample groups/srl.env`, set `NETBOX_*` in `.env`, then `make generate && make netbox-sync && make up`.
+Optional NetBox Cloud discovery: `cp groups/srl-hq.env.netbox.sample groups/srl-hq.env`, set `NETBOX_*` in `.env`, then `make generate && make netbox-sync && make up`.
 
 From repo root: `make local-up` / `make local-down` / `make local-help`.
 
@@ -414,7 +414,7 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 2. **Shell scripts must be LF** (CRLF breaks `set -o pipefail`). `.gitattributes` forces LF under `local/`.
 3. **Alloy comments are `//`**, not `#`.
 4. **`state/devices-*.yaml` is mutable** (discovery writes device lists); never commit `config/` / `state/` / `groups/*.env`. UID 1000 must own `config/` and `state/`.
-5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. **Traps go to the SNMP poller** (`ktranslate_snmp_srl`, UDP `:1620` — same container as polling, not a separate ktranslate). One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
+5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. **Traps go to the SNMP poller** (`ktranslate_snmp_srl-hq`, UDP `:1620` — same container as polling, not a separate ktranslate). One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
 6. **Windows / WSL:** clone and run the lab **only** on WSL native ext4 (`~/…`), never `/mnt/c/…`. drvfs breaks ContainerLab postdeploy for SR Linux startup config. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
 7. **SNMP on mgmt:** fabric cfg + `enable-snmp-srl.sh` must set `network-instance mgmt` and `access-group ag1` + `community-entry ce1 community public`. Without both, SNMP/gNMI stay `oper-state down` and ktranslate gets `connection refused` on :161 — devices can look "up" while Grafana has no `kentik_snmp_*`. See playbook **SNMP diagnosis**.
 8. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.

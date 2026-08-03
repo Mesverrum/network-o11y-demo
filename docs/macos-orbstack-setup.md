@@ -73,8 +73,8 @@ cd network-o11y-demo/local
 
 ```bash
 cp .env.example .env                 # set GC_OTLP_URL / GC_OTLP_ACCOUNT / GC_OTLP_KEY
-cp groups/srl.env.sample groups/srl.env
-sed -i 's/\r$//' .env groups/srl.env # sample files may carry CRLF -> breaks shell sourcing
+cp groups/srl-hq.env.sample groups/srl-hq.env
+sed -i 's/\r$//' .env groups/srl-hq.env # sample files may carry CRLF -> breaks shell sourcing
 
 make generate
 make check                           # docker, containerlab, yq, envsubst, .env
@@ -90,10 +90,10 @@ These differ from the Linux/WSL reference platform and will bite on a Mac:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `make generate` fails with `$'\r': command not found` | sample `.env`/`groups` files have CRLF | `sed -i 's/\r$//' .env groups/srl.env` |
+| `make generate` fails with `$'\r': command not found` | sample `.env`/`groups` files have CRLF | `sed -i 's/\r$//' .env groups/srl-hq.env` |
 | `make up` fails on `topology_exporter` (`pull access denied`) | only if `LAB_TOPOLOGY_EXPORTER=1` — image is a local build | `make topology-exporter-image`, then `make topology-up` |
 | `make up` fails: *"containers already exist — add --reconfigure"* | fabric already deployed | **never** `--reconfigure` (SIGTERMs all nodes); run `make stabilize` |
-| discovery writes `{}` / `chtimes: operation not permitted` / `Permission denied` on `state/` | OrbStack maps your Mac user to **uid 501**, but ktranslate containers run as **uid 1000** and `run-discovery.sh` assumes it runs as root/1000 | run discovery as root: **`sudo make discover GROUP=srl`** (keep `config/` owned by your user so `make generate` still works) |
+| discovery writes `{}` / `chtimes: operation not permitted` / `Permission denied` on `state/` | OrbStack maps your Mac user to **uid 501**, but ktranslate containers run as **uid 1000** and `run-discovery.sh` assumes it runs as root/1000 | run discovery as root: **`sudo make discover GROUP=srl-hq`** (keep `config/` owned by your user so `make generate` still works) |
 | SR Linux nodes exit 143 | SIGTERM (Docker restart, resource saver), **not** OOM | `make stabilize` |
 
 On the Linux/WSL reference platform the login user *is* uid 1000, so the

@@ -18,7 +18,7 @@ alwaysApply: true
 - **Secrets:** never commit `local/.env`, `local/groups/*.env`, `local/state/`, or Grafana/AWS credential files.
 - **WSL2 (Windows):** clone on WSL ext4 only (`~/projects/...`); never `/mnt/c`. Use `wsl -e bash -lc` from Cursor or `.\oneclick\deploy.ps1`. Strip CRLF on new `.sh` before running (`set: pipefail\r`). Sync `scripts/` + `configs/fabric/` to WSL clone after Windows edits.
 - **Container exit 143:** SIGTERM (not OOM). Audit: `make -C local lab-log-status`. Never `clab deploy --reconfigure` unless user asks.
-- **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl.env` — default sample uses CIDR discovery.
+- **NetBox Cloud (optional):** `make -C local netbox-sync` when `DISCOVERY_SOURCE=netbox` in `groups/srl-hq.env` — default sample uses CIDR discovery.
 - **Memory:** read and update root `AGENTS.md` (+ these rules) when architecture or bring-up changes.
 - **New teammate + AI agent:** start at `AGENTS.md` → **Agent playbook** + **Investigation playbook**; then `local/README.md`. Do not assume any default Grafana Cloud stack.
 - **Grafana dashboard patches (tabbed v2):** edit in **KtransToGrafana** `dashboards/`; push with `make -C local dash-push`; drift check `make -C local dash-live-sync`. **Portable skills:** `docs/grafana-network-dashboard-design-patterns.md`, `docs/grafana-network-dashboard-expand-hardware.md`. PromQL: `local/docs/dashboard-query-lessons.md`. Playbook: `docs/grafana-dashboard-playbook.md`.

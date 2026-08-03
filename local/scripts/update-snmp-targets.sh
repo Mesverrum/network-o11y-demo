@@ -73,7 +73,7 @@ fi
 shopt -s nullglob
 group_files=("${GROUPS_DIR}"/*.env)
 shopt -u nullglob
-[[ ${#group_files[@]} -gt 0 ]] || die "no groups/*.env — cp groups/srl.env.sample groups/srl.env"
+[[ ${#group_files[@]} -gt 0 ]] || die "no groups/*.env — cp groups/srl-hq.env.sample groups/srl-hq.env"
 
 updated=0
 for group_env in "${group_files[@]}"; do

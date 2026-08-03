@@ -5,9 +5,18 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
 
-echo "=== TARGETS in groups/srl.env ==="
-grep '^TARGETS=' groups/srl.env || true
+bash "${ROOT}/scripts/ensure-snmp-groups.sh"
+
+PRIMARY_GROUP="$(primary_snmp_group "${ROOT}")"
+GROUP_ENV="$(snmp_group_env_for "${ROOT}" "${PRIMARY_GROUP}")"
+DEVICES_FILE="${ROOT}/state/devices-${PRIMARY_GROUP}.yaml"
+POLLER_SVC="$(snmp_poller_service_name "${PRIMARY_GROUP}")"
+
+echo "=== SNMP group: ${PRIMARY_GROUP} (${GROUP_ENV}) ==="
+grep '^TARGETS=' "${GROUP_ENV}" || true
 
 echo ""
 echo "=== Live clab mgmt IPs ==="
@@ -18,19 +27,21 @@ for n in spine1 leaf1 leaf2; do
 done
 
 echo ""
-echo "=== Discovery CIDR (groups/srl.env TARGETS) vs live mgmt IPs ==="
-python3 - <<'PY'
+echo "=== Discovery TARGETS vs live mgmt IPs ==="
+python3 - "${GROUP_ENV}" <<'PY'
 import ipaddress
 import subprocess
+import sys
 from pathlib import Path
 
+env_path = Path(sys.argv[1])
 targets = ""
-for line in Path("groups/srl.env").read_text().splitlines():
+for line in env_path.read_text().splitlines():
     if line.startswith("TARGETS="):
         targets = line.split("=", 1)[1].strip()
         break
 if not targets:
-    print("  (no TARGETS= in groups/srl.env)")
+    print(f"  (no TARGETS= in {env_path})")
     raise SystemExit(0)
 
 nets = []
@@ -67,11 +78,13 @@ for n in spine1 leaf1 leaf2; do
 done
 
 echo ""
-echo "=== state/devices-srl.yaml IPs ==="
-python3 - <<'PY'
+echo "=== state/devices-${PRIMARY_GROUP}.yaml IPs ==="
+python3 - "${DEVICES_FILE}" <<'PY'
 import yaml
+import sys
 from pathlib import Path
-p = Path("state/devices-srl.yaml")
+
+p = Path(sys.argv[1])
 if not p.exists():
     print("  (missing)")
     raise SystemExit(0)
@@ -86,10 +99,10 @@ else:
 PY
 
 echo ""
-echo "=== ktranslate_snmp_srl logs (errors, last 10) ==="
-KT=$(docker ps --format '{{.Names}}' | grep -E 'ktranslate_snmp_srl' | head -1)
+echo "=== ${POLLER_SVC} logs (errors, last 10) ==="
+KT="$(snmp_poller_container_name 2>/dev/null || true)"
 if [[ -z "$KT" ]]; then
-  echo "  (ktranslate_snmp_srl container not running)"
+  echo "  (${POLLER_SVC} container not running)"
 else
   docker logs "$KT" --tail 30 2>&1 \
     | grep -iE 'error|warn|refused|timeout' | tail -10 \
@@ -121,9 +134,8 @@ def query(q: str):
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.load(resp).get("data", {}).get("result", [])
 
-# ktranslate exports per-metric names (kentik_snmp_CPU, …), not kentik_snmp_DeviceMetrics.
 checks = [
-    ("count by (device_name) (kentik_snmp_CPU)", "SNMP devices (CPU series)"),
+    ("count by (device_name, tags_snmp_group) (kentik_snmp_CPU)", "SNMP devices (CPU series)"),
     ('count({__name__=~"kentik_snmp.*"})', "total kentik_snmp_* series"),
 ]
 for promql, label in checks:
@@ -132,8 +144,11 @@ for promql, label in checks:
         print(f"  {label}: no data")
         continue
     if promql.startswith("count by"):
-        names = sorted(r["metric"].get("device_name", "?") for r in results)
-        print(f"  {label}: {', '.join(names)}")
+        parts = sorted(
+            f"{r['metric'].get('device_name', '?')}@{r['metric'].get('tags_snmp_group', '?')}"
+            for r in results
+        )
+        print(f"  {label}: {', '.join(parts)}")
     else:
         print(f"  {label}: {results[0]['value'][1]}")
 PY

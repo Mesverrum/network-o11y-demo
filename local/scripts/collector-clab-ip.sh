@@ -6,6 +6,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
 CLAB_NET="${CLAB_NETWORK:-clab}"
 
 service="${1:-}"
@@ -13,7 +15,9 @@ case "$service" in
   flow)   container="ktranslate_flow" ;;
   sflow)  container="ktranslate_sflow" ;;
   syslog) container="ktranslate_syslog" ;;
-  snmp)   container="ktranslate_snmp_srl" ;;
+  snmp)
+    container="$(snmp_poller_service_name "$(primary_snmp_group "${ROOT}")")"
+    ;;
   *)
     echo "usage: collector-clab-ip.sh {flow|sflow|syslog|snmp}" >&2
     exit 1

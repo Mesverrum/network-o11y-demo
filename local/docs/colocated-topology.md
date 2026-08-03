@@ -29,7 +29,7 @@ Or rely on `colocated-fabric-bringup.sh` / systemd on AWS.
 | Label | Laptop (`laptop` profile) | Colocated (`colocated` profile) |
 |-------|---------------------------|----------------------------------|
 | `site` (topology-exporter) | `hq` (all nodes) | `hq`, `branch1`, `branch2` |
-| `site` (SNMP via Alloy) | `hq` on spine1/leaf1/leaf2 | `hq` / `branch1` / `branch2` on matching devices |
+| `tags_snmp_group` (SNMP) | `srl-hq` | `srl-hq` / `srl-branch1` / `srl-branch2` |
 | `device_role` (SNMP via Alloy) | `spine`, `leaf` | + `branch-edge` on `leaf-br*` |
 | `device_name` (SNMP) | spine1, leaf1, leaf2 | + leaf-br1, leaf-br2 |
 | `tester_id` | `LAB_TESTER_ID` or `KTRANS_HOST` | e.g. `aws-colocated-lab` |

@@ -1,6 +1,6 @@
 ---
 # ktranslate SNMP poller config for the EKS fabric (static device list).
-# Same device list and metric names as local/groups/srl.env golden path.
+# Same device list and metric names as local/groups/srl-hq.env golden path.
 # SNMP profiles come from the ktranslate image (kentik/snmp-profiles).
 apiVersion: v1
 kind: ConfigMap

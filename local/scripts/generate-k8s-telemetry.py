@@ -68,7 +68,7 @@ def yaml_block(text: str, indent: int = 4) -> str:
 def load_poller_configs() -> list[tuple[str, str]]:
     configs = sorted((LOCAL / "config").glob("poller-*.yaml"))
     if not configs:
-        raise SystemExit("no poller configs — cp groups/srl.env.sample groups/srl.env && make generate")
+        raise SystemExit("no poller configs — cp groups/srl-hq.env.sample groups/srl-hq.env && make generate")
     return [(p.stem.replace("poller-", ""), read_text(p)) for p in configs]
 
 

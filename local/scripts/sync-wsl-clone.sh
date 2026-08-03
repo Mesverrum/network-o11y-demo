@@ -15,7 +15,7 @@ rsync -a --delete \
   --exclude 'local/compose-*.generated.yaml' \
   "$WIN/" "$WSL/"
 # Preserve WSL-local secrets if present
-for f in .env groups/srl.env; do
+for f in .env groups/srl-hq.env groups/srl.env; do
   if [[ -f "$WSL/local/$f" ]]; then
     : # keep existing WSL copy
   elif [[ -f "$WIN/local/$f" ]]; then

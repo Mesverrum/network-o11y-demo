@@ -10,7 +10,7 @@ source "${ROOT}/scripts/lab-path.sh"
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-[[ -f groups/srl.env ]] || die "missing groups/srl.env — cp groups/srl.env.sample groups/srl.env"
+bash "${ROOT}/scripts/ensure-snmp-groups.sh"
 [[ -f .env ]] || die "missing .env — cp .env.example .env"
 if [[ "${LAB_LOG_EVENTS:-1}" == "1" ]]; then
   bash "${ROOT}/scripts/lab-log-events.sh" start || true
@@ -89,7 +89,13 @@ COMPOSE=(docker compose --env-file .env --env-file compose-host.generated.env
   -f compose-limits.generated.yaml)
 # shellcheck disable=SC2207
 COMPOSE+=($(bash "${ROOT}/scripts/lab-topology-exporter.sh" profile))
-COLLECTOR_SERVICES=(alloy flow_dns ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
+COLLECTOR_SERVICES=(alloy flow_dns)
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
+while IFS= read -r _snmp_svc; do
+  COLLECTOR_SERVICES+=("${_snmp_svc}")
+done < <(snmp_poller_compose_services "${ROOT}")
+COLLECTOR_SERVICES+=(ktranslate_flow ktranslate_sflow ktranslate_syslog gnmic)
 if bash "${ROOT}/scripts/lab-topology-exporter.sh" enabled; then
   COLLECTOR_SERVICES+=(topology_exporter)
 fi

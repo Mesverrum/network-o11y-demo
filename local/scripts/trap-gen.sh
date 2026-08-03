@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # trap-gen.sh — send SNMPv2c test traps to the local ktranslate SNMP poller
 #
-# Poller listens on UDP 1620 (groups/srl.env TRAP_PORT) with community "public".
-# Host mapping: 0.0.0.0:1620 → ktranslate_snmp_srl.
+# Poller listens on UDP 1620 (groups/srl-hq.env TRAP_PORT) with community "public".
+# Host mapping: 0.0.0.0:1620 → ktranslate_snmp_<group> (default srl-hq).
 # On the clab network the poller is also reachable at <container>:1620.
 #
 # Usage:
@@ -26,7 +26,7 @@ source "${ROOT}/scripts/collector-runtime-ready.sh"
 # shellcheck disable=SC1091
 [[ -f "${ROOT}/.env" ]] && set -a && source "${ROOT}/.env" && set +a
 
-GROUP_ENV="${ROOT}/groups/srl.env"
+GROUP_ENV="$(snmp_group_env_for "${ROOT}")"
 TRAP_PORT="$(awk -F= '/^TRAP_PORT=/{print $2; exit}' "${GROUP_ENV}" 2>/dev/null || echo 1620)"
 TRAP_COMMUNITY="$(awk -F= '/^TRAP_COMMUNITY=/{print $2; exit}' "${GROUP_ENV}" 2>/dev/null || echo public)"
 DEST_HOST="${TRAP_DEST_HOST:-127.0.0.1}"
@@ -37,7 +37,7 @@ command -v snmptrap >/dev/null || die "snmptrap not found (apt install snmp)"
 # Prefer container IP on clab when host mapping is awkward (WSL sometimes).
 resolve_dest() {
   local cid ip
-  cid="$(docker ps -qf name=ktranslate_snmp_srl | head -1 || true)"
+  cid="$(snmp_poller_container_id || true)"
   if [[ -n "$cid" && "${TRAP_DEST_HOST:-}" == "" ]]; then
     ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NETWORK:-clab}\").IPAddress}}" "$cid" 2>/dev/null || true)"
     if [[ -n "$ip" && "$ip" != "<no value>" ]]; then
@@ -115,7 +115,7 @@ DEST="$(resolve_dest)"
 export_colocated_clab_host
 
 if ! collector_snmp_ready; then
-  die "SNMP collector not running (compose ktranslate_snmp_srl or k3s deployment/ktranslate-snmp-srl)"
+  die "SNMP collector not running (compose ktranslate_snmp_* or k3s deployment/ktranslate-snmp-*)"
 fi
 
 case "${1:-suite}" in
@@ -149,5 +149,5 @@ EOF
 esac
 
 info "Done. Check poller logs and Loki in ~30s:"
-info "  docker logs --tail 50 \$(docker ps -qf name=ktranslate_snmp_srl)"
+info "  docker logs --tail 50 \$(snmp_poller_container_id | xargs -r docker logs --tail 50)"
 info "  LogQL: {service_name=~\"ktranslate.*\"} |~ \"(?i)trap|linkDown|coldStart|linkUp\""

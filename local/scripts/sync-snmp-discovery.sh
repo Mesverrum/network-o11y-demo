@@ -12,11 +12,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
+# shellcheck source=snmp-group-utils.sh
+source "${ROOT}/scripts/snmp-group-utils.sh"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-[[ -f groups/srl.env ]] || die "missing groups/srl.env — cp groups/srl.env.sample groups/srl.env"
+bash "${ROOT}/scripts/ensure-snmp-groups.sh"
 [[ -f compose-groups.generated.yaml ]] || die "missing compose-groups.generated.yaml — run: make generate"
 
 # Alloy must be up — discover_* containers export OTLP and depend on it (compose path).
@@ -27,7 +29,15 @@ if ! docker compose --env-file .env --env-file compose-host.generated.env \
   die "alloy is not running — start collectors before SNMP discovery (make up / stabilize)"
 fi
 
-if grep -q '^DISCOVERY_SOURCE=netbox' "${ROOT}/groups/srl.env" 2>/dev/null; then
+netbox_mode=0
+while IFS= read -r _ge; do
+  if grep -q '^DISCOVERY_SOURCE=netbox' "${_ge}" 2>/dev/null; then
+    netbox_mode=1
+    break
+  fi
+done < <(snmp_group_env_files "${ROOT}")
+
+if [[ "${netbox_mode}" -eq 1 ]]; then
   info "NetBox discovery source"
   bash "${ROOT}/scripts/netbox-bootstrap.sh"
 else

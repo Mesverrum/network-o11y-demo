@@ -54,7 +54,7 @@ Bootstrap installs host dependencies (`colocated-host-deps.sh`), clones this rep
 1. `network-o11y-fabric.service` — stage colocated topology, staggered ContainerLab deploy (`colocated-fabric-up.sh`), fabric sanity
 2. `network-o11y-telemetry.service` — k3s collectors, SNMP CIDR discovery (`run-colocated-discovery.sh` via host-network `docker run`), post-telemetry wiring, telemetry sanity
 
-Discovery uses CIDR from `groups/srl.env` (`TARGETS=172.20.20.0/24`) → `state/devices-srl.yaml`. **Do not** hand-populate device lists.
+Discovery uses CIDR from `groups/srl-hq.env` (and branch site groups) → `state/devices-srl-hq.yaml` (plus branch device lists). **Do not** hand-populate device lists.
 
 Fresh EC2 packages installed before any lab scripts: `docker`, `git`, `make`, `gettext`, `rsync`, `python3`, `yq`, `containerlab`, `k3s`, `jq`, `curl`.
 
@@ -89,7 +89,7 @@ count(network_io_by_flow_bytes{deployment_host="aws-colocated-lab"})
 
 ### SNMP profile / empty metrics
 
-Run discovery first (`make discover GROUP=srl` or colocated bootstrap). If metrics are still sparse, check poller logs for `profile_message` and compare `state/devices-srl.yaml` to a discovery-produced file (correct `mib_profile` + `provider` from ktranslate, not hand-written IPs).
+Run discovery first (`make discover GROUP=srl-hq` or colocated bootstrap). If metrics are still sparse, check poller logs for `profile_message` and compare `state/devices-srl-hq.yaml` to a discovery-produced file (correct `mib_profile` + `provider` from ktranslate, not hand-written IPs).
 
 ## Destroy
 

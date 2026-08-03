@@ -38,7 +38,7 @@ info "Configuring syslog → ktranslate_syslog..."
 bash "${ROOT}/scripts/syslog-config.sh" \
   || warn "syslog config failed — check sr_cli syntax"
 
-info "Configuring SNMP traps → ktranslate_snmp_srl..."
+info "Configuring SNMP traps → ktranslate SNMP poller(s)..."
 bash "${ROOT}/scripts/snmp-trap-config.sh" \
   || warn "snmp trap config failed — check sr_cli syntax"
 

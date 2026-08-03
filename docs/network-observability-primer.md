@@ -159,7 +159,7 @@ App SREs live here. Network teams traditionally do not—but **correlating trace
 
 **In this repo** we follow the [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) pattern:
 
-- Credential **groups** (`groups/srl.env`) → generated poller/discovery configs
+- Credential **groups** (`groups/srl-hq.env`) → generated poller/discovery configs
 - Separate containers for **SNMP (poll + traps)**, flow, and syslog
 - Alloy receives OTLP and forwards to **Grafana Cloud**
 

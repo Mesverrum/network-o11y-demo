@@ -16,15 +16,15 @@ alwaysApply: false
 
 `compose-base.yaml` + `compose-groups.generated.yaml` + `compose-catalog.generated.yaml` + `compose-limits.generated.yaml` (via `make up`).
 
-Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`. Optional: `topology_exporter` (compose profile `topology`, `LAB_TOPOLOGY_EXPORTER=1`).
+Services: `alloy`, `gnmic`, `ktranslate_snmp_srl-hq`, `ktranslate_flow`, `ktranslate_sflow`, `ktranslate_syslog`. Optional: `topology_exporter` (compose profile `topology`, `LAB_TOPOLOGY_EXPORTER=1`).
 
-- Groups: `groups/srl.env` → `make generate` → poller/discovery configs under `config/` + `state/`
-- Discovery: `make snmp-discover` (CIDR sync + discover all groups) or `make discover GROUP=srl` — not `--snmp_discovery_on_start`
+- Groups: `groups/srl-hq.env` → `make generate` → poller/discovery configs under `config/` + `state/`
+- Discovery: `make snmp-discover` (CIDR sync + discover all groups) or `make discover GROUP=srl-hq` — not `--snmp_discovery_on_start`
 - SNMP profiles: bundled in the ktranslate image; discovery assigns `mib_profile` from `sysObjectID` — see [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) for edge cases
 - Alloy: `local/alloy/config.alloy` — comments must be `//` only. Receives OTLP; scrapes Docker logs for Clos + sidecars (skips ktranslate — those use `--tee_logs` OTLP); remaps gnmic LLDP → `network_topology_edge_info`; stamps `deployment.host`
 - gnmic: `local/gnmic/gnmic.yaml` (OTLP → Alloy; includes `lldp_neighbors` subscribe)
 - topology-exporter (optional): `local/topology-exporter/config.yaml` — `make topology-up` after `topology-exporter-image`
-- NetBox Cloud: optional — `scripts/netbox-populate.py` + `make netbox-sync` when `DISCOVERY_SOURCE=netbox` (`groups/srl.env.netbox.sample`); default uses CIDR discovery via `sync-snmp-discovery.sh`
+- NetBox Cloud: optional — `scripts/netbox-populate.py` + `make netbox-sync` when `DISCOVERY_SOURCE=netbox` (`groups/srl.env.netbox.sample` → `groups/srl-hq.env`); default uses CIDR discovery via `sync-snmp-discovery.sh`
 
 ## Scripts
 
@@ -46,7 +46,7 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl`, `ktranslate_flow`, `ktranslat
 - `apply-fabric-node.sh` — pipe one node's `configs/fabric/<node>.cfg` (debug/recovery only; prefer `make fabric-apply`)
 - `softflowd.sh` — clients → `ktranslate_flow:9995`
 - `syslog-config.sh` — `docker exec -i` + `sr_cli` → `ktranslate_syslog:1514` (requires `system logging network-instance mgmt`)
-- `snmp-trap-config.sh` — SRL `trap-group ktranslate` via mgmt → **same** `ktranslate_snmp_srl` container UDP `1620` / `public` (not a separate collector)
+- `snmp-trap-config.sh` — SRL `trap-group ktranslate` via mgmt → **same** `ktranslate_snmp_srl-hq` container UDP `1620` / `public` (not a separate collector)
 - `post-telemetry-config.sh` — after discovery: flow-dns, softflowd, sFlow, syslog, traps, mgmt-api-mock, traffic, events-loop (`LAB_AUTO_TRAFFIC` / `LAB_AUTO_EVENTS`)
 - `emit-events.sh` — apply syslog+trap config, flap leaf client/spine links for real traps+syslog
 - `events-loop.sh` — background traps every 3m + emit-events every 5m (`make events-loop|events-stop|events-status`)

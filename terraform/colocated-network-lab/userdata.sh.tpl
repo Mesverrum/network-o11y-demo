@@ -12,15 +12,15 @@ LAB_ROOT=/opt/network-o11y-demo/local
 REPO_ROOT=/opt/network-o11y-demo
 
 install -d -m 0755 /opt
-if [[ ! -d "${REPO_ROOT}/.git" ]]; then
+if [[ ! -d "$${REPO_ROOT}/.git" ]]; then
   git clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" "$REPO_ROOT"
 else
   git -C "$REPO_ROOT" fetch origin "$REPO_BRANCH" --depth 1
   git -C "$REPO_ROOT" checkout "$REPO_BRANCH"
-  git -C "$REPO_ROOT" reset --hard "origin/${REPO_BRANCH}"
+  git -C "$REPO_ROOT" reset --hard "origin/$${REPO_BRANCH}"
 fi
 
-bash "${LAB_ROOT}/scripts/colocated-host-deps.sh"
+bash "$${LAB_ROOT}/scripts/colocated-host-deps.sh"
 
 install -d -m 0755 "$LAB_ROOT/groups" "$LAB_ROOT/config" "$LAB_ROOT/state"
 
@@ -42,9 +42,7 @@ LAB_AUTO_SYNTHETIC_TRAPS=0
 ENV
 chmod 0600 "$LAB_ROOT/.env"
 
-if [[ ! -f "$LAB_ROOT/groups/srl.env" ]]; then
-  cp "$LAB_ROOT/groups/srl.env.sample" "$LAB_ROOT/groups/srl.env"
-fi
+bash "$${LAB_ROOT}/scripts/ensure-snmp-groups.sh"
 
 cat >/etc/systemd/system/network-o11y-fabric.service <<'UNIT'
 [Unit]

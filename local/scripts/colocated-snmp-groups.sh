@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install three site-scoped SNMP credential groups for LAB_FABRIC_PROFILE=colocated.
-# Laptop profile keeps a single groups/srl.env — do not run this there.
+# Laptop profile uses groups/srl-hq.env (AWS-aligned HQ site). Colocated adds branch groups.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

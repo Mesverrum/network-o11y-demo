@@ -7,19 +7,8 @@ LAB="${ROOT}/terraform/colocated-network-lab"
 PROFILE="${AWS_PROFILE:-}"
 REGION="${AWS_REGION:-us-east-1}"
 
-aws_cmd() {
-  if command -v aws >/dev/null 2>&1; then
-    if [[ -n "$PROFILE" ]]; then aws --profile "$PROFILE" "$@"; else aws "$@"; fi
-    return
-  fi
-  local win_aws="/mnt/c/Program Files/Amazon/AWSCLIV2/aws.exe"
-  if [[ -x "$win_aws" ]]; then
-    if [[ -n "$PROFILE" ]]; then "$win_aws" --profile "$PROFILE" "$@"; else "$win_aws" "$@"; fi
-    return
-  fi
-  echo "ERROR: aws CLI not found" >&2
-  exit 1
-}
+# shellcheck source=aws-cmd.sh
+source "$(cd "$(dirname "$0")" && pwd)/aws-cmd.sh"
 
 pick_vpc() {
   local preferred="${PREFERRED_VPC_ID:-}"

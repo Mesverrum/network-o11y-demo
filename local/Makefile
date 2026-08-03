@@ -2,10 +2,10 @@
 #
 # Collector pattern follows Mesverrum/KtransToGrafana golden path:
 #   groups/*.env → make generate → compose-groups.generated.yaml
-#   make discover GROUP=srl populates state/devices-srl.yaml
+#   make discover GROUP=srl-hq populates state/devices-srl-hq.yaml
 #
 # Quick start:
-#   cp .env.example .env && cp groups/srl.env.sample groups/srl.env
+#   cp .env.example .env && cp groups/srl-hq.env.sample groups/srl-hq.env
 #   sudo chown -R 1000:1000 config state
 #   make generate && make up && make traffic
 
@@ -50,7 +50,8 @@ help: ## Show this help
 	@echo ""
 
 .PHONY: check
-check: ## Verify docker, containerlab, .env, groups/srl.env
+check: ## Verify docker, containerlab, .env, groups/srl-hq.env
+	@bash $(ROOT)scripts/ensure-snmp-groups.sh
 	@command -v docker >/dev/null || (echo "ERROR: docker not found"; exit 1)
 	@command -v containerlab >/dev/null || command -v clab >/dev/null \
 	  || (echo "ERROR: containerlab not found — https://containerlab.dev"; exit 1)
@@ -60,7 +61,7 @@ check: ## Verify docker, containerlab, .env, groups/srl.env
 	@test -f $(ROOT).env || (echo "ERROR: missing .env — cp .env.example .env"; exit 1)
 	@grep -qE 'glc_REPLACE_ME|YOUR-REGION|GC_OTLP_KEY=glc_foo$$' $(ROOT).env 2>/dev/null \
 	  && echo "WARNING: .env still has placeholder Grafana Cloud values" || true
-	@test -f $(ROOT)groups/srl.env || (echo "ERROR: missing groups/srl.env — cp groups/srl.env.sample groups/srl.env"; exit 1)
+	@test -f $(ROOT)groups/srl-hq.env || (echo "ERROR: missing groups/srl-hq.env — cp groups/srl-hq.env.sample groups/srl-hq.env"; exit 1)
 	@echo "OK: prerequisites look good (deployment.host=$(KTRANS_HOST))"
 
 .PHONY: preflight
@@ -99,8 +100,8 @@ host: ## Print deployment.host (KTRANS_HOST)
 	@echo "$(KTRANS_HOST)"
 
 .PHONY: discover
-discover: ## Run one-shot SNMP discovery (GROUP=srl)
-	@test -n "$(GROUP)" || { echo "ERROR: pass GROUP=<name>, e.g. make discover GROUP=srl" >&2; exit 1; }
+discover: ## Run one-shot SNMP discovery (GROUP=srl-hq)
+	@test -n "$(GROUP)" || { echo "ERROR: pass GROUP=<name>, e.g. make discover GROUP=srl-hq" >&2; exit 1; }
 	@cd $(ROOT) && bash scripts/run-discovery.sh $(GROUP)
 
 .PHONY: discover-all
@@ -233,7 +234,8 @@ compose-host-env: ## Write compose-host.generated.env (deployment.host for compo
 ktranslate-dev-recreate: compose-host-env ## Recreate all ktranslate containers (set KTRANSLATE_IMAGE in .env first)
 	@test -n "$$(grep -E '^KTRANSLATE_IMAGE=.+' $(ROOT).env 2>/dev/null)" \
 	  || { echo "Set KTRANSLATE_IMAGE=srl-local/ktranslate:otel-chf-dev in local/.env first"; exit 1; }
-	$(COMPOSE) up -d --pull never --force-recreate ktranslate_snmp_srl ktranslate_flow ktranslate_sflow ktranslate_syslog
+	@_snmp=$$(bash -c 'source scripts/snmp-group-utils.sh; snmp_poller_compose_services . | tr "\n" " "'); \
+	  $(COMPOSE) up -d --pull never --force-recreate $$_snmp ktranslate_flow ktranslate_sflow ktranslate_syslog
 	@$(MAKE) softflowd
 
 .PHONY: netbox-bootstrap netbox-sync
@@ -289,7 +291,7 @@ network-alerts: ## Provision Grafana network alert rules (marcnetterfield1 / net
 	python3 $(ROOT)scripts/provision-network-alerts.py
 
 .PHONY: snmp-traps-config
-snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate_snmp_srl
+snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate SNMP poller(s)
 	bash $(ROOT)scripts/snmp-trap-config.sh
 
 .PHONY: emit-events
@@ -409,7 +411,7 @@ join-fault-status: ## Show tc qdisc on client eth1
 	bash $(ROOT)scripts/join-fault.sh status
 
 .PHONY: traps
-traps: ## Send SNMPv2c test traps to ktranslate_snmp_srl (:1620)
+traps: ## Send SNMPv2c test traps to ktranslate SNMP poller (:1620)
 	bash $(ROOT)scripts/trap-gen.sh suite
 
 .PHONY: traps-burst

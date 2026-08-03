@@ -110,8 +110,8 @@ prep_config(){
   step "Config + credentials"
   cd "$LDIR" || exit 1
   [[ -f .env ]] || cp .env.example .env
-  [[ -f groups/srl.env ]] || cp groups/srl.env.sample groups/srl.env
-  sed -i 's/\r$//' .env groups/srl.env 2>/dev/null || true
+  bash scripts/ensure-snmp-groups.sh
+  sed -i 's/\r$//' .env groups/srl-hq.env groups/srl.env 2>/dev/null || true
   ok "config files present (CRLF stripped)"
   creds_present && ok "Grafana Cloud OTLP credentials set" || roadblock \
     "Grafana Cloud OTLP credentials required" \
@@ -149,8 +149,8 @@ bringup(){
   if grep -q device_name state/devices-srl.yaml 2>/dev/null; then skip "SNMP discovery"
   else step "SNMP discovery"
     sudo chown -R 1000:1000 config state 2>/dev/null || true
-    if [[ "$UID_N" -eq 1000 ]]; then run_step make discover GROUP=srl
-    else sudo chown -R "$UID_N":"$UID_N" config 2>/dev/null; run_step sudo make discover GROUP=srl; fi
+    if [[ "$UID_N" -eq 1000 ]]; then run_step make discover GROUP=srl-hq
+    else sudo chown -R "$UID_N":"$UID_N" config 2>/dev/null; run_step sudo make discover GROUP=srl-hq; fi
     grep -q device_name state/devices-srl.yaml 2>/dev/null && ok "discovered spine1/leaf1/leaf2" || warn "discovery found no devices (check SNMP)"; fi
 
   pgrep -f traffic.sh >/dev/null 2>&1 || docker exec client2 pgrep iperf3 >/dev/null 2>&1 && skip "traffic" \

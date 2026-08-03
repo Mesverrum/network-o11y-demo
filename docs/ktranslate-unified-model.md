@@ -65,7 +65,7 @@ All paths land the same signals in Grafana Cloud with the same metric names.
 ```bash
 cd local
 cp .env.example .env          # GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
-cp groups/srl.env.sample groups/srl.env
+cp groups/srl-hq.env.sample groups/srl-hq.env
 make generate && make check && make up
 ```
 
@@ -89,7 +89,7 @@ topk(20, network_io_by_flow_bytes)
 cd local
 cp .env.example .env          # GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
 cp groups/srl.env.sample groups/srl.env
-make fabric-up && make discover GROUP=srl
+make fabric-up && make discover GROUP=srl-hq
 make generate-k8s
 bash scripts/deploy-ktranslate-golden.sh
 export KTRANSLATE_CLAB_HOST=$(docker network inspect clab -f '{{(index .IPAM.Config 0).Gateway}}')

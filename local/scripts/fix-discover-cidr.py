@@ -13,11 +13,11 @@ for node in ("spine1", "leaf1", "leaf2"):
     print(f"{node} -> {ip}")
     targets.append(f"{ip}/32")
 joined = ",".join(targets)
-env = ROOT / "groups" / "srl.env"
+env = ROOT / "groups" / "srl-hq.env"
 text = env.read_text(encoding="utf-8")
 text = re.sub(r"(?m)^DISCOVERY_SOURCE=.*$", "DISCOVERY_SOURCE=cidr", text, count=1)
 text = re.sub(r"(?m)^TARGETS=.*$", f"TARGETS={joined}", text, count=1)
 env.write_text(text, encoding="utf-8")
 print(f"updated TARGETS={joined}")
 subprocess.run(["make", "generate"], cwd=ROOT, check=True)
-subprocess.run(["make", "discover", "GROUP=srl"], cwd=ROOT, check=True)
+subprocess.run(["make", "discover", "GROUP=srl-hq"], cwd=ROOT, check=True)

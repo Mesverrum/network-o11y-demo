@@ -28,7 +28,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 
 | Stream | Path |
 |--------|------|
-| SNMP | SR Linux → `ktranslate_snmp_srl` → Alloy → Grafana Cloud (`kentik_snmp_*`) |
+| SNMP | SR Linux → `ktranslate_snmp_srl-hq` → Alloy → Grafana Cloud (`kentik_snmp_*`) |
 | NetFlow | softflowd on clients → `ktranslate_flow` → Alloy → GC (`network_io_by_flow`) |
 | Syslog | SR Linux → `ktranslate_syslog` → Alloy → GC |
 | gNMI | SR Linux → `gnmic` (OTLP) → Alloy → GC (`gnmi_*`, `job="gnmic"`) |
@@ -37,7 +37,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | Mgmt API catalog | `fixtures/srl-mgmt-api-catalog.json` + mock payloads → `mgmt-api-mock` (OTLP) → GC (`srl_mgmt_api_capability_info`; NETCONF/JSON-RPC/gNOI/gRIBI shown even when not enabled on devices) |
 | Flex-style gap-fill (optional) | `make telegraf-poc` — Telegraf `inputs.exec` + SSH/`jq` parse → OTLP (`srl_flex_poc_ssh_up`, `srl_flex_poc_bgp_peers_up`; see `local/telegraf-flex-poc/`) |
 
-NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
+NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl-hq.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl-hq.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
 
 **Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Edges come from **gnmic** (`lldp_neighbors` subscribe), not SNMP topology-exporter.
 
@@ -77,7 +77,7 @@ cp .env.example .env
 # Edit .env: set GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
 # Optional: LAB_TESTER_ID=network-lab  (topology/entity label; else KTRANS_HOST or hostname)
 
-cp groups/srl.env.sample groups/srl.env
+cp groups/srl-hq.env.sample groups/srl-hq.env
 make generate
 ```
 
@@ -108,8 +108,8 @@ and/or `LAB_AUTO_EVENTS=0`.
 `.env` per machine.
 
 `make up` prints `deployment.host`, starts the stack, syncs the clab mgmt **CIDR**
-into `groups/srl.env` TARGETS, then runs **SNMP discovery** (`make snmp-discover`)
-to populate `state/devices-srl.yaml` (no hand-edited device IPs).
+into `groups/srl-hq.env` TARGETS, then runs **SNMP discovery** (`make snmp-discover`)
+to populate `state/devices-srl-hq.yaml` (no hand-edited device IPs).
 
 Tear down:
 
@@ -187,7 +187,7 @@ make topology-up
 | Target | Purpose |
 |--------|---------|
 | `make generate` | Render `config/*`, `compose-groups.generated.yaml`, `compose-catalog.generated.yaml` from `groups/*.env` |
-| `make discover GROUP=srl` | One-shot SNMP discovery for one group (requires alloy up) |
+| `make discover GROUP=srl-hq` | One-shot SNMP discovery for one group (requires alloy up) |
 | `make discover-all` / `make snmp-discover` | Sync clab mgmt CIDR + discover all groups + reload collectors |
 | `make host` | Print resolved `deployment.host` |
 | `make logs` | Tail Alloy + ktranslate |
@@ -208,7 +208,7 @@ make topology-up
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
-| `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl:1620` (same container as SNMP polling) |
+| `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl-hq:1620` (same container as SNMP polling) |
 | `make emit-events` | One-shot: configure syslog+traps, flap links for real device events (also runs once when events-loop starts) |
 | `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m (**on by default** after `make up`; `LAB_AUTO_EVENTS=0` to skip) |
 | `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP (**on by default** after `make up`; `LAB_AUTO_TRAFFIC=0` to skip) |
@@ -228,13 +228,13 @@ make topology-up
 ## Golden path notes (vs older monolith)
 
 - **Device catalog for flow/syslog/sFlow:** `make generate` writes `config/catalog.yaml` with `@` references to each group's `state/devices-<group>.yaml`. Flow, sFlow, and syslog receivers mount the catalog via `compose-catalog.generated.yaml` (not the per-group poller YAML).
-- **SNMP MIBs / profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). **Temporary:** `local/snmp-profiles/nokia/nokia-srlinux.yml` is bind-mounted until [kentik/snmp-profiles#889](https://github.com/kentik/snmp-profiles/pull/889) merges (SRL `MemoryUtilization`). Run `make generate` after template changes; recreate `ktranslate_snmp_srl` to pick up profile edits.
+- **SNMP MIBs / profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). **Temporary:** `local/snmp-profiles/nokia/nokia-srlinux.yml` is bind-mounted until [kentik/snmp-profiles#889](https://github.com/kentik/snmp-profiles/pull/889) merges (SRL `MemoryUtilization`). Run `make generate` after template changes; recreate `ktranslate_snmp_srl-hq` to pick up profile edits.
 - **No more** root `snmp.yaml` + `--snmp_discovery_on_start`. Discovery is a one-shot
-  `discover_srl` profile; the long-running poller mounts `config/poller-srl.yaml`
-  read-only and `@`-includes `state/devices-srl.yaml`.
+  `discover_srl` profile; the long-running poller mounts `config/poller-srl-hq.yaml`
+  read-only and `@`-includes `state/devices-srl-hq.yaml`.
 - Flow rollups + Alloy preprocess match the official Grafana Cloud
   **ktranslate-netflow** integration: flow rollups use metric `network_io_by_flow` + datapoint label `integration=ktranslate-netflow` (CHF/logs keep `ktranslate-*` service names).
-- Add another credential group by copying `groups/srl.env.sample` →
+- Add another credential group by copying `groups/srl-hq.env.sample` →
   `groups/<name>.env`, assigning unique `METALISTEN_PORT` / `TRAP_PORT`, then `make generate && make up && make discover GROUP=<name>`.
   `GROUP=` becomes **`tags_snmp_group`** on SNMP metrics (poller `global.user_tags`).
   Colocated EC2 uses `srl-hq`, `srl-branch1`, `srl-branch2` samples — see [`docs/colocated-topology.md`](docs/colocated-topology.md).
@@ -269,11 +269,11 @@ bash -c "$(curl -sL https://get.containerlab.dev)"
 sudo curl -sL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 && sudo chmod +x /usr/local/bin/yq
 git clone https://github.com/Mesverrum/network-o11y-demo.git && cd network-o11y-demo/local
 
-cp .env.example .env && cp groups/srl.env.sample groups/srl.env
-sed -i 's/\r$//' .env groups/srl.env    # sample files may carry CRLF
+cp .env.example .env && cp groups/srl-hq.env.sample groups/srl-hq.env
+sed -i 's/\r$//' .env groups/srl-hq.env    # sample files may carry CRLF
 # Set GC_OTLP_* in .env (paste from Grafana Cloud → OpenTelemetry)
 make generate && make check && make up
-sudo make discover GROUP=srl            # uid 501↔1000 mapping: run discovery as root on OrbStack
+sudo make discover GROUP=srl-hq            # uid 501↔1000 mapping: run discovery as root on OrbStack
 make status   # traffic + events-loop start automatically on make up
 ```
 
@@ -333,7 +333,7 @@ Cursor rules: [`.cursor/rules/local-lab.mdc`](../.cursor/rules/local-lab.mdc) (a
 
 **Agent quick checklist:**
 
-1. `cd local` on a **native ext4** checkout (WSL: `~/projects/...`, not `/mnt/c`) → copy `.env.example` + `groups/srl.env.sample` → user provides `GC_OTLP_*`
+1. `cd local` on a **native ext4** checkout (WSL: `~/projects/...`, not `/mnt/c`) → copy `.env.example` + `groups/srl-hq.env.sample` → user provides `GC_OTLP_*`
 2. `make generate` → (`chown` on Linux/WSL if needed) → `make check` → `make up`
 3. Verify on **user's** stack: `count by (device_name) (kentik_snmp_CPU)` and `count(network_io_by_flow_bytes)` — not `kentik_snmp_DeviceMetrics`
 4. On failure: `make snmp-check` / `bash scripts/finish-flows.sh` → then `make stabilize` — not `clab deploy --reconfigure`

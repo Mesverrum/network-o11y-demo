@@ -38,7 +38,7 @@ Put Grafana Cloud OTLP creds in `local\.env` before deploy — the script copies
 ```bash
 cd local
 cp .env.example .env          # GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY
-cp groups/srl.env.sample groups/srl.env
+cp groups/srl-hq.env.sample groups/srl-hq.env
 make generate && make check && make up    # ~10 min cold start
 make status && make traffic
 ```
@@ -172,6 +172,6 @@ Architecture deep-dive: [`docs/ktranslate-unified-model.md`](docs/ktranslate-uni
 | **Lab-specific** (topology, join demo, flow lab UID) | `local/.dash-payloads/`, `local/dashboards/` | Adapted for this demo's UIDs (`lab-*`) |
 | **EKS / blog set** | `grafana/dashboards/` | AWS integrations path (`integrations/snmp`, gNMI) |
 
-**SNMP credential groups** stamp **`tags_snmp_group`** on metrics (from `GROUP=` in `groups/*.env` via poller `global.user_tags`). Filter fleet dashboards with `$snmp_group` / `tags_snmp_group=~"$snmp_group"`. Laptop default: one group `srl`. Colocated EC2: `srl-hq`, `srl-branch1`, `srl-branch2` — see [`local/docs/colocated-topology.md`](local/docs/colocated-topology.md).
+**SNMP credential groups** stamp **`tags_snmp_group`** on metrics (from `GROUP=` in `groups/*.env` via poller `global.user_tags`). Filter fleet dashboards with `$snmp_group` / `tags_snmp_group=~"$snmp_group"`. Laptop default: **`srl-hq`** (HQ spine/leaves, same as AWS). Colocated EC2 adds `srl-branch1`, `srl-branch2` — see [`local/docs/colocated-topology.md`](local/docs/colocated-topology.md).
 
 **Workflow:** edit JSON in KtransToGrafana → `make -C local dash-push` (needs `GRAFANA_URL` + `GRAFANA_TOKEN` in `local/.env`, clone at `../KtransToGrafana` or set `KTRANS_UPSTREAM`). Details: [`local/dashboards/ktranslate/README.md`](local/dashboards/ktranslate/README.md), [`AGENTS.md`](AGENTS.md).
