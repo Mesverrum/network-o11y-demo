@@ -11,6 +11,15 @@ normalize_env_file() {
   fi
 }
 
+normalize_group_env_files() {
+  local root="$1" f
+  shopt -s nullglob
+  for f in "${root}/groups"/*.env; do
+    normalize_env_file "${f}"
+  done
+  shopt -u nullglob
+}
+
 snmp_group_env_files() {
   local root="${1:-}"
   shopt -s nullglob

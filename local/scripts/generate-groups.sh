@@ -11,6 +11,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=snmp-group-utils.sh
+source "${REPO_ROOT}/scripts/snmp-group-utils.sh"
+normalize_group_env_files "${REPO_ROOT}"
+
 GROUPS_DIR="${REPO_ROOT}/groups"
 TEMPLATES_DIR="${REPO_ROOT}/templates"
 CONFIG_DIR="${REPO_ROOT}/config"

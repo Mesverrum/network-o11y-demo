@@ -56,7 +56,22 @@ Bootstrap installs host dependencies (`colocated-host-deps.sh`), clones this rep
 
 Discovery uses CIDR from `groups/srl-hq.env` (and branch site groups) → `state/devices-srl-hq.yaml` (plus branch device lists). **Do not** hand-populate device lists.
 
-Fresh EC2 packages installed before any lab scripts: userdata installs `git` via `dnf`, clones this repo, then `colocated-host-deps.sh` installs docker, containerlab, k3s, yq, etc.
+Fresh EC2 packages installed before any lab scripts: userdata installs `git` via `dnf`, clones this repo, runs `colocated-host-deps.sh`, then `colocated-ec2-bootstrap.sh` (writes `local/.env`, installs all three site SNMP groups with LF-normalized `groups/*.env`, registers systemd units, starts fabric + telemetry).
+
+### Bootstrap troubleshooting (AL2023)
+
+| Symptom | Cause | Fix in repo |
+|---------|-------|-------------|
+| `git: command not found` on first boot | userdata cloned before installing git | userdata installs `git` before clone |
+| `curl` / `curl-minimal` dnf conflict | AL2023 ships `curl-minimal` | `colocated-host-deps.sh` does not install `curl` |
+| `INSTALL_K3S_EXEC=...: command not found` | k3s install as root without `env` | `env INSTALL_K3S_EXEC='...' sh` in deps script |
+| `$'\r': command not found` in `groups/*.env` | CRLF in samples on Windows checkouts | LF samples + `normalize_env_file` on copy/generate |
+
+If userdata still fails mid-flight, on the instance (with OTLP vars exported or in `local/.env`):
+
+```bash
+bash /opt/network-o11y-demo/local/scripts/colocated-bootstrap-recover.sh
+```
 
 ## Monitor
 
