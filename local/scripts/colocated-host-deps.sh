@@ -11,10 +11,10 @@ else
 fi
 
 log "installing base packages (dnf)"
+# AL2023 ships curl-minimal; full curl package conflicts — do not install curl.
 $SUDO dnf install -y \
   docker git make gettext tar gzip which rsync \
-  python3 python3-pip jq curl iproute procps-ng \
-  >/dev/null
+  python3 python3-pip jq iproute procps-ng
 
 log "enabling docker"
 $SUDO systemctl enable --now docker
