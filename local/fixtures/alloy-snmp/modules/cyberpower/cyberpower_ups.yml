@@ -1,0 +1,14 @@
+# GENERATED from kentik/snmp-profiles — module cyberpower_ups
+# Pair with embedded if_mib: module = "if_mib,cyberpower_ups"
+modules:
+  cyberpower_ups:
+    walk:
+    - 1.3.6.1.4.1.3808.1.1.1.5.1.2
+    metrics:
+    - name: snmp_deviceName
+      oid: 1.3.6.1.4.1.3808.1.1.1.5.1.2.1.2
+      type: gauge
+      help: deviceName (CPS-MIB_UPS) - 1.3.6.1.4.1.3808.1.1.1.5.1.2.1.2
+      indexes:
+      - labelname: deviceIndex
+        type: gauge

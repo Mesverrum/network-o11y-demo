@@ -1,0 +1,201 @@
+# GENERATED from kentik/snmp-profiles — module palo_alto
+# Pair with embedded if_mib: module = "if_mib,palo_alto"
+modules:
+  palo_alto:
+    walk:
+    - 1.3.6.1.4.1.25461.2.1.2.3.9
+    - 1.3.6.1.4.1.25461.2.1.2.3.10
+    - 1.3.6.1.4.1.25461.2.1.2.3.11
+    metrics:
+    - name: snmp_panVsysSessionUtilizationPct
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.3
+      type: gauge
+      help: panVsysSessionUtilizationPct (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.3
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: &id001
+        - panVsysId
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: &id002
+        - panVsysId
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panVsysActiveSessions
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.4
+      type: gauge
+      help: panVsysActiveSessions (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.4
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: *id002
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panVsysMaxSessions
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.5
+      type: gauge
+      help: panVsysMaxSessions (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.5
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: *id002
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panVsysActiveTcpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.6
+      type: gauge
+      help: panVsysActiveTcpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.6
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: *id002
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panVsysActiveUdpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.7
+      type: gauge
+      help: panVsysActiveUdpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.7
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: *id002
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panVsysActiveOtherIpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.8
+      type: gauge
+      help: panVsysActiveOtherIpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.9.1.8
+      indexes:
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: vsys_id
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.1
+        type: DisplayString
+      - labels: *id002
+        labelname: vsys_name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.9.1.2
+        type: DisplayString
+    - name: snmp_panZoneActiveTcpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.2
+      type: gauge
+      help: panZoneActiveTcpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.10.1.2
+      indexes:
+      - labelname: panZoneName
+        type: DisplayString
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: &id003
+        - panZoneName
+        - panVsysId
+        labelname: Zone_Name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.1
+        type: DisplayString
+    - name: snmp_panZoneActiveUdpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.3
+      type: gauge
+      help: panZoneActiveUdpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.10.1.3
+      indexes:
+      - labelname: panZoneName
+        type: DisplayString
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: Zone_Name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.1
+        type: DisplayString
+    - name: snmp_panZoneActiveOtherIpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.4
+      type: gauge
+      help: panZoneActiveOtherIpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.10.1.4
+      indexes:
+      - labelname: panZoneName
+        type: DisplayString
+      - labelname: panVsysId
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: Zone_Name
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.10.1.1
+        type: DisplayString
+    - name: snmp_panIfActiveTcpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.3
+      type: gauge
+      help: panIfActiveTcpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.11.1.3
+      indexes:
+      - labelname: panIfIndex
+        type: gauge
+      lookups:
+      - labels: &id004
+        - panIfIndex
+        labelname: If_Index
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.1
+        type: gauge
+      - labels: &id005
+        - panIfIndex
+        labelname: If_Descr
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.2
+        type: DisplayString
+    - name: snmp_panIfActiveUdpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.4
+      type: gauge
+      help: panIfActiveUdpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.11.1.4
+      indexes:
+      - labelname: panIfIndex
+        type: gauge
+      lookups:
+      - labels: *id004
+        labelname: If_Index
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.1
+        type: gauge
+      - labels: *id005
+        labelname: If_Descr
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.2
+        type: DisplayString
+    - name: snmp_panIfActiveOtherIpCps
+      oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.5
+      type: gauge
+      help: panIfActiveOtherIpCps (PAN-COMMON-MIB) - 1.3.6.1.4.1.25461.2.1.2.3.11.1.5
+      indexes:
+      - labelname: panIfIndex
+        type: gauge
+      lookups:
+      - labels: *id004
+        labelname: If_Index
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.1
+        type: gauge
+      - labels: *id005
+        labelname: If_Descr
+        oid: 1.3.6.1.4.1.25461.2.1.2.3.11.1.2
+        type: DisplayString

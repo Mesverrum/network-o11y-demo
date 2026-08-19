@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module netgear_access_point
+# Pair with embedded if_mib: module = "if_mib,netgear_access_point"
+modules:
+  netgear_access_point:
+    metrics: []

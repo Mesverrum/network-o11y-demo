@@ -182,6 +182,31 @@ make topology-exporter-image   # first time only
 make topology-up
 ```
 
+**Optional Alloy-native SNMP** (does **not** replace ktranslate; native metric names; Prometheus SD for module+auth mapping):
+
+```bash
+# Sibling clone of https://github.com/Mesverrum/alloy branch network-snmp
+make alloy-network-image
+# Lightweight proof (1× SRL, no traffic/ktranslate) — preferred on a RAM-constrained laptop:
+make alloy-snmp-min
+# Full Clos in parallel with ktranslate:
+# In .env: ALLOY_IMAGE=srl-local/alloy:network-dev  and  LAB_ALLOY_SNMP=1
+make alloy-snmp-up          # discover + recreate (or: make alloy-snmp-discover)
+make alloy-snmp-dash
+```
+
+**Optional Alloy-native flow** (does **not** replace ktranslate; needs from-source image):
+
+```bash
+# In .env: ALLOY_IMAGE=srl-local/alloy:network-dev  and  LAB_ALLOY_NETFLOW=1
+# Metrics (default): signaltometrics → network.io.by_flow  (PromQL: rate(), not *8/60)
+# Logs (opt-in):     LAB_ALLOY_NETFLOW_LOGS=1
+ALLOY_NETWORK_FROM_SOURCE=1 make alloy-network-image
+make alloy-netflow-up
+```
+
+See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
+
 ## Useful targets
 
 | Target | Purpose |
@@ -205,10 +230,19 @@ make topology-up
 | `make topology-targets` | Refresh topology-exporter SNMP hosts (when `LAB_TOPOLOGY_EXPORTER=1`) |
 | `make topology-up` | Start optional topology_exporter (compose profile `topology`) |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
+| `make alloy-network-image` | Build `srl-local/alloy:network-dev` (fork overlay: snmp.yml + snmp-discovery) |
+| `make alloy-snmp-discover` | Probe fabric `/32`s → `snmp-targets.yml` (named auth + sysObjectID→module) |
+| `make alloy-snmp-up` | Discover + recreate Alloy with native SNMP scrape (`LAB_ALLOY_SNMP=1`; ktranslate stays) |
+| `make alloy-snmp-min` | **Laptop light:** 1× SRL + Alloy SNMP only (stops Clos/clients/ktranslate/traffic) |
+| `make alloy-snmp-min-down` | Tear down snmp-min |
+| `make alloy-snmp-dash` | Build+import `alloy-snmp-device-details` (curated `snmp_*` names) |
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
-| `make snmp-traps-config` | Point SRL SNMP traps at `ktranslate_snmp_srl-hq:1620` (same container as SNMP polling) |
+| `make snmp-traps-config` | Point SRL SNMP traps at ktranslate `:1620`, or Alloy when `LAB_ALLOY_SNMPTRAP=1` |
+| `make alloy-snmptrap-up` | Render `loki.source.snmptrap`, recreate Alloy, retarget SRL trap-group |
+| `make alloy-syslog-up` | Render `loki.source.syslog`, recreate Alloy, retarget SRL remote syslog |
+| `make alloy-netflow-up` | Render `otelcol.receiver.netflow` + signaltometrics (ports 2055/6344; ktranslate stays) |
 | `make emit-events` | One-shot: configure syslog+traps, flap links for real device events (also runs once when events-loop starts) |
 | `make events-loop` / `events-stop` / `events-status` | Background: synthetic traps every 3m + real flaps every 5m (**on by default** after `make up`; `LAB_AUTO_EVENTS=0` to skip) |
 | `make traffic` / `traffic-stop` / `traffic-status` | ongoing UDP iperf (steady+burst+reverse) + ICMP (**on by default** after `make up`; `LAB_AUTO_TRAFFIC=0` to skip) |

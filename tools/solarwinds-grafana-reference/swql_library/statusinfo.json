@@ -1,0 +1,289 @@
+[
+  {
+    "StatusId": 0,
+    "StatusName": "Unknown",
+    "Color": "#999999",
+    "ShortDescription": "Unknown",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 1,
+    "StatusName": "Up",
+    "Color": "#B8D757",
+    "ShortDescription": "Up",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 2,
+    "StatusName": "Down",
+    "Color": "#950000",
+    "ShortDescription": "Down",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 3,
+    "StatusName": "Warning",
+    "Color": "#FEC405",
+    "ShortDescription": "Warning",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 4,
+    "StatusName": "Shutdown",
+    "Color": "#707070",
+    "ShortDescription": "Shutdown",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 5,
+    "StatusName": "Testing",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Testing",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 6,
+    "StatusName": "Dormant",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Dormant",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 7,
+    "StatusName": "NotPresent",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Not Present",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 8,
+    "StatusName": "LowerLayerDown",
+    "Color": "#FF00A3",
+    "ShortDescription": "Lower Layer Down",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 9,
+    "StatusName": "Unmanaged",
+    "Color": "#176998",
+    "ShortDescription": "Unmanaged",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 10,
+    "StatusName": "Unplugged",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Unplugged",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 11,
+    "StatusName": "External",
+    "Color": "#9954D4",
+    "ShortDescription": "External",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 12,
+    "StatusName": "Unreachable",
+    "Color": "#111111",
+    "ShortDescription": "Unreachable",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 14,
+    "StatusName": "Critical",
+    "Color": "#DD2C00",
+    "ShortDescription": "Critical",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 15,
+    "StatusName": "PartlyAvailable",
+    "Color": "#BCBD22",
+    "ShortDescription": "Partly Available",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 16,
+    "StatusName": "Misconfigured",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Misconfigured",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 17,
+    "StatusName": "Undefined",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Could Not Poll",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 19,
+    "StatusName": "Unconfirmed",
+    "Color": "#BCBD22",
+    "ShortDescription": "Unconfirmed",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 22,
+    "StatusName": "Active",
+    "Color": "#00A753",
+    "ShortDescription": "Active",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 24,
+    "StatusName": "Inactive",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Inactive",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 25,
+    "StatusName": "Expired",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Expired",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 26,
+    "StatusName": "MonitoringDisabled",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Monitoring Disabled",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 27,
+    "StatusName": "Disabled",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Disabled",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 28,
+    "StatusName": "NotLicensed",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Not Licensed",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 29,
+    "StatusName": "OtherCategory",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Other",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 30,
+    "StatusName": "NotRunning",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Not Running",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 31,
+    "StatusName": "Online",
+    "Color": "#B8D757",
+    "ShortDescription": "Online",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 32,
+    "StatusName": "OnBattery",
+    "Color": "#BCBD22",
+    "ShortDescription": "On Battery",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 33,
+    "StatusName": "OnSmartBoost",
+    "Color": "#BCBD22",
+    "ShortDescription": "On Smart Boost",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 34,
+    "StatusName": "TimedSleeping",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Timed Sleeping",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 35,
+    "StatusName": "SoftwareBypass",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Software Bypass",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 36,
+    "StatusName": "Off",
+    "Color": "#A31770",
+    "ShortDescription": "Off",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 37,
+    "StatusName": "Rebooting",
+    "Color": "#BCBD22",
+    "ShortDescription": "Rebooting",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 38,
+    "StatusName": "SwitchedBypass",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Switched Bypass",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 39,
+    "StatusName": "HardwareFailureBypass",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Hardware Failure Bypass",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 40,
+    "StatusName": "SleepingUntilPowerReturn",
+    "Color": "#A6DBF8",
+    "ShortDescription": "Sleeping Until Power Return",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 41,
+    "StatusName": "OnSmartTrim",
+    "Color": "#BCBD22",
+    "ShortDescription": "On Smart Trim",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 42,
+    "StatusName": "EcoMode",
+    "Color": "#A6E7DE",
+    "ShortDescription": "Eco Mode",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 43,
+    "StatusName": "HotStandBy",
+    "Color": "#A6E7DE",
+    "ShortDescription": "Hot Stand By",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 44,
+    "StatusName": "OnBatteryTest",
+    "Color": "#C2C2C2",
+    "ShortDescription": "On Battery Test",
+    "DisplayName": null
+  },
+  {
+    "StatusId": 45,
+    "StatusName": "Missing",
+    "Color": "#C2C2C2",
+    "ShortDescription": "Missing",
+    "DisplayName": null
+  }
+]

@@ -83,7 +83,7 @@ EOF
 
     script += """
 dnf install -y python3 python3-pip >/dev/null
-pip3 install -q pyyaml --ignore-scripts
+pip3 install -q pyyaml 2>/dev/null || pip3 install -q pyyaml --user
 cat >/etc/systemd/system/hybrid-probe.service <<'UNIT'
 [Unit]
 Description=Hybrid mesh probe agent

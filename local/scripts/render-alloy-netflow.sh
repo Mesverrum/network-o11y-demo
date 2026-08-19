@@ -78,18 +78,26 @@ SF_PORT="${LAB_ALLOY_SFLOW_PORT:-6344}"
     echo "// ktranslate_flow :9995 / ktranslate_sflow :6343 stay the lab default."
   else
     cat <<EOF
-// LAB_ALLOY_NETFLOW=1 — contrib netflow receiver as-is (logs pdata).
+// LAB_ALLOY_NETFLOW=1 — contrib netflow receiver (logs pdata) + devicejoin.
 // Metrics: signaltometrics (delta Sum) → deltatocumulative → Grafana Cloud.
 //   Names are alloy.network.io.by_flow* — ktranslate already owns
 //   network.io.by_flow as a gauge on this tenant; same name + Sum = OTLP 400.
 //   PromQL: rate(alloy_network_io_by_flow_bytes{integration="alloy-netflow"}[5m])*8
 // Logs: optional experimental punt onto the existing OTLP logs export.
 // Do not point softflowd here unless you intend a dual-feed (Alpine: one -n per process).
+// targets: same snmp-targets.yml catalog as traps/syslog (device_name / snmp_aliases).
+
+local.file "netflow_device_join" {
+  filename       = "/etc/alloy/snmp-targets.yml"
+  detector       = "poll"
+  poll_frequency = "15s"
+}
 
 otelcol.receiver.netflow "ipfix" {
   scheme   = "netflow"
   hostname = "0.0.0.0"
   port     = ${NF_PORT}
+  targets  = encoding.from_yaml(local.file.netflow_device_join.content)
 
   output {
     logs = [otelcol.processor.transform.netflow_resource.input]
@@ -103,6 +111,7 @@ otelcol.receiver.netflow "sflow" {
   scheme   = "sflow"
   hostname = "0.0.0.0"
   port     = ${SF_PORT}
+  targets  = encoding.from_yaml(local.file.netflow_device_join.content)
 
   output {
     logs = [otelcol.processor.transform.netflow_resource.input]
@@ -172,6 +181,18 @@ otelcol.connector.signaltometrics "netflow" {
     attributes {
       key = "flow.sampler_address"
     }
+    attributes {
+      key = "device_name"
+    }
+    attributes {
+      key = "src_device"
+    }
+    attributes {
+      key = "dst_device"
+    }
+    attributes {
+      key = "snmp_group"
+    }
     sum {
       value = "Int(log.attributes[\"flow.io.bytes\"])"
     }
@@ -201,6 +222,18 @@ otelcol.connector.signaltometrics "netflow" {
     }
     attributes {
       key = "flow.sampler_address"
+    }
+    attributes {
+      key = "device_name"
+    }
+    attributes {
+      key = "src_device"
+    }
+    attributes {
+      key = "dst_device"
+    }
+    attributes {
+      key = "snmp_group"
     }
     sum {
       value = "Int(log.attributes[\"flow.io.packets\"])"

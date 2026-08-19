@@ -1,0 +1,73 @@
+{
+  "viewKey": "Current Top 10 Lists",
+  "viewId": 65,
+  "panels": {
+    "Top XX Nodes by Current Response Time": {
+      "swql": "SELECT TOP 10 Nodes.NodeID, Caption, GroupStatus, ResponseTime, PercentLoss, IP_Address, DNS, SysName, Nodes.Status\nFROM Orion.Nodes (nolock = true) Nodes\nWHERE Nodes.Status NOT IN ('11', '9', '12')\nORDER BY (CASE WHEN ResponseTime<0 THEN 2147483647 ELSE ResponseTime END) DESC, PercentLoss DESC",
+      "validated": true,
+      "rowCount": 1,
+      "source": "plugin-top10-pattern",
+      "include": true
+    },
+    "Top XX Nodes by Percent Packet Loss": {
+      "swql": "SELECT TOP 10 Nodes.NodeID, Caption, GroupStatus, PercentLoss, ResponseTime, IP_Address, DNS, SysName, Nodes.Status\nFROM Orion.Nodes (nolock = true) Nodes\nWHERE Nodes.Status NOT IN ('11', '9', '12')\nORDER BY PercentLoss DESC, ResponseTime DESC",
+      "validated": true,
+      "rowCount": 1,
+      "source": "plugin-top10-pattern",
+      "include": true
+    },
+    "Top XX Nodes by Average CPU Load": {
+      "swql": "SELECT TOP 10 Nodes.NodeID, Caption, GroupStatus, CPULoad, IP_Address, DNS, SysName, Nodes.Status\nFROM Orion.Nodes (nolock = true) Nodes\nWHERE CPULoad >= 0 AND Nodes.Status NOT IN ('11', '9', '12')\nORDER BY CPULoad DESC",
+      "validated": true,
+      "rowCount": 1,
+      "source": "plugin-top10-pattern",
+      "include": true
+    },
+    "Top XX Nodes by Percent Memory Used": {
+      "swql": "SELECT TOP 10 Nodes.NodeID, Caption, GroupStatus, PercentMemoryUsed, IP_Address, DNS, SysName, Nodes.Status\nFROM Orion.Nodes (nolock = true) Nodes\nWHERE PercentMemoryUsed > 0 AND Nodes.Status NOT IN ('11', '9', '12')\nORDER BY PercentMemoryUsed DESC",
+      "validated": true,
+      "rowCount": 1,
+      "source": "plugin-top10-pattern",
+      "include": true
+    },
+    "Top XX Volumes by Disk Space Used": {
+      "swql": "SELECT TOP 10 Nodes.NodeID, Nodes.Caption as NodeName, Volumes.VolumeID, Volumes.Caption as Volume,\n       Volumes.VolumePercentUsed, Volumes.VolumeSize, Volumes.VolumeSpaceUsed, Nodes.Status\nFROM Orion.Volumes Volumes\nINNER JOIN Orion.Nodes Nodes ON Volumes.NodeID = Nodes.NodeID\nWHERE Volumes.VolumePercentUsed > 0 AND Nodes.Status NOT IN ('11', '9', '12')\nORDER BY Volumes.VolumePercentUsed DESC",
+      "validated": true,
+      "rowCount": 3,
+      "source": "plugin-top10-pattern",
+      "include": true
+    },
+    "Top XX Components by Response Time": {
+      "swql": "SELECT TOP 10 Application.Name AS Application, Name AS Component, ResponseTime FROM Orion.APM.Component WHERE ResponseTime IS NOT NULL ORDER BY ResponseTime DESC",
+      "validated": false,
+      "rowCount": 0,
+      "error": "HTTP Error 400: Bad Request",
+      "source": "fallback-swagger",
+      "include": false
+    },
+    "Top XX Components by Statistic Data": {
+      "swql": "SELECT TOP 10 DisplayName, StatisticData FROM Orion.APM.Component WHERE StatisticData IS NOT NULL ORDER BY StatisticData DESC",
+      "validated": false,
+      "rowCount": 0,
+      "error": "HTTP Error 400: Bad Request",
+      "source": "fallback-swagger",
+      "include": false
+    },
+    "Top XX Monitored Processes by CPU Load": {
+      "swql": "SELECT TOP 10 DisplayName, CPULoad, PhysicalMemoryUsed FROM Orion.APM.Process WHERE CPULoad IS NOT NULL ORDER BY CPULoad DESC",
+      "validated": false,
+      "rowCount": 0,
+      "error": "HTTP Error 400: Bad Request",
+      "source": "fallback-swagger",
+      "include": false
+    },
+    "Top XX Wireless APs by Clients Count": {
+      "swql": "SELECT TOP 10 Caption, TotalClients FROM Orion.Wireless.AccessPoints ORDER BY TotalClients DESC",
+      "validated": false,
+      "rowCount": 0,
+      "error": "HTTP Error 400: Bad Request",
+      "source": "fallback-swagger",
+      "include": false
+    }
+  }
+}

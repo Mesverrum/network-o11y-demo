@@ -8,9 +8,23 @@ import time
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+PROBE_DIR = Path(__file__).resolve().parent
+ROOT = PROBE_DIR.parent  # local/ when run from repo; /opt when copied flat
 _ENV: dict[str, str] | None = None
 _SEQ = 0
+
+
+def _read_env_file(path: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
 
 
 def load_otlp_env() -> dict[str, str]:
@@ -18,14 +32,8 @@ def load_otlp_env() -> dict[str, str]:
     if _ENV is not None:
         return _ENV
     env: dict[str, str] = {}
-    path = ROOT / ".env"
-    if path.is_file():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            env[k.strip()] = v.strip().strip('"').strip("'")
+    for path in (PROBE_DIR / ".env", ROOT / ".env"):
+        env.update(_read_env_file(path))
     for k in ("GC_OTLP_URL", "GC_OTLP_ACCOUNT", "GC_OTLP_KEY"):
         if os.environ.get(k):
             env[k] = os.environ[k]

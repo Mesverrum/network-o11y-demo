@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module huawei_access_controllers
+# Pair with embedded if_mib: module = "if_mib,huawei_access_controllers"
+modules:
+  huawei_access_controllers:
+    metrics: []

@@ -1,0 +1,39 @@
+// Optional topology scrape — appended when LAB_ALLOY_SNMP_TOPOLOGY=1.
+
+local.file "snmp_targets_topology" {
+  filename       = "/etc/alloy/snmp-targets-topology.yml"
+  detector       = "poll"
+  poll_frequency = "15s"
+}
+
+prometheus.exporter.snmp "fabric_topology" {
+  config_file           = "/etc/alloy/snmp-network.yml"
+  config_merge_strategy = "replace"
+  targets               = encoding.from_yaml(local.file.snmp_targets_topology.content)
+}
+
+prometheus.relabel "alloy_snmp_topology" {
+  forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
+
+  rule {
+    target_label = "job"
+    replacement  = "alloy-snmp"
+  }
+
+  rule {
+    target_label = "collector"
+    replacement  = "alloy-fleet-lab"
+  }
+
+  rule {
+    target_label = "snmp_tier"
+    replacement  = "topology"
+  }
+}
+
+prometheus.scrape "alloy_snmp_topology" {
+  targets         = prometheus.exporter.snmp.fabric_topology.targets
+  scrape_interval = "15m"
+  scrape_timeout  = "2m"
+  forward_to      = [prometheus.relabel.alloy_snmp_topology.receiver]
+}

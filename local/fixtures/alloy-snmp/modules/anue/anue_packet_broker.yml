@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module anue_packet_broker
+# Pair with embedded if_mib: module = "if_mib,anue_packet_broker"
+modules:
+  anue_packet_broker:
+    metrics: []

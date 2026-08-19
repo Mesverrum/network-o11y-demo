@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module fortinet_fortiap
+# Pair with embedded if_mib: module = "if_mib,fortinet_fortiap"
+modules:
+  fortinet_fortiap:
+    metrics: []

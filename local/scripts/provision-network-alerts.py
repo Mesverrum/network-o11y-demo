@@ -3,6 +3,10 @@
 
 Creates/updates rules in folder ``network-lab`` under rule group ``Network Lab / ktranslate``.
 
+Per-device rules use Reduce (last, dropNN) + Threshold — not Classic Condition.
+Classic Condition collapses every matching series into one instance and drops
+query labels (``device_name``, ``if_interface_name``, ``peer_as``, …).
+
 Usage:
   python3 local/scripts/provision-network-alerts.py --dry-run
   python3 local/scripts/provision-network-alerts.py
@@ -66,7 +70,27 @@ def prom_query(ref_id: str, expr: str, *, instant: bool = True) -> dict[str, Any
     }
 
 
-def threshold_condition(ref_id: str, input_ref: str, op: str, value: float) -> dict[str, Any]:
+def reduce_expression(ref_id: str, input_ref: str) -> dict[str, Any]:
+    """Last-per-series reduce. Classic Condition collapses all series and drops labels."""
+    return {
+        "refId": ref_id,
+        "queryType": "",
+        "relativeTimeRange": {"from": 0, "to": 0},
+        "datasourceUid": "__expr__",
+        "model": {
+            "datasource": {"type": "__expr__", "uid": "__expr__"},
+            "expression": input_ref,
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": ref_id,
+            "settings": {"mode": "dropNN"},
+            "type": "reduce",
+        },
+    }
+
+
+def threshold_expression(ref_id: str, input_ref: str, op: str, value: float) -> dict[str, Any]:
     return {
         "refId": ref_id,
         "queryType": "",
@@ -77,17 +101,17 @@ def threshold_condition(ref_id: str, input_ref: str, op: str, value: float) -> d
                 {
                     "evaluator": {"params": [value], "type": op},
                     "operator": {"type": "and"},
-                    "query": {"params": [input_ref]},
+                    "query": {"params": [ref_id]},
                     "reducer": {"params": [], "type": "last"},
                     "type": "query",
                 }
             ],
             "datasource": {"type": "__expr__", "uid": "__expr__"},
-            "expression": "",
+            "expression": input_ref,
             "intervalMs": 1000,
             "maxDataPoints": 43200,
             "refId": ref_id,
-            "type": "classic_conditions",
+            "type": "threshold",
         },
     }
 
@@ -96,13 +120,22 @@ def build_rule(defn: dict[str, Any], *, grafana_url: str) -> dict[str, Any]:
     expr = defn["expr"]
     threshold = defn.get("threshold", 0)
     op = defn.get("op", "gt")
+    grafana = grafana_url.rstrip("/")
+    if defn.get("per_device"):
+        runbook = (
+            f"{grafana}/d/{DETAIL_UID}/04-network-device-details"
+            "?var-instance={{ $labels.device_name }}"
+        )
+    else:
+        runbook = f"{grafana}/d/{DASH_UID}/03-network-device-summary"
     return {
         "uid": defn["uid"],
         "title": defn["title"],
-        "condition": "B",
+        "condition": "C",
         "data": [
             prom_query("A", expr, instant=defn.get("instant", True)),
-            threshold_condition("B", "A", op, threshold),
+            reduce_expression("B", "A"),
+            threshold_expression("C", "B", op, threshold),
         ],
         "noDataState": defn.get("noDataState", "OK"),
         "execErrState": defn.get("execErrState", "Error"),
@@ -110,10 +143,7 @@ def build_rule(defn: dict[str, Any], *, grafana_url: str) -> dict[str, Any]:
         "annotations": {
             "summary": defn["summary"],
             "description": defn.get("description", defn["summary"]),
-            "runbook_url": defn.get(
-                "runbook_url",
-                f"{grafana_url.rstrip('/')}/d/{DASH_UID}/03-network-device-summary",
-            ),
+            "runbook_url": defn.get("runbook_url", runbook),
         },
         "labels": {
             "category": "network",
@@ -140,15 +170,17 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "BGP peer {{ $labels.device_name }} group {{ $labels.peer_group }} AS {{ $labels.peer_as }} is {{ $labels.tBgpPeerNgConnState }}",
             "description": "BGP ConnState is not established for 5 minutes.",
             "labels": {"domain": "routing"},
+            "per_device": True,
         },
         {
             "title": "SNMP polling unhealthy",
-            "expr": "kentik_snmp_PollingHealth != 1",
+            "expr": 'kentik_snmp_PollingHealth{PollingHealth!="GOOD"}',
             "for": "10m",
             "severity": "critical",
             "summary": "SNMP polling unhealthy on {{ $labels.device_name }} ({{ $labels.PollingHealth }})",
             "description": "ktranslate PollingHealth is not GOOD for 10 minutes.",
             "labels": {"domain": "collection"},
+            "per_device": True,
         },
         {
             "title": "Interface admin-up oper-down",
@@ -158,6 +190,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "Interface {{ $labels.if_interface_name }} on {{ $labels.device_name }} is oper-down",
             "description": "Admin-up interface has been oper-down for 5 minutes.",
             "labels": {"domain": "interfaces"},
+            "per_device": True,
         },
         {
             "title": "High interface error rate",
@@ -167,6 +200,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "High errors on {{ $labels.device_name }} {{ $labels.if_interface_name }}",
             "description": "Combined in+out errors exceed 5/s (ktranslate 60s delta gauge).",
             "labels": {"domain": "interfaces"},
+            "per_device": True,
         },
         {
             "title": "High device CPU",
@@ -176,6 +210,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "CPU above 85% on {{ $labels.device_name }}",
             "description": "Device CPU has been above 85% for 15 minutes.",
             "labels": {"domain": "resources"},
+            "per_device": True,
         },
         {
             "title": "High device memory",
@@ -185,6 +220,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "Memory above 90% on {{ $labels.device_name }}",
             "description": "Memory utilization from ktranslate MemoryUtilization (MemoryUsed + MemoryFree).",
             "labels": {"domain": "resources"},
+            "per_device": True,
         },
         {
             "title": "Chassis fan not in service",
@@ -197,6 +233,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "Fan issue on {{ $labels.device_name }} slot {{ $labels.Index }} ({{ $labels.tmnxPhysChassisFanOperStatus }})",
             "description": "Chassis fan oper status is not in service.",
             "labels": {"domain": "hardware"},
+            "per_device": True,
         },
         {
             "title": "Power supply failed or degraded",
@@ -209,6 +246,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "PSU issue on {{ $labels.device_name }} slot {{ $labels.Index }} ({{ $labels.tmnxPhysChassisPMOutputStatus }})",
             "description": "Power supply output status is failed, out of service, or degraded.",
             "labels": {"domain": "hardware"},
+            "per_device": True,
         },
         {
             "title": "Hardware FRU not in service",
@@ -221,6 +259,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "FRU {{ $labels.hw_name }} on {{ $labels.device_name }} is {{ $labels.tmnxHwOperState }}",
             "description": "Chassis hardware component is not in service.",
             "labels": {"domain": "hardware"},
+            "per_device": True,
         },
         {
             "title": "High chassis temperature",
@@ -230,6 +269,7 @@ def rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "summary": "High temperature on {{ $labels.device_name }}",
             "description": "Max chassis/sensor temperature exceeds 75°C for 10 minutes.",
             "labels": {"domain": "hardware"},
+            "per_device": True,
         },
         {
             "title": "SNMP collector heartbeat missing",

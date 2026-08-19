@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module cloudgenix
+# Pair with embedded if_mib: module = "if_mib,cloudgenix"
+modules:
+  cloudgenix:
+    metrics: []

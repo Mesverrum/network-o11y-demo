@@ -68,6 +68,8 @@ spec:
               value: "1000"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.host=__KTRANS_HOST__"
+            - name: SNMP_COMMUNITY
+              value: "public"
           ports:
             - name: otlp-grpc
               containerPort: 4317
@@ -86,6 +88,9 @@ spec:
               mountPath: /etc/alloy/config.alloy
               subPath: config.alloy
               readOnly: true
+            - name: snmp-sd
+              mountPath: /snmp-sd
+              readOnly: true
             - name: storage
               mountPath: /var/lib/alloy/data
             - name: docker-sock
@@ -102,6 +107,10 @@ spec:
         - name: config
           configMap:
             name: alloy-config
+        - name: snmp-sd
+          hostPath:
+            path: /opt/network-o11y-demo/local/alloy
+            type: Directory
         - name: storage
           emptyDir: {}
         - name: docker-sock

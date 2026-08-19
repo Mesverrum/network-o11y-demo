@@ -1,0 +1,91 @@
+# GENERATED from kentik/snmp-profiles — module tripplite_ups
+# Pair with embedded if_mib: module = "if_mib,tripplite_ups"
+modules:
+  tripplite_ups:
+    walk:
+    - 1.3.6.1.4.1.850.100.1.3.2
+    - 1.3.6.1.4.1.850.100.1.4.7
+    - 1.3.6.1.4.1.850.101.2.1
+    - 1.3.6.1.4.1.850.100.1.10.2
+    metrics:
+    - name: snmp_tlUpsInputVoltage
+      oid: 1.3.6.1.4.1.850.100.1.3.2.1.3
+      type: gauge
+      help: tlUpsInputVoltage (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.3.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+    - name: snmp_tlUpsOutputCircuitStatus
+      oid: 1.3.6.1.4.1.850.100.1.4.7.1.2
+      type: gauge
+      help: tlUpsOutputCircuitStatus (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.4.7.1.2
+      indexes:
+      - labelname: index
+        type: gauge
+      enum_values:
+        0: open
+        1: closed
+    - name: snmp_tlUpsOutputCircuitLoadCurrent
+      oid: 1.3.6.1.4.1.850.100.1.4.7.1.3
+      type: gauge
+      help: tlUpsOutputCircuitLoadCurrent (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.4.7.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+    - name: snmp_tlUpsOutputCircuitVoltage
+      oid: 1.3.6.1.4.1.850.100.1.4.7.1.4
+      type: gauge
+      help: tlUpsOutputCircuitVoltage (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.4.7.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+    - name: snmp_tlUpsOutputCircuitPower
+      oid: 1.3.6.1.4.1.850.100.1.4.7.1.5
+      type: gauge
+      help: tlUpsOutputCircuitPower (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.4.7.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+    - name: snmp_tlEnvContactStatus
+      oid: 1.3.6.1.4.1.850.101.2.1.1.3
+      type: gauge
+      help: tlEnvContactStatus (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.101.2.1.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels:
+        - index
+        labelname: tlEnvContactName
+        oid: 1.3.6.1.4.1.850.101.2.1.1.2
+        type: DisplayString
+      - labels:
+        - index
+        labelname: tlEnvContactConfig
+        oid: 1.3.6.1.4.1.850.101.2.1.1.4
+        type: EnumAsInfo
+      enum_values:
+        0: normal
+        1: alarm
+    - name: snmp_upsOutletGroupStatusGroupState
+      oid: 1.3.6.1.4.1.850.100.1.11.2.1.5
+      type: gauge
+      help: upsOutletGroupStatusGroupState (TRIPPLITE-MIB) - 1.3.6.1.4.1.850.100.1.11.2.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels:
+        - index
+        labelname: tlUpsOutletGroupName
+        oid: 1.3.6.1.4.1.850.100.1.11.2.1.3
+        type: DisplayString
+      - labels:
+        - index
+        labelname: tlUpsOutletGroupDesc
+        oid: 1.3.6.1.4.1.850.100.1.11.2.1.4
+        type: DisplayString
+      enum_values:
+        1: upsOutletGroupStatusOn
+        2: upsOutletGroupStatusOff
+        3: upsOutletGroupStatusUnknown

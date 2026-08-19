@@ -1,0 +1,10 @@
+# Built on colocated EC2 for Diode plugin (netbox-docker 5.0.2 / NetBox v4.6).
+FROM docker.io/netboxcommunity/netbox:v4.6-5.0.2
+
+COPY ./plugin_requirements.txt /opt/netbox/
+RUN /opt/netbox/venv/bin/pip install --no-cache-dir -r /opt/netbox/plugin_requirements.txt \
+    || /usr/local/bin/uv pip install --python /opt/netbox/venv/bin/python -r /opt/netbox/plugin_requirements.txt
+
+COPY configuration/plugins.py /etc/netbox/config/plugins.py
+RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" \
+    /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input

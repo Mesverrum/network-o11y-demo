@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module ipower_mib
+# Pair with embedded if_mib: module = "if_mib,ipower_mib"
+modules:
+  ipower_mib:
+    metrics: []

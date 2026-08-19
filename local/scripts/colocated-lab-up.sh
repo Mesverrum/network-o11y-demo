@@ -37,6 +37,17 @@ if [[ -f "$ENV_FILE" ]]; then
     echo "ERROR: set GC_OTLP_URL, GC_OTLP_ACCOUNT, GC_OTLP_KEY in local/.env" >&2
     exit 1
   fi
+  if [[ -n "${GC_OTLP_URL_2:-}" && -n "${GC_OTLP_ACCOUNT_2:-}" && -n "${GC_OTLP_KEY_2:-}" ]]; then
+    TF_EXTRA+=(
+      -var="gc_otlp_url_2=${GC_OTLP_URL_2}"
+      -var="gc_otlp_account_2=${GC_OTLP_ACCOUNT_2}"
+      -var="gc_otlp_key_2=${GC_OTLP_KEY_2}"
+    )
+    echo "dual OTLP: will ship to primary + GC_OTLP_*_2"
+  elif [[ -n "${GC_OTLP_URL_2:-}${GC_OTLP_ACCOUNT_2:-}${GC_OTLP_KEY_2:-}" ]]; then
+    echo "ERROR: set all of GC_OTLP_URL_2, GC_OTLP_ACCOUNT_2, GC_OTLP_KEY_2 (or none)" >&2
+    exit 1
+  fi
   if [[ -n "${LAB_TESTER_ID:-}" ]]; then
     TF_EXTRA+=(-var="lab_tester_id=${LAB_TESTER_ID}")
   fi

@@ -1,0 +1,16 @@
+# Discovered defaults for account 494614287886 (us-east-1).
+# Regenerate: bash local/scripts/aws-lab-discover.sh
+
+aws_region         = "us-east-1"
+aws_profile        = "mvr"
+lab_enabled        = true
+
+# eksctl-ai-o11y-mg-cluster/VPC — has NAT + 2 private AZs
+vpc_id = "vpc-07905dc0ab6652b64"
+private_subnet_ids = [
+  "subnet-035f9850651ffbcca", # us-east-1b private
+  "subnet-0ed069f9e2207f9fd", # us-east-1c private
+]
+
+instance_type        = "t3.micro"
+traffic_interval_sec = 30

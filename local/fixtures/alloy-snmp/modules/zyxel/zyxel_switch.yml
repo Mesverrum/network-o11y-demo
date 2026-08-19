@@ -1,0 +1,16 @@
+# GENERATED from kentik/snmp-profiles — module zyxel_switch
+# Pair with embedded if_mib: module = "if_mib,zyxel_switch"
+modules:
+  zyxel_switch:
+    get:
+    - 1.3.6.1.4.1.890.1.15.3.2.4.0
+    - 1.3.6.1.4.1.890.1.15.3.2.5.0
+    metrics:
+    - name: snmp_CPU
+      oid: 1.3.6.1.4.1.890.1.15.3.2.4
+      type: gauge
+      help: sysMgmtCPUUsage (ZYXEL-ES-COMMON) - 1.3.6.1.4.1.890.1.15.3.2.4.0
+    - name: snmp_sysMgmtMemUsage
+      oid: 1.3.6.1.4.1.890.1.15.3.2.5
+      type: gauge
+      help: sysMgmtMemUsage (ZYXEL-ES-COMMON) - 1.3.6.1.4.1.890.1.15.3.2.5.0

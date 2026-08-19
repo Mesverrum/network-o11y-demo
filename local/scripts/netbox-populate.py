@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from lab_env import load_dotenv, netbox_url_for_host
+from lab_env import load_dotenv, netbox_auth_header, netbox_url_for_host
 
 SITE = {
     "name": "Network Lab",
@@ -125,7 +125,7 @@ DEVICE_LIVE = {
 
 def api(base: str, token: str):
     headers = {
-        "Authorization": f"Token {token}",
+        "Authorization": netbox_auth_header(token),
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
@@ -157,7 +157,7 @@ def api(base: str, token: str):
 
 def wait_ready(base: str, token: str, retries: int = 60, delay: int = 5) -> None:
     print(f"Waiting for NetBox at {base} ...", flush=True)
-    headers = {"Authorization": f"Token {token}", "Accept": "application/json"}
+    headers = {"Authorization": netbox_auth_header(token), "Accept": "application/json"}
     for i in range(retries):
         try:
             r = urllib.request.Request(f"{base.rstrip('/')}/api/", headers=headers)

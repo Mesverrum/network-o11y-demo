@@ -15,11 +15,12 @@ case "$service" in
   flow)   container="ktranslate_flow" ;;
   sflow)  container="ktranslate_sflow" ;;
   syslog) container="ktranslate_syslog" ;;
+  alloy)  container="alloy" ;;
   snmp)
     container="$(snmp_poller_service_name "$(primary_snmp_group "${ROOT}")")"
     ;;
   *)
-    echo "usage: collector-clab-ip.sh {flow|sflow|syslog|snmp}" >&2
+    echo "usage: collector-clab-ip.sh {flow|sflow|syslog|snmp|alloy}" >&2
     exit 1
     ;;
 esac

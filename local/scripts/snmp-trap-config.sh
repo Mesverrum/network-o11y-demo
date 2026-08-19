@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# snmp-trap-config.sh — point SR Linux SNMP traps at the site-scoped SNMP poller
-# (trap.listen port from groups/<site-group>.env TRAP_PORT).
+# snmp-trap-config.sh — point SR Linux SNMP traps at the trap sink.
+# Default: ktranslate SNMP poller (TRAP_PORT). LAB_ALLOY_SNMPTRAP=1 (or no
+# ktranslate + Alloy up) → Alloy :1620 on the clab network.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Do not `set -a` + source .env here: fabric-nodes.sh loads it (CRLF-stripped).
+# Nested set -a / local in a sourced file blows up on Windows checkouts.
+if [[ -f "${ROOT}/.env" ]] && [[ -z "${LAB_ALLOY_SNMPTRAP:-}" ]]; then
+  LAB_ALLOY_SNMPTRAP="$(awk -F= '/^LAB_ALLOY_SNMPTRAP=/{gsub(/\r/,""); print $2; exit}' "${ROOT}/.env" || true)"
+  export LAB_ALLOY_SNMPTRAP
+fi
 # shellcheck source=collector-runtime-ready.sh
 source "${ROOT}/scripts/collector-runtime-ready.sh"
 # shellcheck source=fabric-nodes.sh
@@ -18,21 +25,39 @@ DEVICES=("${SRL_NODES[@]}")
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" snmp 2>/dev/null || true)"
-if [[ -z "$trap_ip" || "$trap_ip" == "<no value>" ]]; then
-  first_group="$(snmp_group_names "${ROOT}" | head -1)"
-  [[ -n "${first_group}" ]] || die "no groups/*.env"
-  cid="$(docker ps -qf "name=ktranslate_snmp_${first_group}" | head -1 || true)"
-  [[ -n "$cid" ]] || die "SNMP collector not running — make up or set KTRANSLATE_CLAB_HOST"
-  trap_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" "$cid" 2>/dev/null || true)"
+use_alloy=0
+case "${LAB_ALLOY_SNMPTRAP:-0}" in
+  1|true|TRUE|yes|YES|on|ON) use_alloy=1 ;;
+esac
+if [[ "${use_alloy}" != "1" ]] && collector_alloy_trap_ready && ! collector_snmp_ready; then
+  use_alloy=1
 fi
-[[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "SNMP collector not on network ${CLAB_NET}"
+
+trap_ip=""
+if [[ "${use_alloy}" == "1" ]]; then
+  trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
+  [[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "Alloy not on network ${CLAB_NET} — recreate alloy with LAB_ALLOY_SNMPTRAP=1"
+  info "Trap sink: Alloy ${trap_ip}:1620 (loki.source.snmptrap)"
+else
+  trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" snmp 2>/dev/null || true)"
+  if [[ -z "$trap_ip" || "$trap_ip" == "<no value>" ]]; then
+    first_group="$(snmp_group_names "${ROOT}" | head -1)"
+    [[ -n "${first_group}" ]] || die "no groups/*.env"
+    cid="$(docker ps -qf "name=ktranslate_snmp_${first_group}" | head -1 || true)"
+    [[ -n "$cid" ]] || die "SNMP collector not running — make up, or set LAB_ALLOY_SNMPTRAP=1"
+    trap_ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NET}\").IPAddress}}" "$cid" 2>/dev/null || true)"
+  fi
+  [[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "SNMP collector not on network ${CLAB_NET}"
+fi
 
 TRAP_COMMUNITY="$(awk -F= '/^TRAP_COMMUNITY=/{print $2; exit}' "${ROOT}/groups/"*.env 2>/dev/null | head -1)"
 TRAP_COMMUNITY="${TRAP_COMMUNITY:-public}"
 
 for d in "${DEVICES[@]}"; do
-  docker inspect "$d" >/dev/null 2>&1 || die "container ${d} not found"
+  if ! docker inspect "$d" >/dev/null 2>&1; then
+    info "skip ${d} (container not running)"
+    continue
+  fi
   TRAP_PORT="$(snmp_trap_port_for_node "${ROOT}" "${d}")"
   site="$(fabric_site_for_node "${d}")"
   info "Configuring SNMP traps on ${d} (site=${site}) -> ${trap_ip}:${TRAP_PORT}/udp"

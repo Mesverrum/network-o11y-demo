@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# trap-gen.sh — send SNMPv2c test traps to the local ktranslate SNMP poller
+# trap-gen.sh — send SNMPv2c test traps to the trap sink
 #
-# Poller listens on UDP 1620 (groups/srl-hq.env TRAP_PORT) with community "public".
-# Host mapping: 0.0.0.0:1620 → ktranslate_snmp_<group> (default srl-hq).
-# On the clab network the poller is also reachable at <container>:1620.
+# Default: ktranslate SNMP poller :1620. With LAB_ALLOY_SNMPTRAP=1 (or Alloy-only
+# snmp-min), dest is Alloy :1620 (host map 127.0.0.1:1620 or clab IP).
 #
 # Usage:
 #   ./scripts/trap-gen.sh              # one of each common trap
@@ -34,17 +33,18 @@ DEST="${DEST_HOST}:${TRAP_PORT}"
 
 command -v snmptrap >/dev/null || die "snmptrap not found (apt install snmp)"
 
+alloy_trap_sink() {
+  case "${LAB_ALLOY_SNMPTRAP:-0}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+  esac
+  collector_alloy_trap_ready && ! collector_snmp_ready
+}
+
 # Prefer container IP on clab when host mapping is awkward (WSL sometimes).
 resolve_dest() {
-  local cid ip
-  cid="$(snmp_poller_container_id || true)"
-  if [[ -n "$cid" && "${TRAP_DEST_HOST:-}" == "" ]]; then
-    ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NETWORK:-clab}\").IPAddress}}" "$cid" 2>/dev/null || true)"
-    if [[ -n "$ip" && "$ip" != "<no value>" ]]; then
-      # Still use host port by default (works from WSL/Windows host).
-      # Override with TRAP_VIA=clab to send from a container on clab.
-      :
-    fi
+  if alloy_trap_sink && [[ -z "${TRAP_DEST_HOST:-}" ]]; then
+    echo "127.0.0.1:${TRAP_PORT}"
+    return
   fi
   echo "${DEST}"
 }
@@ -114,8 +114,8 @@ DEST="$(resolve_dest)"
 
 export_colocated_clab_host
 
-if ! collector_snmp_ready; then
-  die "SNMP collector not running (compose ktranslate_snmp_* or k3s deployment/ktranslate-snmp-*)"
+if ! collector_trap_ready; then
+  die "No trap sink (ktranslate_snmp_* or alloy with LAB_ALLOY_SNMPTRAP=1)"
 fi
 
 case "${1:-suite}" in
@@ -148,6 +148,10 @@ EOF
     ;;
 esac
 
-info "Done. Check poller logs and Loki in ~30s:"
-info "  docker logs --tail 50 \$(snmp_poller_container_id | xargs -r docker logs --tail 50)"
-info "  LogQL: {service_name=~\"ktranslate.*\"} |~ \"(?i)trap|linkDown|coldStart|linkUp\""
+info "Done. Check Loki in ~30s:"
+if alloy_trap_sink; then
+  info "  LogQL: {service_name=\"alloy-snmptrap\"} | json"
+  info "  curl -s localhost:12346/metrics | grep loki_source_snmptrap"
+else
+  info "  LogQL: {service_name=~\"ktranslate.*\"} |~ \"(?i)trap|linkDown|coldStart|linkUp\""
+fi

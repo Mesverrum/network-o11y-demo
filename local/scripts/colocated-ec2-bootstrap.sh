@@ -72,12 +72,28 @@ LAB_TESTER_ID="${LAB_TESTER_ID:-aws-colocated-lab}"
 : "${GC_OTLP_ACCOUNT:?GC_OTLP_ACCOUNT required}"
 : "${GC_OTLP_KEY:?GC_OTLP_KEY required}"
 
+if [[ -n "${GC_OTLP_URL_2:-}${GC_OTLP_ACCOUNT_2:-}${GC_OTLP_KEY_2:-}" ]]; then
+  : "${GC_OTLP_URL_2:?GC_OTLP_URL_2 required when any GC_OTLP_*_2 is set}"
+  : "${GC_OTLP_ACCOUNT_2:?GC_OTLP_ACCOUNT_2 required when any GC_OTLP_*_2 is set}"
+  : "${GC_OTLP_KEY_2:?GC_OTLP_KEY_2 required when any GC_OTLP_*_2 is set}"
+fi
+
 install -d -m 0755 "${LAB_ROOT}/groups" "${LAB_ROOT}/config" "${LAB_ROOT}/state"
 
-cat >"${LAB_ROOT}/.env" <<ENV
+{
+  cat <<ENV
 GC_OTLP_URL=${GC_OTLP_URL}
 GC_OTLP_ACCOUNT=${GC_OTLP_ACCOUNT}
 GC_OTLP_KEY=${GC_OTLP_KEY}
+ENV
+  if [[ -n "${GC_OTLP_URL_2:-}" ]]; then
+    cat <<ENV
+GC_OTLP_URL_2=${GC_OTLP_URL_2}
+GC_OTLP_ACCOUNT_2=${GC_OTLP_ACCOUNT_2}
+GC_OTLP_KEY_2=${GC_OTLP_KEY_2}
+ENV
+  fi
+  cat <<ENV
 KTRANS_HOST=${KTRANS_HOST}
 LAB_TESTER_ID=${LAB_TESTER_ID}
 LAB_FABRIC_PROFILE=colocated
@@ -90,6 +106,7 @@ FLOW_DNS_UPSTREAM=169.254.169.253
 LAB_AUTO_INTERNET_PROBES=0
 LAB_AUTO_SYNTHETIC_TRAPS=0
 ENV
+} >"${LAB_ROOT}/.env"
 chmod 0600 "${LAB_ROOT}/.env"
 
 export LAB_FABRIC_PROFILE=colocated

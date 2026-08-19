@@ -1,6 +1,6 @@
 # ktranslate dashboards — live snapshot
 
-Pulled from Grafana Cloud (`local/.env`) on **2026-07-31 18:16 UTC**.
+Pulled from Grafana Cloud (`local/.env`) on **2026-08-03 19:41 UTC**.
 Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 
 | # | UID | Layout | Generation | PromQL | Loki |
@@ -8,7 +8,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 | 00 | `ktranslate-architecture` | GridLayout | 4 | 0 | 0 |
 | 01 | `ktranslate-health` | TabsLayout | 10 | 52 | 0 |
 | 02 | `ktranslate-flow-summary` | RowsLayout | 14 | 19 | 0 |
-| 03 | `ktranslate-device-summary` | TabsLayout | 49 | 62 | 0 |
+| 03 | `ktranslate-device-summary` | TabsLayout | 54 | 66 | 0 |
 | 04 | `ktranslate-device-details` | TabsLayout | 19 | 194 | 0 |
 
 ## 00. Ktranslate Architecture (`ktranslate-architecture`)
@@ -90,7 +90,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 - **Peer Destinations by Country:** `topk(25, sum by(network_peer_country, network_peer_address, dst_host) (max_over_time(network_io_by_flow_bytes{device_name=~"${device_name:pipe}",network_local_address=~"${src_addr:pipe}",network_peer_`
 
 ## 03. Network Device Summary (`ktranslate-device-summary`)
-- **Generation:** 49
+- **Generation:** 54
 - **Layout:** TabsLayout
 
 ### Pattern counts
@@ -101,7 +101,7 @@ Re-pull: `python3 local/scripts/sync-ktranslate-dashboards-live.py --pull`
 | bgp established str | 1 |
 | bps delta 60 | 9 |
 | errors per 60 | 1 |
-| loki traps | 2 |
+| loki traps | 4 |
 | max by device | 2 |
 | memory manual ratio | 1 |
 | memory utilization | 2 |

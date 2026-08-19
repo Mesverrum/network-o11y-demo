@@ -39,3 +39,12 @@ def netbox_url_for_host() -> str:
     if "://netbox" in url:
         return f"http://localhost:{port}"
     return url
+
+
+def netbox_auth_header(token: str | None = None) -> str:
+    """Authorization header value for NetBox REST API (v1 Token or v2 Bearer)."""
+    load_dotenv()
+    tok = (token if token is not None else os.environ.get("NETBOX_TOKEN", "")).strip()
+    if tok.startswith("nbt_"):
+        return f"Bearer {tok}"
+    return f"Token {tok}"

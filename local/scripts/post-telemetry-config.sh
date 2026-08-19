@@ -17,11 +17,34 @@ export HOME="${HOME:-/root}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 
 warn() { echo "WARNING: $*" >&2; }
 info() { echo "==> $*"; }
 
+if [[ "${LAB_FABRIC_PROFILE}" == "snmp-min" ]]; then
+  info "snmp-min profile — skipping traffic/flow/syslog/events (Alloy SNMP only)"
+  exit 0
+fi
+
 bash "${ROOT}/scripts/lab-topology-exporter.sh" post-config || true
+
+if bash "${ROOT}/scripts/lab-alloy-snmp.sh" enabled; then
+  info "Rendering Alloy SNMP scrape overlay (LAB_ALLOY_SNMP=1)..."
+  bash "${ROOT}/scripts/render-alloy-snmp-scrape.sh" \
+    || warn "alloy SNMP scrape render failed"
+  info "Alloy SNMP discovery (named auth + sysObjectID→module)..."
+  bash "${ROOT}/scripts/alloy-snmp-discover.sh" \
+    || warn "alloy-snmp-discover failed — run: make alloy-snmp-discover"
+  if docker inspect alloy >/dev/null 2>&1; then
+    info "Recreating alloy to pick up SNMP scrape overlay..."
+    (cd "${ROOT}" && docker compose --env-file .env --env-file compose-host.generated.env \
+      -f compose-base.yaml -f compose-groups.generated.yaml -f compose-catalog.generated.yaml \
+      -f compose-limits.generated.yaml up -d --no-deps alloy) \
+      || warn "alloy recreate failed — run: docker compose up -d --force-recreate alloy"
+  fi
+fi
 
 bash "${ROOT}/scripts/refresh-flow-dns.sh" \
   || warn "flow-dns refresh failed — flow src_host/dst_host may stay empty"
@@ -38,7 +61,7 @@ info "Configuring syslog → ktranslate_syslog..."
 bash "${ROOT}/scripts/syslog-config.sh" \
   || warn "syslog config failed — check sr_cli syntax"
 
-info "Configuring SNMP traps → ktranslate SNMP poller(s)..."
+info "Configuring SNMP traps → ktranslate poller or Alloy :1620..."
 bash "${ROOT}/scripts/snmp-trap-config.sh" \
   || warn "snmp trap config failed — check sr_cli syntax"
 

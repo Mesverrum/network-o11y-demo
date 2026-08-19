@@ -1,0 +1,19 @@
+services:
+  orb-agent:
+    image: ${ORB_AGENT_IMAGE:-netboxlabs/orb-agent:latest}
+    container_name: orb-agent
+    restart: unless-stopped
+    # Host networking: reach clab mgmt IPs + Alloy :4317/:4318 without DNS hacks.
+    network_mode: host
+    user: "0:0"
+    environment:
+      - SNMP_COMMUNITY=${ORB_SNMP_COMMUNITY:-public}
+      - DIODE_CLIENT_ID=${DIODE_CLIENT_ID:-}
+      - DIODE_CLIENT_SECRET=${DIODE_CLIENT_SECRET:-}
+    volumes:
+      - ./agent.generated.yaml:/opt/orb/agent.yaml:ro
+      - ./out:/opt/orb/out
+    command:
+      - run
+      - -c
+      - /opt/orb/agent.yaml

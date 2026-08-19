@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
 
 info() { echo "==> $*"; }
 
@@ -15,6 +17,12 @@ fi
 
 info "Syncing ContainerLab workdir to ext4: ${CLAB_DEPLOY_DIR}"
 bash "${ROOT}/scripts/stage-fabric-profile.sh"
+
+if [[ "${LAB_FABRIC_PROFILE}" == "snmp-min" ]]; then
+  info "snmp-min: deploy dir has topology-snmp-min.clab.yml (laptop Clos not copied)"
+  exit 0
+fi
+
 mkdir -p "${CLAB_DEPLOY_DIR}/configs/fabric"
 rm -rf "${CLAB_DEPLOY_DIR}/configs/fabric"/*
 cp -a "${LAB_REPO_ROOT}/configs/fabric/." "${CLAB_DEPLOY_DIR}/configs/fabric/"

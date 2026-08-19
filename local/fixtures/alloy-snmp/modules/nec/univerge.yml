@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module univerge
+# Pair with embedded if_mib: module = "if_mib,univerge"
+modules:
+  univerge:
+    metrics: []

@@ -18,22 +18,90 @@ services:
       - GC_OTLP_URL=${GC_OTLP_URL}
       - GC_OTLP_ACCOUNT=${GC_OTLP_ACCOUNT}
       - GC_OTLP_KEY=${GC_OTLP_KEY}
+      # Optional second stack (dual-ship). Empty is fine when otlp-export.generated.alloy is single-sink.
+      - GC_OTLP_URL_2=${GC_OTLP_URL_2:-}
+      - GC_OTLP_ACCOUNT_2=${GC_OTLP_ACCOUNT_2:-}
+      - GC_OTLP_KEY_2=${GC_OTLP_KEY_2:-}
+      # Fleet Management remotecfg (LAB_ALLOY_FLEET=1). Set GC_FM_TOKEN or reuse GC_OTLP_KEY via alloy-fleet-up.
+      - GC_FM_TOKEN=${GC_FM_TOKEN:-}
+      - KTRANS_HOST=${KTRANS_HOST:-}
+      # Fleet-shaped secret surface: community for snmp.yml auths (not in River text).
+      - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
       - OTEL_METRIC_EXPORT_INTERVAL=1000
       # Stamped onto every signal so all telemetry from this host carries it.
       - OTEL_RESOURCE_ATTRIBUTES=deployment.host=${KTRANS_HOST}
     volumes:
-      - ./alloy/config.alloy:/config.alloy:ro
-      # Lab container stdout/stderr → Loki via loki.source.docker
+      - ./alloy/config.alloy:/config/config.alloy:ro
+      - ./alloy/otlp-export.generated.alloy:/config/otlp-export.generated.alloy:ro
+      - ./alloy/snmp-scrape.generated.alloy:/config/snmp-scrape.generated.alloy:ro
+      - ./alloy/snmp-trap.generated.alloy:/config/snmp-trap.generated.alloy:ro
+      - ./alloy/netflow.generated.alloy:/config/netflow.generated.alloy:ro
+      - ./alloy/remotecfg.generated.alloy:/config/remotecfg.generated.alloy:ro
+      - ./alloy/snmp-network.yml:/etc/alloy/snmp-network.yml:ro
+      - ./fixtures/alloy-snmp/mibs:/etc/alloy/mibs:ro
+      - ./alloy/fingerprinters.yml:/etc/alloy/fingerprinters.yml:ro
+      - ./alloy/snmp-discovery.yml:/etc/alloy/snmp-discovery.yml:ro
+      - ./alloy/snmp-overrides.yml:/etc/alloy/snmp-overrides.yml:ro
+      - ./alloy/snmp-targets.yml:/etc/alloy/snmp-targets.yml:ro
+      - ./alloy/snmp-targets-cold.yml:/etc/alloy/snmp-targets-cold.yml:ro
+      - ./alloy/snmp-targets-topology.yml:/etc/alloy/snmp-targets-topology.yml:ro
+      # Lab container stdout/stderr → Loki via loki.source.docke
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    # ICMP pre-filter for discovery.snmp (Fleet pipeline). Harmless when unused.
+    cap_add:
+      - NET_RAW
     ports:
       - "4317:4317"
       - "12346:12346"
+      # loki.source.snmptrap (LAB_ALLOY_SNMPTRAP=1). Host map for trap-gen; SRL uses clab IP.
+      - "1620:1620/udp"
+      # loki.source.syslog (LAB_ALLOY_SYSLOG=1). Host 15140 avoids ktranslate_syslog :1514.
+      - "15140:1514/udp"
+      # otelcol.receiver.netflow (LAB_ALLOY_NETFLOW=1). Avoids ktranslate 9995 / 6343.
+      - "12055:2055/udp"
+      - "16344:6344/udp"
+    # Alloy `run` accepts one path; a directory merges all *.alloy files in it.
     command:
       - --server.http.listen-addr=0.0.0.0:12346
       - --storage.path=/var/lib/alloy/data
       - --stability.level=experimental
       - run
-      - /config.alloy
+      - /config
+    networks:
+      - clab
+      - default
+
+  # Prometheus-shaped SNMP Discoverer (overlay binary in srl-local/alloy:network-dev).
+  # Writes snmp-targets.yml (laptop scrape path) and serves HTTP SD on :9780.
+  # Default `make up` does not start this.
+  snmp_discovery:
+    profiles: [alloy-snmp]
+    image: ${ALLOY_IMAGE:-srl-local/alloy:network-dev}
+    container_name: snmp_discovery
+    restart: unless-stopped
+    user: "${SNMP_DISCOVERY_UID:-1000}:${SNMP_DISCOVERY_GID:-1000}"
+    entrypoint: ["/usr/bin/snmp-discovery"]
+    command:
+      - --config=/etc/alloy/snmp-discovery.yml
+      - --overrides=/etc/alloy/snmp-overrides.yml
+      - --snmp-config=/etc/alloy/snmp-network.yml
+      - --fingerprinters=/etc/alloy/fingerprinters.yml
+      - --out-alloy=/out/snmp-targets.yml
+      - --out-file-sd=/out/snmp-file-sd.json
+      - --interval=${ALLOY_SNMP_INTERVAL:-5m}
+      - --misses=${ALLOY_SNMP_MISSES:-3}
+      - --state=/out/snmp-discovery.state.json
+      - --listen=:9780
+    cap_add:
+      - NET_RAW
+    ports:
+      - "9780:9780"
+    volumes:
+      - ./alloy/snmp-discovery.yml:/etc/alloy/snmp-discovery.yml:ro
+      - ./alloy/snmp-overrides.yml:/etc/alloy/snmp-overrides.yml:ro
+      - ./alloy/snmp-network.yml:/etc/alloy/snmp-network.yml:ro
+      - ./alloy/fingerprinters.yml:/etc/alloy/fingerprinters.yml:ro
+      - ./alloy:/out
     networks:
       - clab
       - default
@@ -180,13 +248,13 @@ services:
   topology_exporter:
     profiles: [topology]
     image: ${TOPOLOGY_EXPORTER_IMAGE:-srl-local/network-topology-exporter:v1.0.0}
-    container_name: topology_exporter
+    container_name: topology_exporte
     restart: unless-stopped
     environment:
       - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
     volumes:
       - ./topology-exporter/config.yaml:/etc/topology-exporter/config.yaml:ro
-      - topology_exporter_data:/var/lib/network-topology-exporter
+      - topology_exporter_data:/var/lib/network-topology-exporte
     depends_on:
       - alloy
     command:

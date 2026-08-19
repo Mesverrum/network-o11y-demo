@@ -1,0 +1,21 @@
+# GENERATED from kentik/snmp-profiles — module unifi_switch
+# Pair with embedded if_mib: module = "if_mib,unifi_switch"
+modules:
+  unifi_switch:
+    get:
+    - 1.3.6.1.4.1.4413.1.1.1.1.4.1.0
+    - 1.3.6.1.4.1.4413.1.1.1.1.4.2.0
+    - 1.3.6.1.4.1.4413.1.1.1.1.4.9.0
+    metrics:
+    - name: snmp_MemoryFree
+      oid: 1.3.6.1.4.1.4413.1.1.1.1.4.1
+      type: gauge
+      help: agentSwitchCpuProcessMemFree (EdgeSwitch-SWITCHING-MIB) - 1.3.6.1.4.1.4413.1.1.1.1.4.1.0
+    - name: snmp_MemoryTotal
+      oid: 1.3.6.1.4.1.4413.1.1.1.1.4.2
+      type: gauge
+      help: agentSwitchCpuProcessMemAvailable (EdgeSwitch-SWITCHING-MIB) - 1.3.6.1.4.1.4413.1.1.1.1.4.2.0
+    - name: snmp_CPU
+      oid: 1.3.6.1.4.1.4413.1.1.1.1.4.9
+      type: gauge
+      help: agentSwitchCpuProcessTotalUtilization (EdgeSwitch-SWITCHING-MIB) - 1.3.6.1.4.1.4413.1.1.1.1.4.9.0

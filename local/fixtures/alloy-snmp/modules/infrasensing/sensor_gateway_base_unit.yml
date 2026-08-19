@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module sensor_gateway_base_unit
+# Pair with embedded if_mib: module = "if_mib,sensor_gateway_base_unit"
+modules:
+  sensor_gateway_base_unit:
+    metrics: []

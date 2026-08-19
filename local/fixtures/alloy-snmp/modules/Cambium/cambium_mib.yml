@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module cambium_mib
+# Pair with embedded if_mib: module = "if_mib,cambium_mib"
+modules:
+  cambium_mib:
+    metrics: []

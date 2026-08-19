@@ -65,24 +65,65 @@ def base_vars() -> list[dict]:
     return csp.base_vars()
 
 
+# Synthetic Monitoring job filters (checks created via local/synthetic-monitoring/checks/)
+SM_JOBS_ALL = "net-o11y.*"
+SM_JOBS_HTTP_TCP = "net-o11y-.*(-http|-tcp)$"
+SM_JOBS_DNS = "net-o11y-dns-.*"
+SM_JOBS_TRACE = "net-o11y-trace-.*"
+PROBE_LAPTOP = "network-o11y-laptop-wsl"
+PROBE_COLOCATED = "network-o11y-colocated-ec2"
+
+
+def sm_vars() -> list[dict]:
+    return [
+        {
+            "name": "family",
+            "type": "custom",
+            "label": "Check family",
+            "query": f"{SM_JOBS_ALL},{SM_JOBS_HTTP_TCP},{SM_JOBS_DNS},{SM_JOBS_TRACE}",
+            "options": [
+                {"text": "All", "value": SM_JOBS_ALL, "selected": True},
+                {"text": "HTTP / TCP", "value": SM_JOBS_HTTP_TCP, "selected": False},
+                {"text": "DNS", "value": SM_JOBS_DNS, "selected": False},
+                {"text": "Traceroute", "value": SM_JOBS_TRACE, "selected": False},
+            ],
+            "current": {"text": "All", "value": SM_JOBS_ALL},
+        },
+        {
+            "name": "probe",
+            "type": "query",
+            "datasource": ds(),
+            "label": "Probe",
+            "definition": f'label_values(probe_success{{job=~"{SM_JOBS_ALL}"}}, probe)',
+            "query": {
+                "query": f'label_values(probe_success{{job=~"{SM_JOBS_ALL}"}}, probe)',
+                "refId": "A",
+            },
+            "includeAll": True,
+            "allValue": ".*",
+            "multi": True,
+        },
+        {
+            "name": "check",
+            "type": "query",
+            "datasource": ds(),
+            "label": "Check job",
+            "definition": 'label_values(probe_success{job=~"$family",probe=~"$probe"}, job)',
+            "query": {
+                "query": 'label_values(probe_success{job=~"$family",probe=~"$probe"}, job)',
+                "refId": "A",
+            },
+            "includeAll": True,
+            "allValue": ".*",
+            "multi": True,
+        },
+    ]
+
+
 def build_05_connectivity() -> dict[str, Any]:
     d = dash_meta("hybrid-connectivity-health", "05. Hybrid Connectivity Health")
-    d["templating"] = {
-        "list": base_vars()
-        + [
-            {
-                "name": "agent_id",
-                "type": "query",
-                "datasource": ds(),
-                "definition": "label_values(hybrid_probe_success, agent_id)",
-                "query": {"query": "label_values(hybrid_probe_success, agent_id)", "refId": "A"},
-                "includeAll": True,
-                "allValue": ".*",
-                "multi": True,
-                "label": "Probe agent",
-            }
-        ]
-    }
+    d["templating"] = {"list": base_vars() + sm_vars()}
+    sel = 'job=~"$family",probe=~"$probe",job=~"$check"'
     y = 0
     panels: list[dict] = []
     panels.append(
@@ -90,47 +131,63 @@ def build_05_connectivity() -> dict[str, Any]:
             1,
             "About",
             (
-                "**You ↔ AWS path health.** Top rows use `hybrid_probe_*` from the mesh agents "
-                "(laptop + AWS traffic hosts). Lower rows use CloudWatch NAT/ALB signals.\n\n"
-                "Run probes: `make -C local hybrid-probe-laptop` and `make -C local hybrid-probe-aws`."
+                "**Grafana Cloud Synthetic Monitoring** mesh for the network-o11y demo — "
+                "~19 checks across **HTTP/TCP**, **DNS**, and **traceroute**, run from "
+                f"private probes (`{PROBE_LAPTOP}`, `{PROBE_COLOCATED}`) plus public probes.\n\n"
+                "| Family | Laptop path | Colocated EC2 path |\n"
+                "|--------|-------------|-------------------|\n"
+                "| HTTP/TCP | Home → AWS ALBs / internet | VPC → ALB / NLB / Alloy OTLP |\n"
+                "| DNS | Resolver `8.8.8.8` | VPC resolver `169.254.169.253` |\n"
+                "| Traceroute | Hop path from laptop | Hop path inside VPC / to internet |\n\n"
+                "Manage checks: `make -C local synthetic-checks-up` · "
+                "Agents: `make -C local synthetic-agent-laptop` / `synthetic-agent-colocated`."
             ),
             y,
-            3,
+            4,
         )
     )
-    y += 3
-    panels.append(row("Synthetic mesh", y, 2))
+    y += 4
+    panels.append(row("Mesh overview", y, 2))
     y += 1
     panels.extend(
         [
             stat_panel(
                 3,
-                "Probe success rate",
-                'avg(hybrid_probe_success{agent_id=~"$agent_id"}) OR vector(0)',
+                "Fleet success rate",
+                f"avg(probe_success{{{sel}}}) OR vector(0)",
                 y,
                 0,
-                6,
+                5,
                 "percentunit",
             ),
             stat_panel(
                 4,
-                "Worst latency (p95 est.)",
-                'quantile(0.95, hybrid_probe_latency_ms{agent_id=~"$agent_id"}) OR vector(0)',
+                "Checks failing now",
+                f"count(probe_success{{{sel}}} == 0) OR vector(0)",
                 y,
-                6,
-                6,
-                "ms",
+                5,
+                5,
             ),
             stat_panel(
                 5,
-                "Active probe agents",
-                "count(count by (agent_id) (hybrid_probe_up)) OR vector(0)",
+                "Laptop probe success",
+                f'avg(probe_success{{job=~"{SM_JOBS_ALL}",probe="{PROBE_LAPTOP}"}}) OR vector(0)',
                 y,
-                12,
-                6,
+                10,
+                4,
+                "percentunit",
             ),
             stat_panel(
                 6,
+                "Colocated probe success",
+                f'avg(probe_success{{job=~"{SM_JOBS_ALL}",probe="{PROBE_COLOCATED}"}}) OR vector(0)',
+                y,
+                14,
+                4,
+                "percentunit",
+            ),
+            stat_panel(
+                7,
                 "NAT port alloc errors (1h)",
                 f"sum(increase({NAT_ERR}{nat_filter()}[1h])) OR vector(0)",
                 y,
@@ -141,75 +198,208 @@ def build_05_connectivity() -> dict[str, Any]:
     )
     y += 5
     panels.append(
-        ts_panel(
-            7,
-            "Probe latency by target",
-            [
-                prom_target(
-                    'hybrid_probe_latency_ms{agent_id=~"$agent_id"}',
-                    "{{agent_id}} → {{target}}",
-                )
-            ],
-            y,
-            unit="ms",
-        )
-    )
-    y += 9
-    panels.append(
         table_panel(
             8,
-            "Mesh matrix (success now)",
-            'hybrid_probe_success{agent_id=~"$agent_id"}',
+            "Check matrix (success · probe × job)",
+            f"probe_success{{{sel}}}",
             y,
-            7,
+            6,
         )
     )
-    y += 7
-    panels.append(row("AWS path indicators", y, 10))
+    y += 6
+    panels.append(row("HTTP & TCP reachability", y, 10))
+    y += 1
+    panels.extend(
+        [
+            ts_panel(
+                11,
+                "HTTP/TCP success",
+                [
+                    prom_target(
+                        f'probe_success{{job=~"{SM_JOBS_HTTP_TCP}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                0,
+                "none",
+            ),
+            ts_panel(
+                12,
+                "HTTP/TCP duration",
+                [
+                    prom_target(
+                        f'probe_duration_seconds{{job=~"{SM_JOBS_HTTP_TCP}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                12,
+                "s",
+            ),
+        ]
+    )
+    y += 8
+    panels.append(row("DNS resolution", y, 20))
     y += 1
     panels.append(
-        ts_panel(
-            11,
-            "NAT internet egress (all gateways)",
-            [
-                prom_target(
-                    f"sum by ({NAT_GW}) (rate({NAT_OUT}{nat_filter()}[$__rate_interval])) * 8",
-                    "{{" + NAT_GW + "}}",
-                )
-            ],
+        text_panel(
+            21,
+            "DNS checks",
+            (
+                "Dedicated DNS checks (`net-o11y-dns-*`) — A-record lookups. "
+                "Compare **laptop** jobs (`*-laptop`, public resolver) vs **colocated** jobs "
+                "(`*-aws`, VPC resolver `169.254.169.253`)."
+            ),
             y,
-            8,
+            2,
         )
     )
+    y += 2
+    panels.extend(
+        [
+            ts_panel(
+                22,
+                "DNS lookup time",
+                [
+                    prom_target(
+                        f'probe_dns_lookup_time_seconds{{job=~"{SM_JOBS_DNS}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    ),
+                    prom_target(
+                        f'probe_duration_seconds{{job=~"{SM_JOBS_DNS}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}} (duration)",
+                    ),
+                ],
+                y,
+                8,
+                12,
+                0,
+                "s",
+            ),
+            ts_panel(
+                23,
+                "DNS check success",
+                [
+                    prom_target(
+                        f'probe_success{{job=~"{SM_JOBS_DNS}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                12,
+                "none",
+            ),
+        ]
+    )
+    y += 8
+    panels.append(row("Traceroute path analysis", y, 30))
+    y += 1
     panels.append(
-        ts_panel(
-            12,
-            "ALB request rate",
-            [
-                prom_target(
-                    f"sum by ({ALB_LB}) (rate({ALB_REQUESTS}{{region=~\"$region\"}}[$__rate_interval]))",
-                    "{{" + ALB_LB + "}}",
-                )
-            ],
+        text_panel(
+            31,
+            "Traceroute checks",
+            (
+                "Traceroute checks (`net-o11y-trace-*`) every 2m — "
+                "use duration and success; open the check in Synthetics for hop-level detail."
+            ),
             y,
-            8,
-            12,
-            unit="reqps",
+            2,
         )
+    )
+    y += 2
+    panels.extend(
+        [
+            ts_panel(
+                32,
+                "Traceroute duration",
+                [
+                    prom_target(
+                        f'probe_duration_seconds{{job=~"{SM_JOBS_TRACE}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                0,
+                "s",
+            ),
+            ts_panel(
+                33,
+                "Traceroute success",
+                [
+                    prom_target(
+                        f'probe_success{{job=~"{SM_JOBS_TRACE}",probe=~"$probe"}}',
+                        "{{probe}} · {{job}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                12,
+                "none",
+            ),
+        ]
+    )
+    y += 8
+    panels.append(row("AWS path indicators (CloudWatch)", y, 40))
+    y += 1
+    panels.extend(
+        [
+            ts_panel(
+                41,
+                "NAT internet egress",
+                [
+                    prom_target(
+                        f"sum by ({NAT_GW}) (rate({NAT_OUT}{nat_filter()}[$__rate_interval])) * 8",
+                        "{{" + NAT_GW + "}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                0,
+            ),
+            ts_panel(
+                42,
+                "ALB request rate",
+                [
+                    prom_target(
+                        f"sum by ({ALB_LB}) (rate({ALB_REQUESTS}{{region=~\"$region\"}}[$__rate_interval]))",
+                        "{{" + ALB_LB + "}}",
+                    )
+                ],
+                y,
+                8,
+                12,
+                12,
+                "reqps",
+            ),
+        ]
     )
     y += 8
     panels.append(
         ts_panel(
-            13,
-            "Probe success over time",
+            43,
+            "Selected checks — success over time",
             [
                 prom_target(
-                    'hybrid_probe_success{agent_id=~"$agent_id"}',
-                    "{{agent_id}} → {{target}}",
+                    f"probe_success{{{sel}}}",
+                    "{{probe}} · {{job}}",
                 )
             ],
             y,
-            unit="none",
+            9,
+            24,
+            0,
+            "none",
         )
     )
     d["panels"] = panels

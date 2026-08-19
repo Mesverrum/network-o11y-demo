@@ -27,6 +27,9 @@ bash "$${LAB_ROOT}/scripts/colocated-host-deps.sh"
 export GC_OTLP_URL=${gc_otlp_url}
 export GC_OTLP_ACCOUNT=${gc_otlp_account}
 export GC_OTLP_KEY=${gc_otlp_key}
+export GC_OTLP_URL_2=${gc_otlp_url_2}
+export GC_OTLP_ACCOUNT_2=${gc_otlp_account_2}
+export GC_OTLP_KEY_2=${gc_otlp_key_2}
 export KTRANS_HOST=${ktrans_host}
 export LAB_TESTER_ID=${lab_tester_id}
 

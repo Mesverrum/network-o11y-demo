@@ -226,6 +226,56 @@ topology-exporter-image: ## Download release binary and build local topology-exp
 ktranslate-dev-image: ## Build ktranslate with OTLP CHF fix (Mesverrum fix/otel-chf-flow-only)
 	bash $(ROOT)scripts/build-ktranslate-dev-image.sh
 
+.PHONY: alloy-network-image
+alloy-network-image: ## Build srl-local/alloy:network-dev (set ALLOY_NETWORK_FROM_SOURCE=1 for discovery.snmp)
+	bash $(ROOT)scripts/build-alloy-network-image.sh
+
+.PHONY: alloy-snmp-discover
+alloy-snmp-discover: ## Probe fabric IPs → snmp-targets.yml (named auth + sysObjectID→module)
+	bash $(ROOT)scripts/alloy-snmp-discover.sh
+
+.PHONY: alloy-snmp-up
+alloy-snmp-up: compose-host-env ## Enable Alloy-native SNMP scrape (LAB_ALLOY_SNMP=1; ktranslate stays)
+	@grep -qE '^LAB_ALLOY_SNMP=1' $(ROOT).env 2>/dev/null \
+	  || echo "NOTE: set LAB_ALLOY_SNMP=1 in local/.env (this target still renders + recreates alloy)"
+	@cd $(ROOT) && LAB_ALLOY_SNMP=1 bash scripts/render-alloy-snmp-scrape.sh
+	-@cd $(ROOT) && bash scripts/alloy-snmp-discover.sh
+	@cd $(ROOT) && SNMP_DISCOVERY_UID=$$(id -u) SNMP_DISCOVERY_GID=$$(id -g) \
+	  $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy snmp_discovery
+
+.PHONY: alloy-fleet-up
+alloy-fleet-up: ## Enroll Alloy in Fleet Management + upsert SNMP pipeline
+	bash $(ROOT)scripts/alloy-fleet-up.sh
+
+.PHONY: alloy-snmp-min
+alloy-snmp-min: ## 1× SRL + Alloy SNMP only (stops Clos/clients/ktranslate/traffic)
+	bash $(ROOT)scripts/alloy-snmp-min.sh up
+
+.PHONY: alloy-snmp-min-down
+alloy-snmp-min-down: ## Tear down snmp-min (spine1 + alloy)
+	bash $(ROOT)scripts/alloy-snmp-min.sh down
+
+.PHONY: alloy-snmptrap-up
+alloy-snmptrap-up: compose-host-env ## Enable loki.source.snmptrap + retarget SRL trap-group to Alloy :1620
+	@cd $(ROOT) && LAB_ALLOY_SNMPTRAP=1 bash scripts/render-alloy-snmp-trap.sh
+	@cd $(ROOT) && $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy
+	@cd $(ROOT) && LAB_ALLOY_SNMPTRAP=1 bash scripts/snmp-trap-config.sh
+
+.PHONY: alloy-syslog-up
+alloy-syslog-up: compose-host-env ## Enable loki.source.syslog + retarget SRL remote-server to Alloy :1514
+	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/render-alloy-snmp-trap.sh
+	@cd $(ROOT) && $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy
+	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/syslog-config.sh
+
+.PHONY: alloy-netflow-up
+alloy-netflow-up: compose-host-env ## Enable otelcol.receiver.netflow (+ signaltometrics). Does not steal ktranslate ports
+	@cd $(ROOT) && LAB_ALLOY_NETFLOW=1 bash scripts/render-alloy-netflow.sh
+	@cd $(ROOT) && $(COMPOSE) up -d --no-deps --force-recreate alloy
+
+.PHONY: alloy-snmp-dash
+alloy-snmp-dash: ## Build+import Alloy SNMP Device Details dashboard (curated snmp_* names)
+	python3 $(ROOT)scripts/build-alloy-snmp-dashboard.py --import
+
 .PHONY: compose-host-env
 compose-host-env: ## Write compose-host.generated.env (deployment.host for compose)
 	@bash $(ROOT)scripts/write-compose-host-env.sh
@@ -238,8 +288,70 @@ ktranslate-dev-recreate: compose-host-env ## Recreate all ktranslate containers 
 	  $(COMPOSE) up -d --pull never --force-recreate $$_snmp ktranslate_flow ktranslate_sflow ktranslate_syslog
 	@$(MAKE) softflowd
 
+.PHONY: netbox-oss-up
+netbox-oss-up: ## LOCAL ONLY — NetBox OSS on laptop :8000 (prefer netbox-colocated)
+	bash $(ROOT)scripts/netbox-oss-up.sh
+
+.PHONY: netbox-oss-down
+netbox-oss-down: ## Stop local NetBox OSS (NETBOX_OSS_PURGE=1 also drops volumes)
+	bash $(ROOT)scripts/netbox-oss-down.sh
+
+.PHONY: netbox-colocated
+netbox-colocated: ## Deploy NetBox OSS + Diode + live Orb on colocated EC2 (SSM)
+	python3 $(ROOT)scripts/netbox-deploy-colocated.py
+
+.PHONY: netbox-rotate-admin
+netbox-rotate-admin: ## Generate+set NetBox admin password; store in local/.env + colocated .env
+	python3 $(ROOT)scripts/rotate-netbox-admin-password.py
+
+.PHONY: netbox-ui-tunnel
+netbox-ui-tunnel: ## SSM port-forward colocated NetBox → http://127.0.0.1:8000/
+	@IID=$$(aws --profile $${AWS_PROFILE:-mvr} --region $${AWS_REGION:-us-east-1} ec2 describe-instances \
+	  --filters Name=tag:Name,Values=network-o11y-demo-colocated-lab Name=instance-state-name,Values=running \
+	  --query 'Reservations[0].Instances[0].InstanceId' --output text); \
+	echo "Forwarding $$IID:8000 → localhost:8000 (Ctrl-C to stop)"; \
+	aws --profile $${AWS_PROFILE:-mvr} --region $${AWS_REGION:-us-east-1} ssm start-session \
+	  --target $$IID --document-name AWS-StartPortForwardingSession \
+	  --parameters portNumber=8000,localPortNumber=8000
+
+.PHONY: orb-up
+orb-up: orb-colocated ## Prefer AWS colocated (does not run Orb on the laptop)
+
+.PHONY: orb-colocated
+orb-colocated: ## Deploy Orb agent to colocated EC2 (SSM; dry-run → /opt/.../local/orb/out/)
+	python3 $(ROOT)scripts/orb-deploy-colocated.py
+
+.PHONY: orb-netbox-dashes
+orb-netbox-dashes: ## Build+import Orb/NetBox/pktvisor dashboards to Grafana Cloud (Network Lab)
+	python3 $(ROOT)scripts/build-orb-netbox-dashboards.py --import
+	python3 $(ROOT)scripts/build-orb-ktranslate-leadership-dash.py --import
+
+.PHONY: device-details-netbox
+device-details-netbox: ## Clone Device Details into NetBox× folder with SoT enrichment + deep links
+	python3 $(ROOT)scripts/build-device-details-netbox-enrich.py
+
+.PHONY: orb-up-local
+orb-up-local: ## LOCAL ONLY — Orb on laptop Docker (heavy; prefer orb-colocated)
+	bash $(ROOT)scripts/orb-up.sh
+
+.PHONY: orb-down
+orb-down: ## Stop laptop Orb container if present
+	bash $(ROOT)scripts/orb-down.sh
+
+.PHONY: orb-down-colocated
+orb-down-colocated: ## Stop Orb on colocated EC2 via SSM
+	python3 $(ROOT)scripts/orb-deploy-colocated.py --down
+
+.PHONY: orb-logs
+orb-logs: ## Follow laptop orb-agent logs (local only)
+	docker logs -f orb-agent
+
+.PHONY: orb-render
+orb-render: ## Re-render local/orb/agent.generated.yaml only
+	@set -a && . $(ROOT).env 2>/dev/null; set +a; python3 $(ROOT)scripts/orb-render-config.py
+
 .PHONY: netbox-bootstrap netbox-sync
-netbox-bootstrap netbox-sync: ## Populate NetBox Cloud + sync clab mgmt IPs
+netbox-bootstrap netbox-sync: ## Populate NetBox (Cloud or OSS via .env) + sync clab mgmt IPs
 	bash $(ROOT)scripts/netbox-bootstrap.sh
 
 .PHONY: netbox-sync-mgmt
@@ -291,7 +403,7 @@ network-alerts: ## Provision Grafana network alert rules (marcnetterfield1 / net
 	python3 $(ROOT)scripts/provision-network-alerts.py
 
 .PHONY: snmp-traps-config
-snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate SNMP poller(s)
+snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate or Alloy (LAB_ALLOY_SNMPTRAP=1)
 	bash $(ROOT)scripts/snmp-trap-config.sh
 
 .PHONY: emit-events
@@ -470,15 +582,23 @@ colocated-lab-up: ## EC2 ContainerLab fabric + k3s ktranslate-golden (reads GC_O
 colocated-lab-down: ## Destroy colocated network lab
 	bash $(ROOT)scripts/colocated-lab-down.sh
 
-.PHONY: hybrid-probe-laptop hybrid-probe-aws hybrid-probe-once hybrid-dash-import
-hybrid-probe-laptop: ## Laptop mesh probe → OTLP (listens :18080 for AWS callbacks)
-	bash $(ROOT)scripts/hybrid-probe-laptop.sh
+.PHONY: hybrid-probe-teardown synthetic-up synthetic-split-creds synthetic-checks-up synthetic-agent-colocated synthetic-agent-laptop synthetic-dash-import
+hybrid-probe-teardown: ## Stop/remove custom script-based hybrid-probe agents
+	bash $(ROOT)scripts/hybrid-probe-teardown.sh
 
-hybrid-probe-once: ## One probe cycle from laptop targets (no listener)
-	python3 $(ROOT)scripts/hybrid-probe-once.py
+synthetic-up: synthetic-agent-colocated synthetic-agent-laptop synthetic-checks-up ## SM private probes + checks (Grafana Cloud Synthetics)
 
-hybrid-probe-aws: ## Deploy mesh probe to AWS lab EC2 via SSM (needs SSM agent)
-	python3 $(ROOT)scripts/hybrid-probe-deploy-aws.py
+synthetic-split-creds: ## Split combined sm-access.token → sm-probe-laptop.env + sm-probe-colocated.env
+	python3 $(ROOT)scripts/sm-split-probe-creds.py
 
-hybrid-dash-import: ## Build + import dashboards 05–06 (connectivity + capacity)
+synthetic-agent-colocated: ## Deploy SM private-probe agent on colocated EC2 k3s
+	python3 $(ROOT)scripts/synthetic-monitoring-deploy-colocated.py
+
+synthetic-agent-laptop: ## Run SM private-probe agent in Docker (WSL); needs state/sm-probe-laptop.token
+	bash $(ROOT)scripts/synthetic-monitoring-laptop-agent.sh
+
+synthetic-checks-up: ## Create SM checks from local/synthetic-monitoring/checks/ (needs state/sm-access.token)
+	python3 $(ROOT)scripts/synthetic-monitoring-checks-up.py
+
+synthetic-dash-import: ## Rebuild + import dashboard 05–06 for probe_* metrics
 	python3 $(ROOT)scripts/build-aws-hybrid-dashboards.py --import

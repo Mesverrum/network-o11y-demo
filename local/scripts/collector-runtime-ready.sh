@@ -2,7 +2,7 @@
 # Shared guard: is the SNMP collector (trap sink) up — compose or k3s hostNetwork?
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=snmp-group-utils.sh
 source "${ROOT}/scripts/snmp-group-utils.sh"
 
@@ -22,6 +22,16 @@ collector_snmp_ready() {
     done < <(k8s_snmp_deployment_names "${root}" 2>/dev/null || true)
   fi
   [[ -n "$(snmp_poller_container_id)" ]]
+}
+
+collector_alloy_trap_ready() {
+  docker ps -qf name=^alloy$ | grep -q .
+}
+
+# True when something is listening for device traps (ktranslate poller or Alloy).
+collector_trap_ready() {
+  collector_snmp_ready && return 0
+  collector_alloy_trap_ready
 }
 
 collector_syslog_ready() {

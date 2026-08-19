@@ -20,12 +20,29 @@ local/compose-catalog.generated.yaml
 local/compose-colocated.generated.yaml
 local/compose-limits.generated.yaml
 local/compose-host.generated.env
+local/alloy/otlp-export.generated.alloy
+local/alloy/snmp-scrape.generated.alloy
+local/alloy/netflow.generated.alloy
+local/alloy/snmp-network.yml
+local/alloy/fingerprinters.yml
+# snmp-discovery.yml is generated (live /32s); operator overrides belong in the same file after generate.
+local/alloy/snmp-discovery.yml
+local/alloy/snmp-overrides.yml
+local/alloy/snmp-targets.yml
+local/alloy/snmp-file-sd.json
+local/alloy/snmp-discovery.state.json
+local/alloy/*.state.json
 local/snmp.yaml
 local/.dash-payloads/
 local/.ssm-*.json
 local/.pr-bodies/
 local/.ref-KtransToGrafana/
+local/.ref-snmp-profiles/
 local/clab-srl-local/
+local/netbox-oss/netbox-docker/
+local/orb/out/
+local/orb/agent.generated.yaml
+local/orb/.compose.env
 
 # Terraform state and working files
 **/.terraform/
@@ -72,6 +89,28 @@ local/scripts/_*
 local/scripts/import-netterfield-wip.py
 local/scripts/preserve-ktranslate-uids.py
 local/scripts/retarget-otlp-networko11ydev.py
+local/scripts/tmp-*.sh
+local/scripts/tmp-*.py
+local/scripts/tmp-*.b64
+local/scripts/tmp-*.tgz
+local/scripts/tmp-*.json
+local/scripts/tmp-*.ps1
+local/alloy/snmp-trap.generated.alloy
+local/.netbox-sot-*
+local/.ssm-*.txt
+local/groups/*.bak
+/ssm-*.json
+/ssm-*.txt
+/tmp-*.py
+/tmp-*.txt
+/tmp-*.json
+
+# SolarWinds inventory dumps (may contain internal SWQL / hostnames)
+tools/solarwinds-grafana-reference/out/
+tools/solarwinds-grafana-reference/swis.env
+tools/solarwinds-grafana-reference/*.env
+!tools/solarwinds-grafana-reference/swis.env.example
+!tools/solarwinds-grafana-reference/*.env.example
 
 # OS noise
 .DS_Store

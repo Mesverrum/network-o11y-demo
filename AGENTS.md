@@ -2,11 +2,13 @@
 
 **New operator on any Grafana Cloud stack?** Start with [**Agent playbook**](#agent-playbook--run-the-local-lab-on-the-operators-stack) below.
 
+**Open work (start here next session):** the **AWS/colocated Grafana Synthetic Monitoring private probe never came up** (labs torn down 2026-08-03). Bring up colocated + `make -C local synthetic-agent-colocated`, verify the probe is **online** in Synthetics → Probes, then clear `.cursor/rules/open-aws-synthetic-probe.mdc`. Details: [`local/synthetic-monitoring/README.md`](local/synthetic-monitoring/README.md).
+
 Keep this file accurate as the lab evolves. When you change architecture, collectors, metric names, or bring-up steps, **update this file and `.cursor/rules/` in the same change**.
 
 ## What this repo is
 
-Companion demo for the blog series **Network Observability Without the Lock-in**. One **ktranslate-centric telemetry model** runs on every platform — see [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md).
+Companion demo for the blog series **Network Observability Without the Lock-in**. The **destination collector** is Grafana Alloy with the network addons (SNMP, traps, syslog, flow) — not the KtransToGrafana / ktranslate pairing. Today the lab still **defaults to ktranslate** so existing dashboards keep working; Alloy runs opt-in in parallel (`LAB_ALLOY_SNMP=1`, …). See [`docs/ktranslate-unified-model.md`](docs/ktranslate-unified-model.md) for the current ktranslate path and [`docs/alloy-network-fork.md`](docs/alloy-network-fork.md) for Alloy.
 
 | Where it runs | How you start it |
 |---------------|------------------|
@@ -246,10 +248,13 @@ count({__name__=~"kentik_snmp.*"})
 
 ### Agents on Windows (Cursor host)
 
+**Quoting rule (always):** see [`.cursor/rules/windows-shell-quoting.mdc`](.cursor/rules/windows-shell-quoting.mdc). Prefer write-script-then-`wsl -e bash /abs/path.sh` over nested `bash -lc` one-liners. Empty failure output usually means PowerShell ate `$` / quotes — not that the lab command failed.
+
 | Do | Do not |
 |----|--------|
-| Run lab commands via `wsl -e bash -lc 'cd ~/projects/network-o11y-demo/local && …'` | Inline bash `for` loops / `$var` in the **outer** PowerShell string — `$n`, `$ip` get eaten |
+| Run lab commands via `wsl -e bash /abs/path/to/script.sh` or short `bash -lc '…'` with **single** quotes | Inline bash `for` loops / `$var` / heredocs in the **outer** PowerShell string — `$n`, `$ip`, `$?` get eaten |
 | Use repo scripts: `bash scripts/enable-snmp-srl.sh` | Long one-liners with nested quoting through `wsl -e bash -lc "…"` |
+| AWS from **Windows** `aws`; Docker/terraform from **WSL** docker | Call `aws.exe` from WSL (`Exec format error`); assume Windows Docker Desktop is up |
 | Sync edits to the WSL clone when changing files on `C:\…` | Assume `~/network-o11y-demo` picked up Windows-side edits automatically |
 | Strip CRLF before running new shell scripts: `sed -i 's/\r$//' scripts/foo.sh` | Run freshly written `.sh` from Windows without LF check (`set: pipefail\r: invalid option`) |
 | Confirm `GC_OTLP_URL` / account in `local/.env` match the stack the user asked about | Assume Grafana Cloud MCP is on the same stack as the lab (MCP may be a different org) |
@@ -274,6 +279,12 @@ cp /mnt/c/Users/<you>/projects/network-o11y-demo/local/scripts/*.sh ~/network-o1
 | Synthetic traps + link flaps | `make -C local events-loop` |
 | Import join dashboard | `python3 local/scripts/build-network-join-demo.py` then import script with user's `GRAFANA_URL` + token |
 | NetBox-driven discovery | `cp groups/srl-hq.env.netbox.sample groups/srl-hq.env`, set `NETBOX_*` in `.env`, `make netbox-sync && make up` |
+| NetBox OSS + Diode + live Orb (**AWS colocated**) | `make -C local netbox-colocated` — UI: http://network-o11y-netbox-ui-383fcaf9622d867c.elb.us-east-1.amazonaws.com:8000/ (login `admin` / `NETBOX_ADMIN_PASSWORD` in `local/.env`; rotate with `python3 local/scripts/rotate-netbox-admin-password.py`) — [`local/netbox/README.md`](local/netbox/README.md) |
+| Orb only (dry-run / re-push) | `make -C local orb-colocated` — [`local/orb/README.md`](local/orb/README.md) |
+| Alloy-native SNMP (opt-in, parallel to ktranslate) | Laptop light: `make -C local alloy-snmp-min`. Full Clos: `LAB_ALLOY_SNMP=1` + `make alloy-snmp-up`. Staggered scrapes: **hot** = alerting/troubleshooting (60s), **cold** = names/descriptions/MAC + IP inventory (`ip_addr`), **topology** = optional LLDP experiments. Device identity is one `snmp_device_info` inlined on the fingerprint module (`device_base` for unknown sysObjectID) — not a sibling `system_mib` scrape. BGP neighbor drop/flap is traps/syslog, not a poll interval — [`docs/alloy-network-fork.md`](docs/alloy-network-fork.md). **Traps as logs:** `LAB_ALLOY_SNMPTRAP=1` + `make alloy-snmptrap-up` (`loki.source.snmptrap`). **Syslog as logs:** `LAB_ALLOY_SYSLOG=1` + `make alloy-syslog-up` (`loki.source.syslog`). Both join `device_name` from `snmp-targets.yml`. **Fleet:** `make -C local alloy-fleet-up` enrolls remotecfg (`GC_FM_URL` auto-detected); SNMP pipeline upsert needs `fleet-management:write` on `GC_FM_TOKEN` (OTLP key is read-only on this stack). |
+| Alloy-native flow (opt-in, parallel to ktranslate) | `LAB_ALLOY_NETFLOW=1` + `make -C local alloy-netflow-up` — contrib `otelcol.receiver.netflow` on `:2055` / sFlow `:6344` (does **not** steal ktranslate `:9995`/`:6343`). Optional `targets` join `flow.sampler_address` → `device_name` from `snmp-targets.yml` (same catalog as traps/syslog). **Metrics (default):** `otelcol.connector.signaltometrics` → `network.io.by_flow` (`integration=alloy-netflow`); PromQL is **`rate()`**, not ktranslate `* 8 / 60`. **Logs:** `LAB_ALLOY_NETFLOW_LOGS=1` punts decoded records onto the existing OTLP logs export (experimental; Loki is not the scale path). Needs `ALLOY_NETWORK_FROM_SOURCE=1` image. |
+| Alloy SNMP dashboard | `make -C local alloy-snmp-dash` (UID `alloy-snmp-device-details`, curated `snmp_*` names) |
+| Alloy SNMP composites | Mock-up recording rules: `local/fixtures/alloy-snmp/recording-rules.yaml` (`snmp_MemoryUtilization`, error %, …) |
 
 ### Grafana Cloud MCP
 
@@ -373,6 +384,8 @@ Reports: `local/.dash-payloads/bps-v2-patch-report-<context>.json`. Shared query
 - **Talk track:** eBGP underlay + EVPN MAC-VRF; clients `172.17.0.1` / `172.17.0.2`
 - **Collectors:** `ktranslate_snmp_srl-hq` (golden-path poller), `ktranslate_flow`, `ktranslate_syslog`, **`gnmic`** (incl. LLDP neighbors). Optional: **`topology_exporter`** (`LAB_TOPOLOGY_EXPORTER=1`, `make topology-up`)
 - **NetBox Cloud (optional):** `scripts/netbox-populate.py` + `update-netbox-mgmt-ips.py` when `DISCOVERY_SOURCE=netbox` in `groups/srl-hq.env` (`groups/srl-hq.env.netbox.sample`). Default bring-up uses **CIDR** discovery (`groups/srl-hq.env.sample`). See `local/netbox/README.md`.
+- **NetBox OSS + Diode + Orb (prefer AWS):** `make -C local netbox-colocated` on colocated EC2 — UI via `make netbox-ui-tunnel` → http://127.0.0.1:8000/. Live Orb → Diode → NetBox; Grafana Cloud reads NetBox via Infinity `netbox-api` (dashboards 20/22/24/25). Inventory audit history stays in NetBox changelog/journal (optional Grafana recording rule later). Orb OTLP → Alloy. Does **not** replace ktranslate SNMP. Docs: [`local/netbox/README.md`](local/netbox/README.md), [`local/orb/README.md`](local/orb/README.md).
+- **NetBox OSS (laptop, optional):** `make -C local netbox-oss-up` — avoid on RAM-constrained hosts.
 - **ktranslate model:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) golden path — `groups/*.env` → `make generate` → discovery/polling split (`discover_srl` profile + read-only poller). No root `snmp.yaml` + `snmp_discovery_on_start`
 - **SNMP profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). Discovery matches `sysObjectID` → `mib_profile` automatically (e.g. Nokia SR Linux → `nokia-srlinux.yml`). Missing platform? [Profile tutorial](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) → PR upstream — do not bind-mount local profile overrides in normal bring-up.
 - **Alloy role:** OTLP receive + Docker log scrape (lab containers except ktranslate) → preprocess → OTLP HTTP to Grafana Cloud. ktranslate already tees its own logs (and device syslog/traps) over OTLP via `--tee_logs=true`.
@@ -414,7 +427,7 @@ Agents on Windows must use a WSL ext4 checkout — e.g. `wsl -e bash -lc 'cd ~/p
 2. **Shell scripts must be LF** (CRLF breaks `set -o pipefail`). `.gitattributes` forces LF under `local/`.
 3. **Alloy comments are `//`**, not `#`.
 4. **`state/devices-*.yaml` is mutable** (discovery writes device lists); never commit `config/` / `state/` / `groups/*.env`. UID 1000 must own `config/` and `state/`.
-5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. **Traps go to the SNMP poller** (`ktranslate_snmp_srl-hq`, UDP `:1620` — same container as polling, not a separate ktranslate). One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
+5. **Syslog / SNMP traps:** pipe into `sr_cli` via `docker exec -i` (non-interactive); see `local/scripts/syslog-config.sh` and `snmp-trap-config.sh`. Both must use **mgmt** (`system logging network-instance mgmt`, trap-group `network-instance mgmt`) or packets never leave the box. **Default trap sink** is the SNMP poller (`ktranslate_snmp_srl-hq`, UDP `:1620`). With `LAB_ALLOY_SNMPTRAP=1` (or snmp-min), the trap-group is retargeted to Alloy `loki.source.snmptrap` on `:1620` — Loki `{service_name="alloy-snmptrap"}`. **Default syslog sink** is `ktranslate_syslog` `:1514`. With `LAB_ALLOY_SYSLOG=1` (or snmp-min), remote-server points at Alloy `loki.source.syslog` `:1514` — Loki `{service_name="alloy-syslog"}`. Both stamp `device_name` from the SNMP catalog. One-shot: `make -C local emit-events`. Periodic: `make -C local events-loop` (synthetic traps ~3m, real flaps ~5m; `events-stop` / `events-status`).
 6. **Windows / WSL:** clone and run the lab **only** on WSL native ext4 (`~/…`), never `/mnt/c/…`. drvfs breaks ContainerLab postdeploy for SR Linux startup config. **Do not** run `clab deploy --reconfigure` unless the user explicitly asks — it SIGTERM-stops all lab containers (exit 143), which looks like a crash but is not OOM.
 7. **SNMP on mgmt:** fabric cfg + `enable-snmp-srl.sh` must set `network-instance mgmt` and `access-group ag1` + `community-entry ce1 community public`. Without both, SNMP/gNMI stay `oper-state down` and ktranslate gets `connection refused` on :161 — devices can look "up" while Grafana has no `kentik_snmp_*`. See playbook **SNMP diagnosis**.
 8. **Recovery without redeploy:** `make -C local stabilize` — `docker start` stopped SRL nodes, apply fabric, NetBox sync, discover, softflowd/syslog/traps. Not a memory issue: SRL exits with code 143 (SIGTERM), `OOMKilled=false`.
@@ -468,7 +481,7 @@ JSON payloads: `local/.dash-payloads/topology/`, `local/.dash-payloads/network-j
 
 **Clos join app (phase 2 traces):** minimal OTel Go HTTP client/server on EVPN clients — `make -C local join-app` (`local/join-app/`, `scripts/join-app.sh`). client1 `172.17.0.1` → client2 `172.17.0.2:8080` over the Clos; traces → Alloy `:4317` as `service.name=clos-join-demo` with `network.peer.*` / `server.address` for 5-tuple join vs softflowd (`network_peer_port="8080"`). Also exports `clos_join_entity_info` / `clos_join_edge_info` for the dashboard subway overlay (`runs_on` / `attached`). Stop: `make -C local join-app-stop`. Talk-track fault: `make -C local join-fault` / `join-fault-stop` (`scripts/join-fault.sh` — tc netem on client `eth1`); Investigation row on `lab-network-join-demo`. **Identity tabs:** parallel `entity_demo_*` datasets (`demo_model=hostname|hostname_poison|mac_alias|address|iface|edge_attrs|vrf`) prove/disprove OTel entity open questions — Q3: attrs-on-edge vs MAC-VRF as `network.vrf`.
 
-**OTLP / Grafana Cloud:** copy `local/.env.example` → `local/.env` and set `GC_OTLP_URL`, `GC_OTLP_ACCOUNT`, `GC_OTLP_KEY` from your stack's OpenTelemetry connection. Optional `LAB_TESTER_ID` (default `network-lab`) labels topology and entity metrics. Merge helper: `python3 local/scripts/retarget-otlp-gc.py --write`. Restart Alloy after changing OTLP env: `docker compose … up -d --force-recreate alloy` (or `make up`).
+**OTLP / Grafana Cloud:** copy `local/.env.example` → `local/.env` and set `GC_OTLP_URL`, `GC_OTLP_ACCOUNT`, `GC_OTLP_KEY` from your stack's OpenTelemetry connection. Optional dual-ship to a second stack: set `GC_OTLP_URL_2`, `GC_OTLP_ACCOUNT_2`, `GC_OTLP_KEY_2` — `make generate` renders `alloy/otlp-export.generated.alloy` to fan-out metrics/logs/traces. Optional `LAB_TESTER_ID` (default `network-lab`) labels topology and entity metrics. Merge helper: `python3 local/scripts/retarget-otlp-gc.py --write`. Restart Alloy after changing OTLP env: `docker compose … up -d --force-recreate alloy` (or `make up`).
 
 ## AWS / EKS path (unchanged)
 

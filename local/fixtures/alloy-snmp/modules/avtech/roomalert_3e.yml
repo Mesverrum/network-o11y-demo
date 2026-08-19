@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module roomalert_3e
+# Pair with embedded if_mib: module = "if_mib,roomalert_3e"
+modules:
+  roomalert_3e:
+    metrics: []

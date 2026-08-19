@@ -6,7 +6,7 @@
     {
       "uid": "net-bgp-session-not-established",
       "title": "BGP session not established",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -38,85 +38,23 @@
           },
           "datasourceUid": "__expr__",
           "model": {
-            "conditions": [
-              {
-                "evaluator": {
-                  "params": [
-                    0
-                  ],
-                  "type": "gt"
-                },
-                "operator": {
-                  "type": "and"
-                },
-                "query": {
-                  "params": [
-                    "A"
-                  ]
-                },
-                "reducer": {
-                  "params": [],
-                  "type": "last"
-                },
-                "type": "query"
-              }
-            ],
             "datasource": {
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "A",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
+            "reducer": "last",
             "refId": "B",
-            "type": "classic_conditions"
-          }
-        }
-      ],
-      "noDataState": "OK",
-      "execErrState": "Error",
-      "for": "5m",
-      "annotations": {
-        "summary": "BGP peer {{ $labels.device_name }} group {{ $labels.peer_group }} AS {{ $labels.peer_as }} is {{ $labels.tBgpPeerNgConnState }}",
-        "description": "BGP ConnState is not established for 5 minutes.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
-      },
-      "labels": {
-        "category": "network",
-        "source": "ktranslate",
-        "severity": "warning",
-        "domain": "routing"
-      },
-      "isPaused": false
-    },
-    {
-      "uid": "net-snmp-polling-unhealthy",
-      "title": "SNMP polling unhealthy",
-      "condition": "B",
-      "data": [
-        {
-          "refId": "A",
-          "queryType": "",
-          "relativeTimeRange": {
-            "from": 600,
-            "to": 0
-          },
-          "datasourceUid": "grafanacloud-prom",
-          "model": {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "grafanacloud-prom"
+            "settings": {
+              "mode": "dropNN"
             },
-            "expr": "kentik_snmp_PollingHealth != 1",
-            "instant": true,
-            "intervalMs": 1000,
-            "legendFormat": "__auto",
-            "maxDataPoints": 43200,
-            "refId": "A"
+            "type": "reduce"
           }
         },
         {
-          "refId": "B",
+          "refId": "C",
           "queryType": "",
           "relativeTimeRange": {
             "from": 0,
@@ -137,7 +75,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -151,11 +89,121 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "5m",
+      "annotations": {
+        "summary": "BGP peer {{ $labels.device_name }} group {{ $labels.peer_group }} AS {{ $labels.peer_as }} is {{ $labels.tBgpPeerNgConnState }}",
+        "description": "BGP ConnState is not established for 5 minutes.",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "ktranslate",
+        "severity": "warning",
+        "domain": "routing"
+      },
+      "isPaused": false
+    },
+    {
+      "uid": "net-snmp-polling-unhealthy",
+      "title": "SNMP polling unhealthy",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "kentik_snmp_PollingHealth{PollingHealth!=\"GOOD\"}",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
             "refId": "B",
-            "type": "classic_conditions"
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -165,7 +213,7 @@
       "annotations": {
         "summary": "SNMP polling unhealthy on {{ $labels.device_name }} ({{ $labels.PollingHealth }})",
         "description": "ktranslate PollingHealth is not GOOD for 10 minutes.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -178,7 +226,7 @@
     {
       "uid": "net-interface-admin-up-oper-down",
       "title": "Interface admin-up oper-down",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -210,6 +258,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -223,7 +295,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -237,11 +309,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -251,7 +323,7 @@
       "annotations": {
         "summary": "Interface {{ $labels.if_interface_name }} on {{ $labels.device_name }} is oper-down",
         "description": "Admin-up interface has been oper-down for 5 minutes.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -264,7 +336,7 @@
     {
       "uid": "net-high-interface-error-rate",
       "title": "High interface error rate",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -296,6 +368,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -309,7 +405,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -323,11 +419,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -337,7 +433,7 @@
       "annotations": {
         "summary": "High errors on {{ $labels.device_name }} {{ $labels.if_interface_name }}",
         "description": "Combined in+out errors exceed 5/s (ktranslate 60s delta gauge).",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -350,7 +446,7 @@
     {
       "uid": "net-high-device-cpu",
       "title": "High device CPU",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -382,85 +478,23 @@
           },
           "datasourceUid": "__expr__",
           "model": {
-            "conditions": [
-              {
-                "evaluator": {
-                  "params": [
-                    0
-                  ],
-                  "type": "gt"
-                },
-                "operator": {
-                  "type": "and"
-                },
-                "query": {
-                  "params": [
-                    "A"
-                  ]
-                },
-                "reducer": {
-                  "params": [],
-                  "type": "last"
-                },
-                "type": "query"
-              }
-            ],
             "datasource": {
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "A",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
+            "reducer": "last",
             "refId": "B",
-            "type": "classic_conditions"
-          }
-        }
-      ],
-      "noDataState": "OK",
-      "execErrState": "Error",
-      "for": "15m",
-      "annotations": {
-        "summary": "CPU above 85% on {{ $labels.device_name }}",
-        "description": "Device CPU has been above 85% for 15 minutes.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
-      },
-      "labels": {
-        "category": "network",
-        "source": "ktranslate",
-        "severity": "warning",
-        "domain": "resources"
-      },
-      "isPaused": false
-    },
-    {
-      "uid": "net-high-device-memory",
-      "title": "High device memory",
-      "condition": "B",
-      "data": [
-        {
-          "refId": "A",
-          "queryType": "",
-          "relativeTimeRange": {
-            "from": 600,
-            "to": 0
-          },
-          "datasourceUid": "grafanacloud-prom",
-          "model": {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "grafanacloud-prom"
+            "settings": {
+              "mode": "dropNN"
             },
-            "expr": "max by(device_name) (100 * kentik_snmp_MemoryUsed / (kentik_snmp_MemoryUsed + kentik_snmp_MemoryAvailable)) > 90",
-            "instant": true,
-            "intervalMs": 1000,
-            "legendFormat": "__auto",
-            "maxDataPoints": 43200,
-            "refId": "A"
+            "type": "reduce"
           }
         },
         {
-          "refId": "B",
+          "refId": "C",
           "queryType": "",
           "relativeTimeRange": {
             "from": 0,
@@ -481,7 +515,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -495,11 +529,121 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "15m",
+      "annotations": {
+        "summary": "CPU above 85% on {{ $labels.device_name }}",
+        "description": "Device CPU has been above 85% for 15 minutes.",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "ktranslate",
+        "severity": "warning",
+        "domain": "resources"
+      },
+      "isPaused": false
+    },
+    {
+      "uid": "net-high-device-memory",
+      "title": "High device memory",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "max by(device_name) (kentik_snmp_MemoryUtilization) > 90",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
             "refId": "B",
-            "type": "classic_conditions"
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -508,8 +652,8 @@
       "for": "15m",
       "annotations": {
         "summary": "Memory above 90% on {{ $labels.device_name }}",
-        "description": "Memory utilization from TIMETRA sgiKbMemoryUsed/Available.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "description": "Memory utilization from ktranslate MemoryUtilization (MemoryUsed + MemoryFree).",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -522,7 +666,7 @@
     {
       "uid": "net-chassis-fan-not-in-service",
       "title": "Chassis fan not in service",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -554,6 +698,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -567,7 +735,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -581,11 +749,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -595,7 +763,7 @@
       "annotations": {
         "summary": "Fan issue on {{ $labels.device_name }} slot {{ $labels.Index }} ({{ $labels.tmnxPhysChassisFanOperStatus }})",
         "description": "Chassis fan oper status is not in service.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -608,7 +776,7 @@
     {
       "uid": "net-power-supply-failed-or-degraded",
       "title": "Power supply failed or degraded",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -640,6 +808,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -653,7 +845,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -667,11 +859,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -681,7 +873,7 @@
       "annotations": {
         "summary": "PSU issue on {{ $labels.device_name }} slot {{ $labels.Index }} ({{ $labels.tmnxPhysChassisPMOutputStatus }})",
         "description": "Power supply output status is failed, out of service, or degraded.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -694,7 +886,7 @@
     {
       "uid": "net-hardware-fru-not-in-service",
       "title": "Hardware FRU not in service",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -726,6 +918,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -739,7 +955,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -753,11 +969,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -767,7 +983,7 @@
       "annotations": {
         "summary": "FRU {{ $labels.hw_name }} on {{ $labels.device_name }} is {{ $labels.tmnxHwOperState }}",
         "description": "Chassis hardware component is not in service.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -780,7 +996,7 @@
     {
       "uid": "net-high-chassis-temperature",
       "title": "High chassis temperature",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -812,6 +1028,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -825,7 +1065,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -839,11 +1079,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -853,7 +1093,7 @@
       "annotations": {
         "summary": "High temperature on {{ $labels.device_name }}",
         "description": "Max chassis/sensor temperature exceeds 75\u00b0C for 10 minutes.",
-        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-summary/03-network-device-summary"
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/ktranslate-device-details/04-network-device-details?var-instance={{ $labels.device_name }}"
       },
       "labels": {
         "category": "network",
@@ -866,7 +1106,7 @@
     {
       "uid": "net-snmp-collector-heartbeat-missing",
       "title": "SNMP collector heartbeat missing",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -898,6 +1138,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -911,7 +1175,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -925,11 +1189,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],
@@ -952,7 +1216,7 @@
     {
       "uid": "net-elevated-snmp-trap-rate",
       "title": "Elevated SNMP trap rate",
-      "condition": "B",
+      "condition": "C",
       "data": [
         {
           "refId": "A",
@@ -984,6 +1248,30 @@
           },
           "datasourceUid": "__expr__",
           "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
             "conditions": [
               {
                 "evaluator": {
@@ -997,7 +1285,7 @@
                 },
                 "query": {
                   "params": [
-                    "A"
+                    "C"
                   ]
                 },
                 "reducer": {
@@ -1011,11 +1299,11 @@
               "type": "__expr__",
               "uid": "__expr__"
             },
-            "expression": "",
+            "expression": "B",
             "intervalMs": 1000,
             "maxDataPoints": 43200,
-            "refId": "B",
-            "type": "classic_conditions"
+            "refId": "C",
+            "type": "threshold"
           }
         }
       ],

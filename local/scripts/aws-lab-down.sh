@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LAB="${ROOT}/terraform/aws-dashboard-lab"
 PROFILE="${AWS_PROFILE:-mvr}"
 REGION="${AWS_REGION:-us-east-1}"
-TF="$(dirname "$0")/aws-lab-terraform.sh"
+TF="$(cd "$(dirname "$0")" && pwd)/aws-lab-terraform.sh"
 
 aws_cmd() {
   if command -v aws >/dev/null 2>&1; then aws "$@"; return; fi

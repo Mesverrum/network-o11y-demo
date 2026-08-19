@@ -8,6 +8,31 @@ Use when a **new device type** (ktranslate SNMP profile or vendor) is added and 
 
 ---
 
+## Coverage inventory (profile × has_*)
+
+Before expanding for a vendor, refresh the **MIB coverage matrix** — it diffs SNMP profiles against Device Details `has_*` gates and panel metrics:
+
+```bash
+python3 local/scripts/mib-coverage-inventory.py
+python3 local/scripts/mib-coverage-inventory.py --live-prom
+python3 local/scripts/mib-coverage-inventory.py --full-library   # ../snmp-profiles
+```
+
+Outputs: [`local/docs/mib-coverage-matrix.md`](../local/docs/mib-coverage-matrix.md) (lab) and [`local/docs/mib-coverage-matrix-full.md`](../local/docs/mib-coverage-matrix-full.md) (`--full-library`).
+
+**Done bar (rudimentary):** each profile **table** has a `has_*` gate + at least one panel that references its Prom metric family. Prefer generic gates (`has_interfaces`, sensor units) when many profiles share the same export names.
+
+Rudimentary panel patches for lab gaps: `python3 local/scripts/patch-mib-rudimentary-coverage.py` (Nokia/Lenovo). Generic `_general` MIBs: `python3 local/scripts/patch-mib-generic-coverage.py`. Priority vendors: `python3 local/scripts/patch-mib-vendor-coverage.py`. **Full library remainder:** `python3 local/scripts/patch-mib-full-library-coverage.py` (one curated `has_*` per remaining MIB; `--push` = **marcnetterfield1 only**).
+
+Refresh coverage:
+- Generic: `python3 local/scripts/mib-coverage-inventory.py --general-only` → [`local/docs/mib-coverage-matrix-general.md`](../local/docs/mib-coverage-matrix-general.md)
+- Vendors: `python3 local/scripts/mib-coverage-inventory.py --vendors cisco,apc,arista,aruba,dell,eaton,f5,fortinet,hpe,juniper,linksys,meraki,riverbed,checkpoint` → [`local/docs/mib-coverage-matrix-vendors.md`](../local/docs/mib-coverage-matrix-vendors.md)
+- Full library: `python3 local/scripts/mib-coverage-inventory.py --full-library` → [`local/docs/mib-coverage-matrix-full.md`](../local/docs/mib-coverage-matrix-full.md)
+
+**Load note:** each dashboard-level `has_*` is a Prom `label_values` on open (bench: ~1.2s @ 30 gates vs ~7s @ ~200). **Operator decision (2026-08):** keep the dense per-MIB/`has_*` pattern on Device Details while load stays tolerable; do not preemptively consolidate or split into spokes. Revisit only if open/TTI becomes a problem — then prefer capability consolidation / role spokes over deleting coverage.
+
+---
+
 ## Overview
 
 The dashboard uses **`has_*` conditional rows**. Each row renders only when the selected device reports the gate metric. Adding a device type means:

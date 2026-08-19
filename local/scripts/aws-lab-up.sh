@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LAB="${ROOT}/terraform/aws-dashboard-lab"
 PROFILE="${AWS_PROFILE:-mvr}"
 REGION="${AWS_REGION:-us-east-1}"
-TF="$(dirname "$0")/aws-lab-terraform.sh"
+TF="$(cd "$(dirname "$0")" && pwd)/aws-lab-terraform.sh"
 
 aws_cmd() {
   if command -v aws >/dev/null 2>&1; then
@@ -57,7 +57,6 @@ bash "$TF" "$LAB" apply -auto-approve -var="lab_enabled=true" "${TF_EXTRA[@]}"
 echo ""
 echo "Lab is up. NLB DNS: $(bash "$TF" "$LAB" output -raw nlb_dns_name 2>/dev/null || echo n/a)"
 echo "Traffic hosts: $(bash "$TF" "$LAB" output -json traffic_private_ips 2>/dev/null || echo '{}')"
-echo "Hybrid probe: baked into traffic host userdata when GC_OTLP_* set in local/.env"
-echo "Laptop probe: make -C local hybrid-probe-laptop  (or hybrid-probe-once for one cycle)"
+echo "Synthetic Monitoring: make -C local synthetic-up  (private probes + checks; see local/synthetic-monitoring/README.md)"
 echo "Allow ~5-15m for CloudWatch → Grafana, then check Cloud Network dashboards."
 echo "Tear down: make -C local aws-lab-down"

@@ -1,0 +1,48 @@
+---
+description: Avoid PowerShell/Windows quoting traps when invoking WSL, Docker, AWS
+alwaysApply: true
+---
+
+# Windows host shell — do not re-debug quoting
+
+Cursor on this machine runs tools in **PowerShell**. Lab work runs in **WSL**. Nested quoting through `wsl -e bash -lc "…"` is a known footgun — prefer scripts on disk.
+
+## Default pattern (use this first)
+
+1. **Write** a `.sh` or `.py` under `local/scripts/` or a gitignored `tmp-*.sh`
+2. **Strip CRLF:** `sed -i 's/\r$//' path/to/script.sh` (Windows Write often adds `\r`)
+3. **Run:** `wsl -e bash /home/mnetterfield/network-o11y-demo/local/scripts/foo.sh`  
+   (absolute script path — no `bash -lc '…'` wrapper when avoidable)
+4. Lab clone is **WSL ext4** (`~/network-o11y-demo` or `~/projects/network-o11y-demo`), not `/mnt/c/...`
+
+## Never put these in the outer PowerShell → `wsl` string
+
+| Trap | What happens |
+|------|----------------|
+| `$var`, `$()`, `$_` | PowerShell expands/eats them before bash sees them |
+| Bash heredocs (`<<'EOF'`) | Delimiters/quotes collapse; SyntaxError / unexpected EOF |
+| Nested `"` inside `"` / mixed `'` | Silent truncation, exit 1 with empty output |
+| `$?` in double-quoted wsl args | Becomes PowerShell `True`/`False` |
+
+## Tool split (this host)
+
+| Need | Use | Avoid |
+|------|-----|--------|
+| AWS CLI / SSO | **Windows** `aws --profile mvr …` | `aws.exe` from WSL (`Exec format error`); SSO refresh inside Docker often `InvalidGrantException` |
+| Docker engine | **WSL** `docker` | Windows `docker.exe` when Desktop/`localhost:2375` is down |
+| Terraform | WSL Docker → `hashicorp/terraform` with **exported session creds** (`aws configure export-credentials`) and `-var=aws_profile=` | Mounting `~/.aws` alone + profile `mvr` in provider |
+| Lab make/scripts | WSL bash on ext4 clone | Complex one-liners from PowerShell |
+
+For AWS-in-Docker: export `AWS_ACCESS_KEY_ID` / `SECRET` / `SESSION_TOKEN` from Windows aws, pass as `-e`, clear terraform `aws_profile`. Do not print secrets to the terminal.
+
+## `set -e` + `pkill`
+
+`pkill` exit **1** (no match) or odd codes can abort the script under `set -e`. Always: `pkill … \|\| true`. Empty output + exit **15** after a pkill often means the wrapper died early — rerun without `set -e` on the pkill line.
+
+## Relative paths after `cd`
+
+Wrappers like `TF="$(dirname "$0")/foo.sh"` break after `cd` elsewhere. Use: `TF="$(cd "$(dirname "$0")" && pwd)/foo.sh"`.
+
+## If a command "fails with no output"
+
+Assume **quoting mangling** first, not the underlying tool. Rewrite as a file + `wsl -e bash /abs/path.sh`, then debug the real error.

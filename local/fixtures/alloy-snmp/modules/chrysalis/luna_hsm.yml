@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module luna_hsm
+# Pair with embedded if_mib: module = "if_mib,luna_hsm"
+modules:
+  luna_hsm:
+    metrics: []

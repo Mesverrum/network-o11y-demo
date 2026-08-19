@@ -1,0 +1,26 @@
+apiVersion: syntheticmonitoring.ext.grafana.app/v1alpha1
+kind: Check
+metadata:
+  name: net-o11y-trace-internet-aws
+spec:
+  job: net-o11y-trace-internet-aws
+  target: aws.amazon.com
+  frequency: 120000
+  timeout: 30000
+  enabled: true
+  labels:
+    - name: project
+      value: network-o11y-demo
+    - name: check_type
+      value: traceroute
+    - name: direction
+      value: aws_to_internet
+    - name: target_type
+      value: internet
+  probes:
+    - network-o11y-colocated-ec2
+  settings:
+    traceroute:
+      maxHops: 25
+      maxUnknownHops: 10
+      ptrLookup: false

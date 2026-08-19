@@ -1,0 +1,19 @@
+apiVersion: syntheticmonitoring.ext.grafana.app/v1alpha1
+kind: Check
+metadata:
+  name: net-o11y-local-alloy-otlp
+spec:
+  job: net-o11y-local-alloy-otlp
+  target: 127.0.0.1:4317
+  frequency: 60000
+  timeout: 5000
+  enabled: true
+  labels:
+    - name: project
+      value: network-o11y-demo
+    - name: target_type
+      value: collector
+  probes:
+    - network-o11y-colocated-ec2
+  settings:
+    tcp: {}

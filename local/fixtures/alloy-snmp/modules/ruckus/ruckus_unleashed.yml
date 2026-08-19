@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module ruckus_unleashed
+# Pair with embedded if_mib: module = "if_mib,ruckus_unleashed"
+modules:
+  ruckus_unleashed:
+    metrics: []

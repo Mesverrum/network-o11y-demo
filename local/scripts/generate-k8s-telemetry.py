@@ -470,12 +470,24 @@ data:
         cwd=LOCAL,
         check=True,
     )
+    snmp_env = os.environ.copy()
+    # k3s: hostPath local/alloy → /snmp-sd (do not hide image /etc/alloy/snmp-network.yml).
+    snmp_env.setdefault("ALLOY_SNMP_TARGETS_DIR", "/snmp-sd")
+    subprocess.run(
+        ["bash", str(LOCAL / "scripts" / "render-alloy-snmp-scrape.sh")],
+        cwd=LOCAL,
+        check=True,
+        env=snmp_env,
+    )
     alloy_cfg = read_text(LOCAL / "alloy" / "config.alloy")
     alloy_export = read_text(LOCAL / "alloy" / "otlp-export.generated.alloy")
     parts = [alloy_cfg.rstrip(), alloy_export.lstrip()]
     netflow_path = LOCAL / "alloy" / "netflow.generated.alloy"
     if netflow_path.exists():
         parts.append(read_text(netflow_path).lstrip())
+    snmp_path = LOCAL / "alloy" / "snmp-scrape.generated.alloy"
+    if snmp_path.exists():
+        parts.append(read_text(snmp_path).lstrip())
     alloy_merged = "\n\n".join(parts)
     write_manifest(
         "alloy-configmap.yaml",

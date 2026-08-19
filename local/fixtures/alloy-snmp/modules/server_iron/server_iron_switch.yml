@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module server_iron_switch
+# Pair with embedded if_mib: module = "if_mib,server_iron_switch"
+modules:
+  server_iron_switch:
+    metrics: []

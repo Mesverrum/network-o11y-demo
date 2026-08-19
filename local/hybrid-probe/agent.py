@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Hybrid mesh probe agent — HTTP/TCP checks with OTLP export to Grafana Cloud.
+"""Hybrid mesh probe agent — DEPRECATED: use Grafana Cloud Synthetic Monitoring.
+
+See local/synthetic-monitoring/README.md and `make -C local synthetic-up`.
 
 Usage:
   pip install -r local/hybrid-probe/requirements.txt --ignore-scripts

@@ -1,0 +1,21 @@
+---
+description: Open work — AWS Synthetic Monitoring remaining check failures
+alwaysApply: true
+---
+
+# Open work: Synthetic Monitoring remaining failures
+
+**Status (2026-08-04):** Both private probes online. Laptop probe OK for HTTP + DNS. Laptop traceroute checks removed — SM mtr on WSL only sees hop 1 (WSL/Hyper-V NAT); use colocated for traceroute.
+
+## Still failing
+
+1. **NLB TCP `:8080`** (`net-o11y-nlb-internal-tcp`) — connection refused from colocated VPC; traffic userdata/SG/target health on NLB `…9f55dceefbfa2744…`.
+2. **NLB traceroute** (`net-o11y-trace-nlb-internal-aws`) — same reachability gap.
+
+## Already fixed (do not re-litigate)
+
+- Colocated agent: inject `--api-token` / `--api-server-address` CLI flags; never YAML-load Secrets.
+- Laptop agent: `--network host --user 0:0 --cap-add NET_RAW`; DNS via `8.8.4.4` not `8.8.8.8`.
+- AKC ALB + ALB traceroute + laptop traceroute checks removed.
+
+When NLB traffic path is healthy, delete or rewrite this rule.

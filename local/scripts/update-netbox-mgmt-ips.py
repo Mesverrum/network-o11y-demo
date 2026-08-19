@@ -11,7 +11,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from lab_env import load_dotenv, netbox_url_for_host
+from lab_env import load_dotenv, netbox_auth_header, netbox_url_for_host
 
 NODES = ("spine1", "leaf1", "leaf2")
 MGMT_IFACE = "mgmt0"
@@ -30,7 +30,7 @@ def docker_ip(node: str, network: str) -> str:
 
 def api(base: str, token: str):
     headers = {
-        "Authorization": f"Token {token}",
+        "Authorization": netbox_auth_header(token),
         "Content-Type": "application/json",
         "Accept": "application/json",
     }

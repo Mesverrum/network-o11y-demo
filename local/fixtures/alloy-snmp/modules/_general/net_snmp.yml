@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module net_snmp
+# Pair with embedded if_mib: module = "if_mib,net_snmp"
+modules:
+  net_snmp:
+    metrics: []

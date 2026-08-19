@@ -1,0 +1,177 @@
+# Alloy SNMP composite metrics — Grafana Cloud / Mimir recording rules (mock-up)
+#
+# Why: the converter emits raw gauges/counters (snmp_MemoryUsed, snmp_ifInErrors).
+# ktranslate already folds MemoryUsed+MemoryFree into kentik_snmp_MemoryUtilization.
+# These rules do the same on the Alloy path so dashboards and alerts can query
+# snmp_MemoryUtilization (and similar) without per-panel ratios.
+#
+# Load (not wired yet):
+#   mimirtool rules load local/fixtures/alloy-snmp/recording-rules.yaml
+#   or Grafana Cloud → Alerting → Recording rules → import Prometheus YAML
+#
+# Naming
+#   Keep the ktranslate stem after the snmp_ prefix for anything that already
+#   has a first-class name (MemoryUtilization). Do not reuse a raw counter
+#   name for a derived ratio (snmp_ifInErrors stays the counter;
+#   snmp_ifInErrorPercent is the composite).
+#
+# Feedback loop
+#   Never write `snmp_MemoryUtilization or <formula>` into a rule that *records*
+#   snmp_MemoryUtilization. The next eval would see its own output.
+#   Exprs below only read raw scrape names / vendor percent MIB names.
+#
+# Scope: job="alloy-snmp" so these never mix with kentik_snmp_*.
+
+groups:
+  # Cold-tier gauges (memory/storage scrape every 5m in lab, 30m in fleet).
+  - name: alloy-snmp.composites.device
+    interval: 1m
+    rules:
+      # Device memory % — one series per instance/device.
+      #
+      # Precedence (PromQL `or` after max by, so label sets match):
+      #   1) vendor already reports percent
+      #   2) Used / (Used + Free)     Nokia SRL, most Cisco
+      #   3) Used / Total             F5, Arista, Aruba CX
+      #   4) (Total - Free) / Total   Lenovo, UCD, Ubiquiti, many Total+Free only
+      - record: snmp_MemoryUtilization
+        expr: |
+          max by (instance, device_name, job) (
+              snmp_cseSysMemoryUtilization{job="alloy-snmp"}
+            or snmp_wlsxSysExtMemoryUsedPercent{job="alloy-snmp"}
+            or snmp_perCentMemoryUtilization{job="alloy-snmp"}
+            or snmp_tpSysMonitorMemoryUtilization{job="alloy-snmp"}
+            or snmp_sfosMemoryPercentUsage{job="alloy-snmp"}
+            or snmp_jnxOperatingBuffer{job="alloy-snmp"}
+            or snmp_hwEntityMemUsage{job="alloy-snmp"}
+            or snmp_hh3cEntityExtMemUsage{job="alloy-snmp"}
+            or snmp_ramUtilization{job="alloy-snmp"}
+            or snmp_swMemUsage{job="alloy-snmp"}
+            or snmp_genMemUtilizationPercentUsed{job="alloy-snmp"}
+            or snmp_iveMemoryUtil{job="alloy-snmp"}
+            or snmp_sonicCurrentRAMUtil{job="alloy-snmp"}
+            or snmp_chStackUnitMemUsageUtil{job="alloy-snmp"}
+            or snmp_ibSystemMonitorMemUsage{job="alloy-snmp"}
+            or snmp_sysMgmtMemUsage{job="alloy-snmp"}
+          )
+          or
+          max by (instance, device_name, job) (
+              100 * snmp_MemoryUsed{job="alloy-snmp"}
+                / (snmp_MemoryUsed{job="alloy-snmp"} + snmp_MemoryFree{job="alloy-snmp"})
+            or
+              100 * snmp_MemoryUsed{job="alloy-snmp"}
+                / snmp_MemoryTotal{job="alloy-snmp"}
+            or
+              100 * (snmp_MemoryTotal{job="alloy-snmp"} - snmp_MemoryFree{job="alloy-snmp"})
+                / snmp_MemoryTotal{job="alloy-snmp"}
+          )
+
+      # HOST-RESOURCES storage % — dashboards already gate on hrStorageUsedPercent.
+      # Converter does not emit that name; Used/Size are gauges on the same index.
+      - record: snmp_hrStorageUsedPercent
+        expr: |
+          100 * snmp_hrStorageUsed{job="alloy-snmp"}
+            / snmp_hrStorageSize{job="alloy-snmp"}
+
+  # Hot-tier IF-MIB counters (60s). rate() window is 5m so cold-tier packet
+  # counters (if_mib_meta) still have two samples. Fixed range (not
+  # $__rate_interval) is the recording-rule tradeoff — alerts get a stable name.
+  - name: alloy-snmp.composites.interface
+    interval: 1m
+    rules:
+      - record: snmp_ifInBitsPerSecond
+        expr: |
+          rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m]) * 8
+
+      - record: snmp_ifOutBitsPerSecond
+        expr: |
+          rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m]) * 8
+
+      - record: snmp_ifInErrorsPerSecond
+        expr: |
+          rate(snmp_ifInErrors{job="alloy-snmp"}[5m])
+
+      - record: snmp_ifOutErrorsPerSecond
+        expr: |
+          rate(snmp_ifOutErrors{job="alloy-snmp"}[5m])
+
+      - record: snmp_ifInDiscardsPerSecond
+        expr: |
+          rate(snmp_ifInDiscards{job="alloy-snmp"}[5m])
+
+      - record: snmp_ifOutDiscardsPerSecond
+        expr: |
+          rate(snmp_ifOutDiscards{job="alloy-snmp"}[5m])
+
+      # Error % of (unicast packets + errors). Extra if_mib_meta labels
+      # (if_Description, if_Alias, if_Speed, …) are dropped via on().
+      # Idle ifaces (0 packets and 0 errors) stay empty — no fake 100%.
+      - record: snmp_ifInErrorPercent
+        expr: |
+          100 * rate(snmp_ifInErrors{job="alloy-snmp"}[5m])
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (
+                rate(snmp_ifHCInUcastPkts{job="alloy-snmp"}[5m])
+                + on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  rate(snmp_ifInErrors{job="alloy-snmp"}[5m])
+              )
+
+      - record: snmp_ifOutErrorPercent
+        expr: |
+          100 * rate(snmp_ifOutErrors{job="alloy-snmp"}[5m])
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (
+                rate(snmp_ifHCOutUcastPkts{job="alloy-snmp"}[5m])
+                + on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  rate(snmp_ifOutErrors{job="alloy-snmp"}[5m])
+              )
+
+      - record: snmp_ifInDiscardPercent
+        expr: |
+          100 * rate(snmp_ifInDiscards{job="alloy-snmp"}[5m])
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (
+                rate(snmp_ifHCInUcastPkts{job="alloy-snmp"}[5m])
+                + on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  rate(snmp_ifInDiscards{job="alloy-snmp"}[5m])
+              )
+
+      - record: snmp_ifOutDiscardPercent
+        expr: |
+          100 * rate(snmp_ifOutDiscards{job="alloy-snmp"}[5m])
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (
+                rate(snmp_ifHCOutUcastPkts{job="alloy-snmp"}[5m])
+                + on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  rate(snmp_ifOutDiscards{job="alloy-snmp"}[5m])
+              )
+
+      # Link utilization %. Needs ifHighSpeed as a *metric* (Mbps per RFC 2863).
+      # Lab if_mib_meta currently stores that OID only as label if_Speed
+      # (PromQL cannot multiply by a label). Add snmp_ifHighSpeed to if_mib_meta
+      # (or a thin if_speed module on the cold tier) to make these fire.
+      - record: snmp_ifInUtilization
+        expr: |
+          100 * rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m]) * 8
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (snmp_ifHighSpeed{job="alloy-snmp"} * 1e6)
+
+      - record: snmp_ifOutUtilization
+        expr: |
+          100 * rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m]) * 8
+            / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+              (snmp_ifHighSpeed{job="alloy-snmp"} * 1e6)
+
+      # Inline in/out (do not read the sibling recorded names — Cloud ruler
+      # groups are not guaranteed to evaluate sequentially in-memory).
+      - record: snmp_ifUtilization
+        expr: |
+          max by (instance, device_name, job, ifIndex, if_interface_name) (
+              100 * rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m]) * 8
+                / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  (snmp_ifHighSpeed{job="alloy-snmp"} * 1e6)
+            or
+              100 * rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m]) * 8
+                / on(instance, device_name, job, ifIndex, if_interface_name) group_left()
+                  (snmp_ifHighSpeed{job="alloy-snmp"} * 1e6)
+          )

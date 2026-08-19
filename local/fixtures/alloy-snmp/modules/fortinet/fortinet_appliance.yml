@@ -1,0 +1,363 @@
+# GENERATED from kentik/snmp-profiles — module fortinet_appliance
+# Pair with embedded if_mib: module = "if_mib,fortinet_appliance"
+modules:
+  fortinet_appliance:
+    walk:
+    - 1.3.6.1.4.1.12356.103.6.2
+    - 1.3.6.1.4.1.12356.103.7.2
+    - 1.3.6.1.4.1.12356.103.8.2
+    - 1.3.6.1.4.1.12356.103.9.2
+    metrics:
+    - name: snmp_fmDeviceEntConnectState
+      oid: 1.3.6.1.4.1.12356.103.6.2.1.12
+      type: gauge
+      help: fmDeviceEntConnectState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.6.2.1.12
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id001
+        - index
+        labelname: fmDeviceEntName
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.2
+        type: DisplayString
+      - labels: &id002
+        - index
+        labelname: fmDeviceEntSn
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.3
+        type: DisplayString
+      - labels: &id003
+        - index
+        labelname: fmDeviceEntMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.4
+        type: EnumAsInfo
+      - labels: &id004
+        - index
+        labelname: fmDeviceEntAdom
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.5
+        type: DisplayString
+      - labels: &id005
+        - index
+        labelname: fmDeviceEntIp
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.6
+        type: DisplayString
+      - labels: &id006
+        - index
+        labelname: fmDeviceEntHaMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.10
+        type: EnumAsInfo
+      - labels: &id007
+        - index
+        labelname: fmDeviceEntHaGroup
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.11
+        type: DisplayString
+      - labels: &id008
+        - index
+        labelname: fmDeviceEntDesc
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.24
+        type: DisplayString
+      enum_values:
+        0: unknown
+        1: up
+        2: down
+    - name: snmp_fmDeviceEntDbState
+      oid: 1.3.6.1.4.1.12356.103.6.2.1.13
+      type: gauge
+      help: fmDeviceEntDbState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.6.2.1.13
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: fmDeviceEntName
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.2
+        type: DisplayString
+      - labels: *id002
+        labelname: fmDeviceEntSn
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.3
+        type: DisplayString
+      - labels: *id003
+        labelname: fmDeviceEntMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.4
+        type: EnumAsInfo
+      - labels: *id004
+        labelname: fmDeviceEntAdom
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.5
+        type: DisplayString
+      - labels: *id005
+        labelname: fmDeviceEntIp
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.6
+        type: DisplayString
+      - labels: *id006
+        labelname: fmDeviceEntHaMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.10
+        type: EnumAsInfo
+      - labels: *id007
+        labelname: fmDeviceEntHaGroup
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.11
+        type: DisplayString
+      - labels: *id008
+        labelname: fmDeviceEntDesc
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.24
+        type: DisplayString
+      enum_values:
+        0: unknown
+        1: not-modified
+        2: modified
+    - name: snmp_fmDeviceEntConfigState
+      oid: 1.3.6.1.4.1.12356.103.6.2.1.14
+      type: gauge
+      help: fmDeviceEntConfigState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.6.2.1.14
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: fmDeviceEntName
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.2
+        type: DisplayString
+      - labels: *id002
+        labelname: fmDeviceEntSn
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.3
+        type: DisplayString
+      - labels: *id003
+        labelname: fmDeviceEntMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.4
+        type: EnumAsInfo
+      - labels: *id004
+        labelname: fmDeviceEntAdom
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.5
+        type: DisplayString
+      - labels: *id005
+        labelname: fmDeviceEntIp
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.6
+        type: DisplayString
+      - labels: *id006
+        labelname: fmDeviceEntHaMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.10
+        type: EnumAsInfo
+      - labels: *id007
+        labelname: fmDeviceEntHaGroup
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.11
+        type: DisplayString
+      - labels: *id008
+        labelname: fmDeviceEntDesc
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.24
+        type: DisplayString
+      enum_values:
+        0: unknown
+        1: in-sync
+        2: out-of-sync
+    - name: snmp_fmDeviceEntState
+      oid: 1.3.6.1.4.1.12356.103.6.2.1.15
+      type: gauge
+      help: fmDeviceEntState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.6.2.1.15
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: fmDeviceEntName
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.2
+        type: DisplayString
+      - labels: *id002
+        labelname: fmDeviceEntSn
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.3
+        type: DisplayString
+      - labels: *id003
+        labelname: fmDeviceEntMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.4
+        type: EnumAsInfo
+      - labels: *id004
+        labelname: fmDeviceEntAdom
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.5
+        type: DisplayString
+      - labels: *id005
+        labelname: fmDeviceEntIp
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.6
+        type: DisplayString
+      - labels: *id006
+        labelname: fmDeviceEntHaMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.10
+        type: EnumAsInfo
+      - labels: *id007
+        labelname: fmDeviceEntHaGroup
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.11
+        type: DisplayString
+      - labels: *id008
+        labelname: fmDeviceEntDesc
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.24
+        type: DisplayString
+      enum_values:
+        0: none
+        1: unknown
+        2: checked-in
+        3: in-progress
+        4: installed
+        5: aborted
+        6: sched
+        7: retry
+        9: pending
+        10: retrieved
+        11: changed-conf
+        12: sync-fail
+        13: timeout
+        14: rev-reverted
+        15: auto-updated
+    - name: snmp_fmDeviceEntSupportState
+      oid: 1.3.6.1.4.1.12356.103.6.2.1.18
+      type: gauge
+      help: fmDeviceEntSupportState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.6.2.1.18
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: fmDeviceEntName
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.2
+        type: DisplayString
+      - labels: *id002
+        labelname: fmDeviceEntSn
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.3
+        type: DisplayString
+      - labels: *id003
+        labelname: fmDeviceEntMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.4
+        type: EnumAsInfo
+      - labels: *id004
+        labelname: fmDeviceEntAdom
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.5
+        type: DisplayString
+      - labels: *id005
+        labelname: fmDeviceEntIp
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.6
+        type: DisplayString
+      - labels: *id006
+        labelname: fmDeviceEntHaMode
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.10
+        type: EnumAsInfo
+      - labels: *id007
+        labelname: fmDeviceEntHaGroup
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.11
+        type: DisplayString
+      - labels: *id008
+        labelname: fmDeviceEntDesc
+        oid: 1.3.6.1.4.1.12356.103.6.2.1.24
+        type: DisplayString
+      enum_values:
+        0: expired
+        1: valid
+    - name: snmp_fmRaidDiskEntState
+      oid: 1.3.6.1.4.1.12356.103.7.2.1.2
+      type: gauge
+      help: fmRaidDiskEntState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.7.2.1.2
+      indexes:
+      - labelname: index
+        type: gauge
+      enum_values:
+        0: unavailable
+        1: unused
+        2: ok
+        3: rebuilding
+        4: failed
+        5: spare
+    - name: snmp_fmRaidDiskEntSize
+      oid: 1.3.6.1.4.1.12356.103.7.2.1.3
+      type: gauge
+      help: fmRaidDiskEntSize (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.7.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+    - name: snmp_fmSensorEntVal
+      oid: 1.3.6.1.4.1.12356.103.8.2.1.3
+      type: gauge
+      help: fmSensorEntVal (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.8.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id009
+        - index
+        labelname: fmSensorEntName
+        oid: 1.3.6.1.4.1.12356.103.8.2.1.2
+        type: DisplayString
+      - labels: &id010
+        - index
+        labelname: fmSensorEntType
+        oid: 1.3.6.1.4.1.12356.103.8.2.1.4
+        type: EnumAsInfo
+    - name: snmp_fmSensorEntState
+      oid: 1.3.6.1.4.1.12356.103.8.2.1.5
+      type: gauge
+      help: fmSensorEntState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.8.2.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id009
+        labelname: fmSensorEntName
+        oid: 1.3.6.1.4.1.12356.103.8.2.1.2
+        type: DisplayString
+      - labels: *id010
+        labelname: fmSensorEntType
+        oid: 1.3.6.1.4.1.12356.103.8.2.1.4
+        type: EnumAsInfo
+      enum_values:
+        0: ok
+        1: failed
+        2: out-of-range-not-critical
+        3: out-of-range-critical
+        4: out-of-range-not-recoverable
+        5: input-lost
+        6: not-present
+    - name: snmp_fmHaPeerEntEnabled
+      oid: 1.3.6.1.4.1.12356.103.9.2.1.4
+      type: gauge
+      help: fmHaPeerEntEnabled (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.9.2.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id011
+        - index
+        labelname: fmHaPeerEntIp
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.2
+        type: DisplayString
+      - labels: &id012
+        - index
+        labelname: fmHaPeerEntSn
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.3
+        type: DisplayString
+      - labels: &id013
+        - index
+        labelname: fmHaPeerEntHostName
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.5
+        type: DisplayString
+      enum_values:
+        1: disabled
+        2: enabled
+    - name: snmp_fmHaPeerEntState
+      oid: 1.3.6.1.4.1.12356.103.9.2.1.6
+      type: gauge
+      help: fmHaPeerEntState (FORTINET-FORTIMANAGER-FORTIANALYZER-MIB) - 1.3.6.1.4.1.12356.103.9.2.1.6
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id011
+        labelname: fmHaPeerEntIp
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.2
+        type: DisplayString
+      - labels: *id012
+        labelname: fmHaPeerEntSn
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.3
+        type: DisplayString
+      - labels: *id013
+        labelname: fmHaPeerEntHostName
+        oid: 1.3.6.1.4.1.12356.103.9.2.1.5
+        type: DisplayString
+      enum_values:
+        0: down
+        1: negotiating
+        2: synchronizing
+        3: up

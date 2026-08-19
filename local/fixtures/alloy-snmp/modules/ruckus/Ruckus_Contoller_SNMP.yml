@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module Ruckus_Contoller_SNMP
+# Pair with embedded if_mib: module = "if_mib,Ruckus_Contoller_SNMP"
+modules:
+  Ruckus_Contoller_SNMP:
+    metrics: []

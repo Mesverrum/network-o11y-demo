@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module unifi_security_gateway
+# Pair with embedded if_mib: module = "if_mib,unifi_security_gateway"
+modules:
+  unifi_security_gateway:
+    metrics: []

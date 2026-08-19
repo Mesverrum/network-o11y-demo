@@ -350,6 +350,12 @@ python3 local/scripts/_map-device-summary-layout.py       # tab/row inventory
 Provisioned by `local/scripts/provision-network-alerts.py` into rule group **Network Lab / ktranslate**.
 All rules carry `category=network` and `source=ktranslate` for dashboard filtering.
 
+**Do not use Classic Condition** on per-device rules. Classic Condition flattens every matching
+series into one instance and drops query labels, so `{{ $labels.device_name }}` in the summary
+never appears on the firing alert. Use **Reduce (Last, dropNN) → Threshold**, with Threshold as
+the alert condition. Fleet-wide rules (SNMP collector heartbeat, elevated trap rate) have no
+`device_name` by design.
+
 | Rule | Severity | `for` | Domain |
 |------|----------|-------|--------|
 | BGP session not established | warning | 5m | routing |

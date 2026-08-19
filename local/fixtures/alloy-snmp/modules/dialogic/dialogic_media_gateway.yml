@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module dialogic_media_gateway
+# Pair with embedded if_mib: module = "if_mib,dialogic_media_gateway"
+modules:
+  dialogic_media_gateway:
+    metrics: []

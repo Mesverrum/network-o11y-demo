@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module omron_cj_ethernet_ip
+# Pair with embedded if_mib: module = "if_mib,omron_cj_ethernet_ip"
+modules:
+  omron_cj_ethernet_ip:
+    metrics: []

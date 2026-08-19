@@ -1,6 +1,6 @@
 # Dashboard query & UI lessons (agent notes)
 
-**Dashboard JSON:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` (set `KTRANS_UPSTREAM` in `local/.env` if not `../KtransToGrafana`). **Live drift check:** `local/.dash-payloads/marcnetterfield-live/` (refreshed 2026-07-31 18:16 UTC). Re-pull: `make -C local dash-live-sync`. Push to stack: `make -C local dash-push`.
+**Dashboard JSON:** [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana) `dashboards/` (set `KTRANS_UPSTREAM` in `local/.env` if not `../KtransToGrafana`). **Live drift check:** `local/.dash-payloads/marcnetterfield-live/` (refreshed 2026-08-03 19:41 UTC). Re-pull: `make -C local dash-live-sync`. Push to stack: `make -C local dash-push`.
 
 Compared prior agent patches vs operator/Assistant edits on all five ktranslate dashboards (00–04).
 
@@ -23,12 +23,12 @@ Compared prior agent patches vs operator/Assistant edits on all five ktranslate 
 
 ## Live stack counts (all dashboards)
 
-- PromQL panel queries: **327**
+- PromQL panel queries: **331**
 - Loki queries: **0**
 - `MemoryUtilization`: **4** vs manual memory ratios: **1**
 - BPS `* 8 / 60`: **16** vs `rate(kentik_snmp_*`: **6**
 - Flow `max_over_time`: **31** vs `rate(network_io_by_flow`: **0**
-- Loki trap panels: **5** vs CHF trap rate: **0**
+- Loki trap panels: **7** vs CHF trap rate: **0**
 - `OR vector(0)` guards: **16**
 - `max by(device_name)` collapses: **35**
 - Ping (`kentik_ping_*`): **8** panels
@@ -47,7 +47,7 @@ TabsLayout CHF/jchf collector health. Facet by `service_name` (`ktranslate-snmp-
 
 RowsLayout. Group flows by `src_host`/`dst_host` **with** IPs in legends. Country panels: `network_peer_country!~"Private IP|undefined"`. Use `max_over_time` on `network_io_by_flow_bytes`.
 
-### 03. Network Device Summary (`ktranslate-device-summary`, gen 49)
+### 03. Network Device Summary (`ktranslate-device-summary`, gen 54)
 
 TabsLayout fleet view. Selector: `provider` + `device_name`. Collection Health uses Loki for traps/syslog, CHF for collector counts. Memory fleet panels use `MemoryUtilization`.
 

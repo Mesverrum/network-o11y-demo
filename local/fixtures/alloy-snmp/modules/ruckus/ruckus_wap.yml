@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module ruckus_wap
+# Pair with embedded if_mib: module = "if_mib,ruckus_wap"
+modules:
+  ruckus_wap:
+    metrics: []

@@ -85,6 +85,45 @@ if [[ -f .env ]]; then
   else
     _ok ".env GC_OTLP_KEY has been customized"
   fi
+  # Dual OTLP: all-or-nothing for GC_OTLP_*_2
+  _u2="$(grep -E '^GC_OTLP_URL_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+  _a2="$(grep -E '^GC_OTLP_ACCOUNT_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+  _k2="$(grep -E '^GC_OTLP_KEY_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+  if [[ -n "${_u2}${_a2}${_k2}" ]]; then
+    if [[ -n "${_u2}" && -n "${_a2}" && -n "${_k2}" ]]; then
+      _ok "dual OTLP sink configured (GC_OTLP_*_2)"
+    else
+      _fail "set all of GC_OTLP_URL_2, GC_OTLP_ACCOUNT_2, GC_OTLP_KEY_2 (or none)"
+    fi
+  fi
+fi
+
+if [[ -f alloy/otlp-export.generated.alloy ]]; then
+  if grep -q 'grafana_cloud_2' alloy/otlp-export.generated.alloy 2>/dev/null; then
+    _ok "alloy/otlp-export.generated.alloy (dual sinks)"
+  else
+    _ok "alloy/otlp-export.generated.alloy (single sink)"
+  fi
+else
+  _fail "alloy/otlp-export.generated.alloy missing — run: make generate"
+fi
+
+if [[ -f alloy/snmp-scrape.generated.alloy ]]; then
+  _ok "alloy/snmp-scrape.generated.alloy"
+else
+  _fail "alloy/snmp-scrape.generated.alloy missing — run: make generate"
+fi
+
+if [[ -f alloy/snmp-trap.generated.alloy ]]; then
+  _ok "alloy/snmp-trap.generated.alloy"
+else
+  _fail "alloy/snmp-trap.generated.alloy missing — run: make generate"
+fi
+
+if [[ -f alloy/netflow.generated.alloy ]]; then
+  _ok "alloy/netflow.generated.alloy"
+else
+  _fail "alloy/netflow.generated.alloy missing — run: make generate"
 fi
 
 # --- Host identity that tags all telemetry and suffixes service.name ---

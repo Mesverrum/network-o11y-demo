@@ -1,0 +1,28 @@
+apiVersion: syntheticmonitoring.ext.grafana.app/v1alpha1
+kind: Check
+metadata:
+  name: net-o11y-dns-nlb-internal-aws
+spec:
+  job: net-o11y-dns-nlb-internal-aws
+  target: network-o11y-demo-dash-nlb-6af096fd4d14db64.elb.us-east-1.amazonaws.com
+  frequency: 120000
+  timeout: 10000
+  enabled: true
+  labels:
+    - name: project
+      value: network-o11y-demo
+    - name: check_type
+      value: dns
+    - name: direction
+      value: aws_to_aws
+    - name: target_type
+      value: nlb
+  probes:
+    - network-o11y-colocated-ec2
+  settings:
+    dns:
+      recordType: A
+      server: "169.254.169.253"
+      port: 53
+      protocol: UDP
+      ipVersion: V4

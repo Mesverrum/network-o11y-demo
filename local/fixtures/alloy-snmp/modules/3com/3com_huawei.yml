@@ -1,0 +1,55 @@
+# GENERATED from kentik/snmp-profiles — module 3com_huawei
+# Pair with embedded if_mib: module = "if_mib,3com_huawei"
+modules:
+  3com_huawei:
+    walk:
+    - 1.3.6.1.4.1.43.45.1.6.1.1
+    - 1.3.6.1.4.1.43.45.1.6.1.2.1
+    - 1.3.6.1.4.1.43.45.1.2.23.1.9.1.1
+    - 1.3.6.1.4.1.43.45.1.2.23.1.9.1.2
+    metrics:
+    - name: snmp_CPU
+      oid: 1.3.6.1.4.1.43.45.1.6.1.1.1.3
+      type: gauge
+      help: hwCpuCostRatePer1Min (A3COM-HUAWEI-LswDEVM-MIB) - 1.3.6.1.4.1.43.45.1.6.1.1.1.3
+      indexes:
+      - labelname: hwCpuIndex
+        type: gauge
+    - name: snmp_MemoryTotal
+      oid: 1.3.6.1.4.1.43.45.1.6.1.2.1.1.2
+      type: gauge
+      help: hwMemSize (A3COM-HUAWEI-LswDEVM-MIB) - 1.3.6.1.4.1.43.45.1.6.1.2.1.1.2
+      indexes:
+      - labelname: hwMemModuleIndex
+        type: gauge
+    - name: snmp_MemoryFree
+      oid: 1.3.6.1.4.1.43.45.1.6.1.2.1.1.3
+      type: gauge
+      help: hwMemFree (A3COM-HUAWEI-LswDEVM-MIB) - 1.3.6.1.4.1.43.45.1.6.1.2.1.1.3
+      indexes:
+      - labelname: hwMemModuleIndex
+        type: gauge
+    - name: snmp_hwDevMFanStatus
+      oid: 1.3.6.1.4.1.43.45.1.2.23.1.9.1.1.1.2
+      type: gauge
+      help: hwDevMFanStatus (A3COM-HUAWEI-LswDEVM-MIB) - 1.3.6.1.4.1.43.45.1.2.23.1.9.1.1.1.2
+      indexes:
+      - labelname: hwDevMFanNum
+        type: gauge
+      enum_values:
+        1: active
+        2: deactive
+        3: notInstalled
+        4: unsupported
+    - name: snmp_hwDevMPowerStatus
+      oid: 1.3.6.1.4.1.43.45.1.2.23.1.9.1.2.1.2
+      type: gauge
+      help: hwDevMPowerStatus (A3COM-HUAWEI-LswDEVM-MIB) - 1.3.6.1.4.1.43.45.1.2.23.1.9.1.2.1.2
+      indexes:
+      - labelname: hwDevMPowerNum
+        type: gauge
+      enum_values:
+        1: active
+        2: deactive
+        3: notInstalled
+        4: unsupported

@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module pf_sense
+# Pair with embedded if_mib: module = "if_mib,pf_sense"
+modules:
+  pf_sense:
+    metrics: []

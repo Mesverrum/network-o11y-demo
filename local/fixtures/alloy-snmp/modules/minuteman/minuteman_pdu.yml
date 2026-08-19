@@ -1,0 +1,31 @@
+# GENERATED from kentik/snmp-profiles — module minuteman_pdu
+# Pair with embedded if_mib: module = "if_mib,minuteman_pdu"
+modules:
+  minuteman_pdu:
+    get:
+    - 1.3.6.1.4.1.17420.1.2.9.1.11.0
+    - 1.3.6.1.4.1.17420.1.2.9.1.17.0
+    - 1.3.6.1.4.1.17420.1.2.9.1.15.0
+    - 1.3.6.1.4.1.17420.1.2.9.1.16.0
+    - 1.3.6.1.4.1.17420.1.2.9.1.13.0
+    metrics:
+    - name: snmp_pduLoad
+      oid: 1.3.6.1.4.1.17420.1.2.9.1.11
+      type: gauge
+      help: pduLoad (DigiPower-PDU-MIB) - 1.3.6.1.4.1.17420.1.2.9.1.11.0
+    - name: snmp_pduInputVoltage
+      oid: 1.3.6.1.4.1.17420.1.2.9.1.17
+      type: gauge
+      help: pduInputVoltage (DigiPower-PDU-MIB) - 1.3.6.1.4.1.17420.1.2.9.1.17.0
+    - name: snmp_pduThresholdWarning
+      oid: 1.3.6.1.4.1.17420.1.2.9.1.15
+      type: gauge
+      help: pduThresholdWarning (DigiPower-PDU-MIB) - 1.3.6.1.4.1.17420.1.2.9.1.15.0
+    - name: snmp_pduThresholdCritical
+      oid: 1.3.6.1.4.1.17420.1.2.9.1.16
+      type: gauge
+      help: pduThresholdCritical (DigiPower-PDU-MIB) - 1.3.6.1.4.1.17420.1.2.9.1.16.0
+    - name: snmp_pduOutletStatusRaw
+      oid: 1.3.6.1.4.1.17420.1.2.9.1.13
+      type: gauge
+      help: pduOutletStatusRaw (DigiPower-PDU-MIB) - 1.3.6.1.4.1.17420.1.2.9.1.13.0

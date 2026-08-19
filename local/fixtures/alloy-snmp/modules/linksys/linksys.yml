@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module linksys
+# Pair with embedded if_mib: module = "if_mib,linksys"
+modules:
+  linksys:
+    metrics: []

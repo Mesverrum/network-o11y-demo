@@ -1,0 +1,24 @@
+# Copied into local/netbox-oss/netbox-docker/ on `make netbox-oss-up`.
+# Official stack: https://github.com/netbox-community/netbox-docker (tag 5.0.2)
+# Colocated: docker-compose.override.colocated.yml — SUPERUSER_PASSWORD from NETBOX_ADMIN_PASSWORD.
+
+services:
+  netbox:
+    ports:
+      - "${NETBOX_OSS_PORT:-8000}:8080"
+    environment:
+      SKIP_SUPERUSER: "false"
+      SUPERUSER_NAME: "${NETBOX_ADMIN_USER:-admin}"
+      SUPERUSER_EMAIL: admin@network-o11y-demo.local
+      SUPERUSER_PASSWORD: "${NETBOX_ADMIN_PASSWORD:-changeme-set-NETBOX_ADMIN_PASSWORD}"
+      GRANIAN_WORKERS: "2"
+      RELEASE_CHECK_URL: ""
+    healthcheck:
+      start_period: 600s
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  netbox-worker:
+    environment:
+      SKIP_SUPERUSER: "true"
+      GRANIAN_WORKERS: "1"

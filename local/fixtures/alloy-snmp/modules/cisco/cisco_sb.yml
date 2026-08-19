@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module cisco_sb
+# Pair with embedded if_mib: module = "if_mib,cisco_sb"
+modules:
+  cisco_sb:
+    metrics: []

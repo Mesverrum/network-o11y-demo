@@ -5,6 +5,10 @@ lab_enabled = true
 
 vpc_id            = "vpc-REPLACE"
 private_subnet_id = "subnet-REPLACE"
+# Optional: public NetBox UI (NLB :8000)
+# public_subnet_ids = ["subnet-PUBLIC-A", "subnet-PUBLIC-B"]
+# netbox_ui_cidrs   = ["203.0.113.10/32"]   # home/office
+# netbox_ui_allow_grafana_cloud = true     # lab: 0.0.0.0/0 so Grafana Cloud Infinity can hit NetBox API
 
 instance_type  = "m5.2xlarge"
 root_volume_gb = 120

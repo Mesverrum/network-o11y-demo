@@ -18,6 +18,19 @@ info() { echo "==> $*"; }
 FABRIC_STAGING_DIR="${LAB_REPO_ROOT}/configs/fabric"
 TOPOLOGY_STAGING="${LAB_REPO_ROOT}/topology.clab.yml"
 
+# snmp-min keeps laptop topology.clab.yml + configs/fabric/ intact (git working tree).
+# Deploy uses topology-snmp-min.clab.yml via scripts/alloy-snmp-min.sh / clab.sh.
+if [[ "${LAB_FABRIC_PROFILE}" == "snmp-min" ]]; then
+  if [[ "${CLAB_USE_EXT4}" == "1" ]]; then
+    mkdir -p "${CLAB_DEPLOY_DIR}/configs/fabric-snmp-min"
+    rm -rf "${CLAB_DEPLOY_DIR}/configs/fabric-snmp-min"/*
+    cp -a "${FABRIC_SOURCE_DIR}/." "${CLAB_DEPLOY_DIR}/configs/fabric-snmp-min/"
+    cp -f "${CLAB_TOPOLOGY_SOURCE}" "${CLAB_DEPLOY_DIR}/topology-snmp-min.clab.yml"
+  fi
+  info "staged LAB_FABRIC_PROFILE=snmp-min (1 SRL, laptop Clos files unchanged)"
+  exit 0
+fi
+
 # Laptop profile keeps configs in configs/fabric/ already; colocated copies from fabric-colocated/.
 if [[ "$(realpath "${FABRIC_SOURCE_DIR}")" != "$(realpath "${FABRIC_STAGING_DIR}")" ]]; then
   mkdir -p "${FABRIC_STAGING_DIR}"

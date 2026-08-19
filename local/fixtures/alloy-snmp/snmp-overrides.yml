@@ -1,0 +1,13 @@
+# Operator overrides for snmp-discovery (not generated).
+# Address is the SNMP IP. Community never belongs here.
+#
+# module: alone is a legacy full chain — discovery partitions it into
+# hot / cold / topology. Prefer explicit tier fields when pinning one scrape:
+#   module_hot / module_cold / module_topology
+overrides: []
+# - address: 172.20.20.9
+#   ignore: true
+# - address: 172.20.20.2
+#   name: spine1
+#   module_hot: if_mib
+#   module_cold: if_mib_meta

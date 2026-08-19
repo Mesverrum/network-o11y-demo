@@ -1,0 +1,111 @@
+// Fleet Management pipeline: network_o11y_alloy_snmp
+// Upserted by scripts/fleet-upsert-snmp-pipeline.py
+//
+// remotecfg runs in an isolated scope — cannot reference local components
+// (e.g. otelcol.processor.transform.preprocessing). Export OTLP here via env.
+//
+// Host mounts (compose):
+//   /etc/alloy/snmp-network.yml
+//   /etc/alloy/snmp-targets.yml
+//   /etc/alloy/snmp-targets-cold.yml
+// Matcher: lab="network-o11y-demo", role="network-snmp"
+
+local.file "snmp_targets_hot" {
+  filename       = "/etc/alloy/snmp-targets.yml"
+  detector       = "poll"
+  poll_frequency = "15s"
+}
+
+local.file "snmp_targets_cold" {
+  filename       = "/etc/alloy/snmp-targets-cold.yml"
+  detector       = "poll"
+  poll_frequency = "15s"
+}
+
+prometheus.exporter.snmp "fabric_hot" {
+  config_file           = "/etc/alloy/snmp-network.yml"
+  config_merge_strategy = "replace"
+  targets               = encoding.from_yaml(local.file.snmp_targets_hot.content)
+}
+
+prometheus.exporter.snmp "fabric_cold" {
+  config_file           = "/etc/alloy/snmp-network.yml"
+  config_merge_strategy = "replace"
+  targets               = encoding.from_yaml(local.file.snmp_targets_cold.content)
+}
+
+prometheus.relabel "alloy_snmp_hot" {
+  forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
+
+  rule {
+    target_label = "job"
+    replacement  = "alloy-snmp"
+  }
+
+  rule {
+    target_label = "collector"
+    replacement  = "alloy-fleet-lab"
+  }
+
+  rule {
+    target_label = "snmp_tier"
+    replacement  = "hot"
+  }
+}
+
+prometheus.relabel "alloy_snmp_cold" {
+  forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
+
+  rule {
+    target_label = "job"
+    replacement  = "alloy-snmp"
+  }
+
+  rule {
+    target_label = "collector"
+    replacement  = "alloy-fleet-lab"
+  }
+
+  rule {
+    target_label = "snmp_tier"
+    replacement  = "cold"
+  }
+}
+
+prometheus.scrape "alloy_snmp_hot" {
+  targets         = prometheus.exporter.snmp.fabric_hot.targets
+  scrape_interval = "60s"
+  scrape_timeout  = "55s"
+  forward_to      = [prometheus.relabel.alloy_snmp_hot.receiver]
+}
+
+prometheus.scrape "alloy_snmp_cold" {
+  targets         = prometheus.exporter.snmp.fabric_cold.targets
+  scrape_interval = "5m"
+  scrape_timeout  = "2m"
+  forward_to      = [prometheus.relabel.alloy_snmp_cold.receiver]
+}
+
+otelcol.receiver.prometheus "alloy_snmp" {
+  output {
+    metrics = [otelcol.processor.batch.alloy_snmp.input]
+  }
+}
+
+otelcol.processor.batch "alloy_snmp" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.alloy_snmp.input]
+  }
+}
+
+otelcol.auth.basic "alloy_snmp" {
+  username = env("GC_OTLP_ACCOUNT")
+  password = env("GC_OTLP_KEY")
+}
+
+otelcol.exporter.otlphttp "alloy_snmp" {
+  client {
+    endpoint = env("GC_OTLP_URL")
+    auth     = otelcol.auth.basic.alloy_snmp.handler
+  }
+}

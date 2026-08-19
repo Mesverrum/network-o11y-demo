@@ -1,0 +1,71 @@
+{
+  "viewKey": "Node Details",
+  "viewId": 5,
+  "sampleNodeId": 1,
+  "panels": {
+    "Node Details": {
+      "swql": "SELECT NodeID, Caption, IP_Address, DNS, SysName, Vendor, MachineType, Status, StatusDescription,\n       CPULoad, PercentMemoryUsed, MemoryUsed, MemoryAvailable, ResponseTime, PercentLoss,\n       LastSync, NextPoll, IOSVersion, Location, Contact\nFROM Orion.Nodes WHERE NodeID = ${node_id}",
+      "validated": true,
+      "rowCount": 1,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Polling Details": {
+      "swql": "SELECT NodeID, Caption, ObjectSubType, PollInterval, StatCollection, RediscoveryInterval,\n       NextPoll, LastSync, EngineID, Community\nFROM Orion.Nodes WHERE NodeID = ${node_id}",
+      "validated": true,
+      "rowCount": 1,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "All IP Addresses": {
+      "swql": "SELECT SUB.IPAddressType, SUB.IP_Address2 AS IP_Address\nFROM (\n  SELECT IP_Address AS IP_Address2, IPAddressType, ${node_id} AS IPOrder FROM Orion.Nodes WHERE NodeID = ${node_id}\n  UNION (\n    SELECT ni.IPAddress AS IP_Address2, ni.IPAddressType, 2 AS IPOrder\n    FROM Orion.NodeIPAddresses ni\n    JOIN Orion.Nodes n ON ni.NodeID = n.NodeID AND n.IP_Address != ni.IPAddress\n    WHERE ni.NodeID = ${node_id}\n  )\n) SUB\nORDER BY SUB.IPOrder",
+      "validated": true,
+      "rowCount": 2,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Active Alerts on This Node": {
+      "swql": "SELECT aa.AlertActiveID, a.Name AS AlertName, aa.TriggeredMessage, aa.TriggeredDateTime,\n       o.EntityCaption, o.EntityDetailsUrl\nFROM Orion.AlertActive aa\nJOIN Orion.AlertObjects o ON o.AlertObjectID = aa.AlertObjectID\nJOIN Orion.AlertConfigurations a ON a.AlertID = o.AlertID\nWHERE o.RelatedNodeId = ${node_id}\nORDER BY aa.TriggeredDateTime DESC",
+      "validated": true,
+      "rowCount": 1,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Current Percent Utilization of Each Interface": {
+      "swql": "SELECT InterfaceID, Caption, Name, Status, StatusDescription,\n       InPercentUtil, OutPercentUtil, Inbps, Outbps, InErrorsThisHour, OutErrorsThisHour\nFROM Orion.NPM.Interfaces\nWHERE NodeID = ${node_id}\nORDER BY Caption",
+      "validated": true,
+      "rowCount": 2,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Volumes": {
+      "swql": "SELECT VolumeID, Caption, VolumeType, VolumePercentUsed, VolumeSize, VolumeSpaceUsed, VolumeSpaceAvailable, Status\nFROM Orion.Volumes\nWHERE NodeID = ${node_id}\nORDER BY VolumePercentUsed DESC",
+      "validated": true,
+      "rowCount": 3,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Availability Statistics": {
+      "swql": "SELECT NodeID, Caption, ResponseTime, PercentLoss, CPULoad, PercentMemoryUsed,\n       Status, StatusDescription\nFROM Orion.Nodes WHERE NodeID = ${node_id}",
+      "validated": true,
+      "rowCount": 1,
+      "error": null,
+      "include": true,
+      "source": "node-details-fallback"
+    },
+    "Custom Properties for Nodes": {
+      "swql": "SELECT NodeID, Caption\nFROM Orion.NodesCustomProperties WHERE NodeID = ${node_id}",
+      "validated": false,
+      "rowCount": 0,
+      "error": "HTTP Error 400: Bad Request",
+      "include": false,
+      "source": "node-details-fallback"
+    }
+  }
+}

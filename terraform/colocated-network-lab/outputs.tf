@@ -10,6 +10,11 @@ output "private_ip" {
   value = try(aws_instance.lab_host[0].private_ip, null)
 }
 
+output "netbox_ui_url" {
+  description = "Public NetBox UI (NLB) when netbox_ui_cidrs + public_subnet_ids are set"
+  value       = try("http://${aws_lb.netbox_ui[0].dns_name}:8000/", null)
+}
+
 output "ssm_connect_command" {
   value = try(
     "aws ssm start-session --target ${aws_instance.lab_host[0].id} --region ${var.aws_region}",

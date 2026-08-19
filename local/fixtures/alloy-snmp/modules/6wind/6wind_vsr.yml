@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module 6wind_vsr
+# Pair with embedded if_mib: module = "if_mib,6wind_vsr"
+modules:
+  6wind_vsr:
+    metrics: []

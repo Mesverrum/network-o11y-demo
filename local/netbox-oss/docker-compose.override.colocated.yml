@@ -1,0 +1,29 @@
+# Colocated NetBox OSS + Diode plugin image (used by netbox-colocated-bringup.sh).
+services:
+  netbox:
+    image: netbox:colocated-diode
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile-Plugins
+    ports:
+      - "${NETBOX_OSS_PORT:-8000}:8080"
+    environment:
+      SKIP_SUPERUSER: "false"
+      SUPERUSER_NAME: "${NETBOX_ADMIN_USER:-admin}"
+      SUPERUSER_EMAIL: admin@network-o11y-demo.local
+      # Set NETBOX_ADMIN_PASSWORD in local/.env (never commit). Default is intentionally weak for first laptop boot only.
+      SUPERUSER_PASSWORD: "${NETBOX_ADMIN_PASSWORD:-changeme-set-NETBOX_ADMIN_PASSWORD}"
+      GRANIAN_WORKERS: "2"
+      RELEASE_CHECK_URL: ""
+    healthcheck:
+      start_period: 600s
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  netbox-worker:
+    image: netbox:colocated-diode
+    pull_policy: never
+    environment:
+      SKIP_SUPERUSER: "true"
+      GRANIAN_WORKERS: "1"

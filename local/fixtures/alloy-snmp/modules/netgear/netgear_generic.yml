@@ -1,0 +1,5 @@
+# GENERATED from kentik/snmp-profiles — module netgear_generic
+# Pair with embedded if_mib: module = "if_mib,netgear_generic"
+modules:
+  netgear_generic:
+    metrics: []

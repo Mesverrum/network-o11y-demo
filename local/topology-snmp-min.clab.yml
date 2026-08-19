@@ -1,0 +1,23 @@
+# snmp-min — one SR Linux node for Alloy SNMP discovery tests.
+# No Clos links, no clients, no traffic. Mgmt + SNMP only.
+#
+# Do not use as the default laptop demo (that is topology.clab.yml).
+
+name: srl-snmp-min
+prefix: ""
+
+topology:
+  defaults:
+    kind: nokia_srlinux
+
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:24.10.1
+      type: ixrd2l
+
+  nodes:
+    spine1:
+      group: spine
+      labels:
+        site: hq
+      startup-config: configs/fabric-snmp-min/spine1.cfg

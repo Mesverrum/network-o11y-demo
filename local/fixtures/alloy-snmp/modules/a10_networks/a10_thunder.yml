@@ -1,0 +1,764 @@
+# GENERATED from kentik/snmp-profiles — module a10_thunder
+# Pair with embedded if_mib: module = "if_mib,a10_thunder"
+modules:
+  a10_thunder:
+    walk:
+    - 1.3.6.1.4.1.22610.2.4.1.5.9
+    - 1.3.6.1.4.1.22610.2.4.1.5.11
+    - 1.3.6.1.4.1.22610.2.4.1.5.12
+    - 1.3.6.1.4.1.22610.2.4.3.1.1.1
+    - 1.3.6.1.4.1.22610.2.4.3.2.1.2
+    - 1.3.6.1.4.1.22610.2.4.3.2.2.2
+    - 1.3.6.1.4.1.22610.2.4.3.3.1.2
+    - 1.3.6.1.4.1.22610.2.4.3.4.1.2
+    - 1.3.6.1.4.1.22610.2.4.3.4.5.1
+    - 1.3.6.1.4.1.22610.2.4.3.4.2.1
+    - 1.3.6.1.4.1.22610.2.4.3.4.4.1
+    - 1.3.6.1.4.1.22610.2.4.3.17.2.2
+    - 1.3.6.1.4.1.22610.2.4.1.3.2
+    metrics:
+    - name: snmp_axFanStatus
+      oid: 1.3.6.1.4.1.22610.2.4.1.5.9.1.3
+      type: gauge
+      help: axFanStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.1.5.9.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id001
+        - index
+        labelname: axFanName
+        oid: 1.3.6.1.4.1.22610.2.4.1.5.9.1.2
+        type: DisplayString
+      enum_values:
+        0: failed
+        4: ok_fixed_high
+        5: ok_low_med
+        6: ok_med_med
+        7: ok_med_high
+        -2: not_ready
+        -1: unknown
+    - name: snmp_axFanSpeed
+      oid: 1.3.6.1.4.1.22610.2.4.1.5.9.1.4
+      type: gauge
+      help: axFanSpeed (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.1.5.9.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: axFanName
+        oid: 1.3.6.1.4.1.22610.2.4.1.5.9.1.2
+        type: DisplayString
+    - name: snmp_axPowerSupplyVoltageStatus
+      oid: 1.3.6.1.4.1.22610.2.4.1.5.11.1.2
+      type: gauge
+      help: axPowerSupplyVoltageStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.1.5.11.1.2
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels:
+        - index
+        labelname: axPowerSupplyVoltageDescription
+        oid: 1.3.6.1.4.1.22610.2.4.1.5.11.1.3
+        type: DisplayString
+      enum_values:
+        0: invalid
+        1: normal
+        2: unknown
+    - name: snmp_axPowerSupplyStatus
+      oid: 1.3.6.1.4.1.22610.2.4.1.5.12.1.3
+      type: gauge
+      help: axPowerSupplyStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.1.5.12.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels:
+        - index
+        labelname: axPowerSupplyName
+        oid: 1.3.6.1.4.1.22610.2.4.1.5.12.1.2
+        type: DisplayString
+      enum_values:
+        0: 'off'
+        1: 'on'
+        2: absent
+        -1: unknown
+    - name: snmp_axAppGlobalAllowedCurrentValue
+      oid: 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.3
+      type: gauge
+      help: axAppGlobalAllowedCurrentValue (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id002
+        - index
+        labelname: axAppGlobalSystemResourceName
+        oid: 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_axAppGlobalAllowedMaxValue
+      oid: 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.6
+      type: gauge
+      help: axAppGlobalAllowedMaxValue (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.6
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id002
+        labelname: axAppGlobalSystemResourceName
+        oid: 1.3.6.1.4.1.22610.2.4.3.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_axServerEnabledState
+      oid: 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.3
+      type: gauge
+      help: axServerEnabledState (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id003
+        - index
+        labelname: axServerName
+        oid: 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.1
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: enabled
+    - name: snmp_axServerMonitorState
+      oid: 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.5
+      type: gauge
+      help: axServerMonitorState (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: axServerName
+        oid: 1.3.6.1.4.1.22610.2.4.3.2.1.2.1.1
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: up
+        2: down
+    - name: snmp_axServerStatServerCurConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.8
+      type: gauge
+      help: axServerStatServerCurConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.8
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id004
+        - index
+        labelname: axServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.2
+        type: DisplayString
+    - name: snmp_axServerStatServerStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.10
+      type: gauge
+      help: axServerStatServerStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.10
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id004
+        labelname: axServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.2
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: up
+        2: down
+    - name: snmp_axServerStatServerTotalCurrL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.12
+      type: counter
+      help: axServerStatServerTotalCurrL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.12
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id004
+        labelname: axServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.2.2.2.1.2
+        type: DisplayString
+    - name: snmp_axServiceGroupDisplayStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.3.1.2.1.4
+      type: gauge
+      help: axServiceGroupDisplayStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.3.1.2.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels:
+        - index
+        labelname: axServiceGroupName
+        oid: 1.3.6.1.4.1.22610.2.4.3.3.1.2.1.1
+        type: DisplayString
+      - labels:
+        - index
+        labelname: axServiceGroupType
+        oid: 1.3.6.1.4.1.22610.2.4.3.3.1.2.1.2
+        type: EnumAsInfo
+      - labels:
+        - index
+        labelname: axServiceGroupLbAlgorithm
+        oid: 1.3.6.1.4.1.22610.2.4.3.3.1.2.1.3
+        type: EnumAsInfo
+      enum_values:
+        1: allUp
+        2: functionalUp
+        3: partialUp
+        4: stopped
+    - name: snmp_axVirtualServerEnabled
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.3
+      type: gauge
+      help: axVirtualServerEnabled (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id005
+        - index
+        labelname: axVirtualServerName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.1
+        type: DisplayString
+      - labels: &id006
+        - index
+        labelname: axVirtualServerHAGroup
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.4
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: enabled
+    - name: snmp_axVirtualServerDisplayStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.5
+      type: gauge
+      help: axVirtualServerDisplayStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id005
+        labelname: axVirtualServerName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.1
+        type: DisplayString
+      - labels: *id006
+        labelname: axVirtualServerHAGroup
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.1.2.1.4
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: allUp
+        2: functionalUp
+        3: partialUp
+        4: stopped
+    - name: snmp_axVirtualServerNameStatPktsIn
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.2
+      type: counter
+      help: axVirtualServerNameStatPktsIn (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.2
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id007
+        - index
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatBytesIn
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.3
+      type: counter
+      help: axVirtualServerNameStatBytesIn (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatPktsOut
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.4
+      type: counter
+      help: axVirtualServerNameStatPktsOut (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatBytesOut
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.5
+      type: counter
+      help: axVirtualServerNameStatBytesOut (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatPersistConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.6
+      type: gauge
+      help: axVirtualServerNameStatPersistConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.6
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatTotConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.7
+      type: counter
+      help: axVirtualServerNameStatTotConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.7
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatCurConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.8
+      type: gauge
+      help: axVirtualServerNameStatCurConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.8
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.9
+      type: gauge
+      help: axVirtualServerNameStatStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.9
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+      enum_values:
+        1: up
+        2: down
+        3: disabled
+    - name: snmp_axVirtualServerNameStatDisplayStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.10
+      type: gauge
+      help: axVirtualServerNameStatDisplayStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.10
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: allUp
+        2: functionalUp
+        3: partialUp
+        4: stopped
+    - name: snmp_axVirtualServerNameStatTotalL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.11
+      type: counter
+      help: axVirtualServerNameStatTotalL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.11
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatTotalCurrL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.12
+      type: counter
+      help: axVirtualServerNameStatTotalCurrL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.12
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerNameStatTotalSuccL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.13
+      type: counter
+      help: axVirtualServerNameStatTotalSuccL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.13
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id007
+        labelname: axVirtualServerStatDisplayName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.5.1.1.1
+        type: DisplayString
+    - name: snmp_axVirtualServerStatPktsIn
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.3
+      type: counter
+      help: axVirtualServerStatPktsIn (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id008
+        - index
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: &id009
+        - index
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatBytesIn
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.4
+      type: counter
+      help: axVirtualServerStatBytesIn (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatPktsOut
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.5
+      type: counter
+      help: axVirtualServerStatPktsOut (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatBytesOut
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.6
+      type: counter
+      help: axVirtualServerStatBytesOut (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.6
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatPersistConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.7
+      type: gauge
+      help: axVirtualServerStatPersistConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.7
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatTotConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.8
+      type: counter
+      help: axVirtualServerStatTotConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.8
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatCurConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.9
+      type: gauge
+      help: axVirtualServerStatCurConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.9
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.10
+      type: gauge
+      help: axVirtualServerStatStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.10
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+      enum_values:
+        1: up
+        2: down
+        3: disabled
+    - name: snmp_axVirtualServerStatDisplayStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.11
+      type: gauge
+      help: axVirtualServerStatDisplayStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.11
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: allUp
+        2: functionalUp
+        3: partialUp
+        4: stopped
+    - name: snmp_axVirtualServerStatTotalL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.12
+      type: counter
+      help: axVirtualServerStatTotalL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.12
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatTotalCurrL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.13
+      type: counter
+      help: axVirtualServerStatTotalCurrL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.13
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatTotalSuccL7Reqs
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.14
+      type: counter
+      help: axVirtualServerStatTotalSuccL7Reqs (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.14
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id008
+        labelname: axVirtualServerStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.1
+        type: DisplayString
+      - labels: *id009
+        labelname: axVirtualServerStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.2.1.1.2
+        type: DisplayString
+    - name: snmp_axVirtualServerStatPortStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.5
+      type: gauge
+      help: axVirtualServerStatPortStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id010
+        - index
+        labelname: axVirtualServerPortStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.1
+        type: DisplayString
+      - labels: &id011
+        - index
+        labelname: axVirtualServerStatPortType
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.2
+        type: EnumAsInfo
+      - labels: &id012
+        - index
+        labelname: axVirtualServerStatPortNum
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.3
+        type: DisplayString
+      - labels: &id013
+        - index
+        labelname: axVirtualServerPortStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.4
+        type: DisplayString
+      enum_values:
+        1: up
+        2: down
+        3: disabled
+    - name: snmp_axVirtualServerPortStatCurConns
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.12
+      type: gauge
+      help: axVirtualServerPortStatCurConns (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.12
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id010
+        labelname: axVirtualServerPortStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.1
+        type: DisplayString
+      - labels: *id011
+        labelname: axVirtualServerStatPortType
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.2
+        type: EnumAsInfo
+      - labels: *id012
+        labelname: axVirtualServerStatPortNum
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.3
+        type: DisplayString
+      - labels: *id013
+        labelname: axVirtualServerPortStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.4
+        type: DisplayString
+    - name: snmp_axVirtualServerStatPortDisplayStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.13
+      type: gauge
+      help: axVirtualServerStatPortDisplayStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.13
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id010
+        labelname: axVirtualServerPortStatAddress
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.1
+        type: DisplayString
+      - labels: *id011
+        labelname: axVirtualServerStatPortType
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.2
+        type: EnumAsInfo
+      - labels: *id012
+        labelname: axVirtualServerStatPortNum
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.3
+        type: DisplayString
+      - labels: *id013
+        labelname: axVirtualServerPortStatName
+        oid: 1.3.6.1.4.1.22610.2.4.3.4.4.1.1.4
+        type: DisplayString
+      enum_values:
+        0: disabled
+        1: allUp
+        2: functionalUp
+        4: stopped
+    - name: snmp_axHAGroupLocalStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.2
+      type: gauge
+      help: axHAGroupLocalStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.2
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: &id014
+        - index
+        labelname: axHAGroupID
+        oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.1
+        type: DisplayString
+      enum_values:
+        0: standby
+        1: active
+        9: notConfigured
+    - name: snmp_axHAGroupLocalPriority
+      oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.3
+      type: gauge
+      help: axHAGroupLocalPriority (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.3
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id014
+        labelname: axHAGroupID
+        oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.1
+        type: DisplayString
+    - name: snmp_axHAGroupPeerStatus
+      oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.4
+      type: gauge
+      help: axHAGroupPeerStatus (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.4
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id014
+        labelname: axHAGroupID
+        oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.1
+        type: DisplayString
+      enum_values:
+        0: standby
+        1: active
+        9: notConfigured
+    - name: snmp_axHAGroupPeerPriority
+      oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.5
+      type: gauge
+      help: axHAGroupPeerPriority (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.5
+      indexes:
+      - labelname: index
+        type: gauge
+      lookups:
+      - labels: *id014
+        labelname: axHAGroupID
+        oid: 1.3.6.1.4.1.22610.2.4.3.17.2.2.1.1
+        type: DisplayString
+    - name: snmp_axSysCpuUsage
+      oid: 1.3.6.1.4.1.22610.2.4.1.3.2.1.2
+      type: gauge
+      help: axSysCpuUsage (A10-AX-MIB) - 1.3.6.1.4.1.22610.2.4.1.3.2.1.2
+      indexes:
+      - labelname: index
+        type: gauge

@@ -5,6 +5,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lab-path.sh
 source "${ROOT}/scripts/lab-path.sh"
+# shellcheck source=fabric-nodes.sh
+source "${ROOT}/scripts/fabric-nodes.sh"
+
+clab_topo_file() {
+  if [[ "${LAB_FABRIC_PROFILE}" == "snmp-min" ]]; then
+    echo topology-snmp-min.clab.yml
+  else
+    echo topology.clab.yml
+  fi
+}
 
 cmd="${1:-}"
 shift || true
@@ -22,30 +32,35 @@ deploy() {
   local bin dir
   bin=$(clab_bin)
   dir="$CLAB_DEPLOY_DIR"
-  echo "==> ${bin} deploy from ${dir}"
-  lab_log_clab "deploy from ${dir} extra_args=$*"
-  (cd "$dir" && lab_run "$bin" deploy -t topology.clab.yml "$@")
+  local topo
+  topo="$(clab_topo_file)"
+  echo "==> ${bin} deploy from ${dir} -t ${topo}"
+  lab_log_clab "deploy from ${dir} topo=${topo} extra_args=$*"
+  (cd "$dir" && lab_run "$bin" deploy -t "${topo}" "$@")
 }
 
 destroy() {
-  local bin
+  local bin dir topo
   bin=$(clab_bin)
   for dir in "$CLAB_DEPLOY_DIR" "$LAB_REPO_ROOT"; do
-    [[ -f "${dir}/topology.clab.yml" ]] || continue
-    echo "==> ${bin} destroy in ${dir}"
-    lab_log_clab "destroy in ${dir} extra_args=$*"
-    (cd "$dir" && lab_run "$bin" destroy -t topology.clab.yml --cleanup "$@") || true
+    for topo in topology.clab.yml topology-snmp-min.clab.yml topology-colocated.clab.yml; do
+      [[ -f "${dir}/${topo}" ]] || continue
+      echo "==> ${bin} destroy in ${dir} -t ${topo}"
+      lab_log_clab "destroy in ${dir} topo=${topo} extra_args=$*"
+      (cd "$dir" && lab_run "$bin" destroy -t "${topo}" --cleanup "$@") || true
+    done
   done
 }
 
 inspect() {
-  local bin dir
+  local bin dir topo
   bin=$(clab_bin)
   dir="$CLAB_DEPLOY_DIR"
-  if [[ ! -f "${dir}/topology.clab.yml" ]]; then
+  topo="$(clab_topo_file)"
+  if [[ ! -f "${dir}/${topo}" ]]; then
     dir="$LAB_REPO_ROOT"
   fi
-  (cd "$dir" && "$bin" inspect -t topology.clab.yml "$@")
+  (cd "$dir" && "$bin" inspect -t "${topo}" "$@")
 }
 
 case "$cmd" in

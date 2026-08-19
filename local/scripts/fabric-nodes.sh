@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Resolve fabric node lists and paths from LAB_FABRIC_PROFILE.
 #   laptop     — 1 spine + 2 leaves + 2 clients (16 GB friendly)
+#   snmp-min   — 1 SRL (spine1) + Alloy SNMP only; no clients/traffic/ktranslate
 #   colocated  — HQ hub + 2 branch offices (AWS demo)
 set -euo pipefail
 
@@ -12,11 +13,18 @@ fabric_profile_init() {
     LAB_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
 
+  # Explicit export wins over .env (make alloy-snmp-min, colocated bring-up).
+  local profile_override="${LAB_FABRIC_PROFILE:-}"
+
   if [[ -f "${LAB_REPO_ROOT}/.env" ]]; then
     set -a
     # shellcheck disable=SC1091
-    source "${LAB_REPO_ROOT}/.env"
+    source <(sed 's/\r$//' "${LAB_REPO_ROOT}/.env")
     set +a
+  fi
+
+  if [[ -n "${profile_override}" ]]; then
+    LAB_FABRIC_PROFILE="${profile_override}"
   fi
 
   case "${LAB_FABRIC_PROFILE:-laptop}" in
@@ -28,6 +36,15 @@ fabric_profile_init() {
       CLAB_TOPOLOGY_SOURCE="${LAB_REPO_ROOT}/topology-colocated.clab.yml"
       GNMIC_CONFIG="${LAB_REPO_ROOT}/gnmic/gnmic-colocated.yaml"
       FLOW_DNS_DOCKER_NODES=(spine1 leaf1 leaf2 leaf-br1 leaf-br2 client1 client2 client-br1 client-br2)
+      ;;
+    snmp-min|alloy-snmp-min|min)
+      LAB_FABRIC_PROFILE=snmp-min
+      SRL_NODES=(spine1)
+      CLIENT_NODES=()
+      FABRIC_SOURCE_DIR="${LAB_REPO_ROOT}/configs/fabric-snmp-min"
+      CLAB_TOPOLOGY_SOURCE="${LAB_REPO_ROOT}/topology-snmp-min.clab.yml"
+      GNMIC_CONFIG="${LAB_REPO_ROOT}/gnmic/gnmic.yaml"
+      FLOW_DNS_DOCKER_NODES=(spine1)
       ;;
     laptop|*)
       LAB_FABRIC_PROFILE=laptop

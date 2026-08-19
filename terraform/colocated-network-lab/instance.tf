@@ -14,13 +14,16 @@ resource "aws_instance" "lab_host" {
   }
 
   user_data = base64encode(templatefile("${path.module}/userdata.sh.tpl", {
-    repo_url        = var.repo_url
-    repo_branch     = var.repo_branch
-    ktrans_host     = var.ktrans_host
-    lab_tester_id   = var.lab_tester_id
-    gc_otlp_url     = var.gc_otlp_url
-    gc_otlp_account = var.gc_otlp_account
-    gc_otlp_key     = var.gc_otlp_key
+    repo_url          = var.repo_url
+    repo_branch       = var.repo_branch
+    ktrans_host       = var.ktrans_host
+    lab_tester_id     = var.lab_tester_id
+    gc_otlp_url       = var.gc_otlp_url
+    gc_otlp_account   = var.gc_otlp_account
+    gc_otlp_key       = var.gc_otlp_key
+    gc_otlp_url_2     = var.gc_otlp_url_2
+    gc_otlp_account_2 = var.gc_otlp_account_2
+    gc_otlp_key_2     = var.gc_otlp_key_2
   }))
 
   metadata_options {

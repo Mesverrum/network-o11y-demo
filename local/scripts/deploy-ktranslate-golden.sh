@@ -21,11 +21,26 @@ for key in GC_OTLP_URL GC_OTLP_ACCOUNT GC_OTLP_KEY; do
   [[ -n "${!key:-}" ]] || { echo "ERROR: set ${key} in local/.env" >&2; exit 1; }
 done
 
+SECRET_ARGS=(
+  --from-literal=GC_OTLP_URL="${GC_OTLP_URL}"
+  --from-literal=GC_OTLP_ACCOUNT="${GC_OTLP_ACCOUNT}"
+  --from-literal=GC_OTLP_KEY="${GC_OTLP_KEY}"
+)
+if [[ -n "${GC_OTLP_URL_2:-}" && -n "${GC_OTLP_ACCOUNT_2:-}" && -n "${GC_OTLP_KEY_2:-}" ]]; then
+  SECRET_ARGS+=(
+    --from-literal=GC_OTLP_URL_2="${GC_OTLP_URL_2}"
+    --from-literal=GC_OTLP_ACCOUNT_2="${GC_OTLP_ACCOUNT_2}"
+    --from-literal=GC_OTLP_KEY_2="${GC_OTLP_KEY_2}"
+  )
+  echo "dual OTLP: primary + GC_OTLP_*_2"
+elif [[ -n "${GC_OTLP_URL_2:-}${GC_OTLP_ACCOUNT_2:-}${GC_OTLP_KEY_2:-}" ]]; then
+  echo "ERROR: set all of GC_OTLP_URL_2, GC_OTLP_ACCOUNT_2, GC_OTLP_KEY_2 (or none)" >&2
+  exit 1
+fi
+
 kubectl create namespace network-lab --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n network-lab create secret generic grafana-cloud-credentials \
-  --from-literal=GC_OTLP_URL="${GC_OTLP_URL}" \
-  --from-literal=GC_OTLP_ACCOUNT="${GC_OTLP_ACCOUNT}" \
-  --from-literal=GC_OTLP_KEY="${GC_OTLP_KEY}" \
+  "${SECRET_ARGS[@]}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl apply -k "${K8S}"

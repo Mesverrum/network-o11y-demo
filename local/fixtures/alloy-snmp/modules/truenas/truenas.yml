@@ -1,0 +1,276 @@
+# GENERATED from kentik/snmp-profiles — module truenas
+# Pair with embedded if_mib: module = "if_mib,truenas"
+modules:
+  truenas:
+    walk:
+    - 1.3.6.1.4.1.50536.1.1.1
+    - 1.3.6.1.4.1.50536.1.2.1
+    - 1.3.6.1.4.1.50536.1.3.1
+    metrics:
+    - name: snmp_zpoolReadBytes
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.10
+      type: counter
+      help: zpoolReadBytes () - 1.3.6.1.4.1.50536.1.1.1.1.10
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: &id001
+        - zpoolIndex
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolWriteBytes
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.11
+      type: counter
+      help: zpoolWriteBytes () - 1.3.6.1.4.1.50536.1.1.1.1.11
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolReadOps1sec
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.12
+      type: counter
+      help: zpoolReadOps1sec () - 1.3.6.1.4.1.50536.1.1.1.1.12
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolWriteOps1sec
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.13
+      type: counter
+      help: zpoolWriteOps1sec () - 1.3.6.1.4.1.50536.1.1.1.1.13
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolReadBytes1sec
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.14
+      type: counter
+      help: zpoolReadBytes1sec () - 1.3.6.1.4.1.50536.1.1.1.1.14
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolWriteBytes1sec
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.15
+      type: counter
+      help: zpoolWriteBytes1sec () - 1.3.6.1.4.1.50536.1.1.1.1.15
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolAllocationUnits
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.3
+      type: gauge
+      help: zpoolAllocationUnits () - 1.3.6.1.4.1.50536.1.1.1.1.3
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolSize
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.4
+      type: counter
+      help: zpoolSize () - 1.3.6.1.4.1.50536.1.1.1.1.4
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolUsed
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.5
+      type: counter
+      help: zpoolUsed () - 1.3.6.1.4.1.50536.1.1.1.1.5
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolAvailable
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.6
+      type: counter
+      help: zpoolAvailable () - 1.3.6.1.4.1.50536.1.1.1.1.6
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolHealth
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.7
+      type: counter
+      help: zpoolHealth () - 1.3.6.1.4.1.50536.1.1.1.1.7
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolReadOps
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.8
+      type: counter
+      help: zpoolReadOps () - 1.3.6.1.4.1.50536.1.1.1.1.8
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_zpoolWriteOps
+      oid: 1.3.6.1.4.1.50536.1.1.1.1.9
+      type: counter
+      help: zpoolWriteOps () - 1.3.6.1.4.1.50536.1.1.1.1.9
+      indexes:
+      - labelname: zpoolIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: zpoolDescr
+        oid: 1.3.6.1.4.1.50536.1.1.1.1.2
+        type: DisplayString
+    - name: snmp_datasetAllocationUnits
+      oid: 1.3.6.1.4.1.50536.1.2.1.1.3
+      type: counter
+      help: datasetAllocationUnits () - 1.3.6.1.4.1.50536.1.2.1.1.3
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: &id002
+        - zvolIndex
+        labelname: datasetDescr
+        oid: 1.3.6.1.4.1.50536.1.2.1.1.2
+        type: DisplayString
+    - name: snmp_datasetSize
+      oid: 1.3.6.1.4.1.50536.1.2.1.1.4
+      type: counter
+      help: datasetSize () - 1.3.6.1.4.1.50536.1.2.1.1.4
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id002
+        labelname: datasetDescr
+        oid: 1.3.6.1.4.1.50536.1.2.1.1.2
+        type: DisplayString
+    - name: snmp_datasetUsed
+      oid: 1.3.6.1.4.1.50536.1.2.1.1.5
+      type: counter
+      help: datasetUsed () - 1.3.6.1.4.1.50536.1.2.1.1.5
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id002
+        labelname: datasetDescr
+        oid: 1.3.6.1.4.1.50536.1.2.1.1.2
+        type: DisplayString
+    - name: snmp_datasetAvailable
+      oid: 1.3.6.1.4.1.50536.1.2.1.1.6
+      type: gauge
+      help: datasetAvailable () - 1.3.6.1.4.1.50536.1.2.1.1.6
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id002
+        labelname: datasetDescr
+        oid: 1.3.6.1.4.1.50536.1.2.1.1.2
+        type: DisplayString
+    - name: snmp_zvolAllocationUnits
+      oid: 1.3.6.1.4.1.50536.1.3.1.1.3
+      type: gauge
+      help: zvolAllocationUnits () - 1.3.6.1.4.1.50536.1.3.1.1.3
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: &id003
+        - zvolIndex
+        labelname: zvolDescr
+        oid: 1.3.6.1.4.1.50536.1.3.1.1.2
+        type: DisplayString
+    - name: snmp_zvolSize
+      oid: 1.3.6.1.4.1.50536.1.3.1.1.4
+      type: gauge
+      help: zvolSize () - 1.3.6.1.4.1.50536.1.3.1.1.4
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: zvolDescr
+        oid: 1.3.6.1.4.1.50536.1.3.1.1.2
+        type: DisplayString
+    - name: snmp_zvolUsed
+      oid: 1.3.6.1.4.1.50536.1.3.1.1.5
+      type: gauge
+      help: zvolUsed () - 1.3.6.1.4.1.50536.1.3.1.1.5
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: zvolDescr
+        oid: 1.3.6.1.4.1.50536.1.3.1.1.2
+        type: DisplayString
+    - name: snmp_zvolAvailable
+      oid: 1.3.6.1.4.1.50536.1.3.1.1.6
+      type: gauge
+      help: zvolAvailable () - 1.3.6.1.4.1.50536.1.3.1.1.6
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: zvolDescr
+        oid: 1.3.6.1.4.1.50536.1.3.1.1.2
+        type: DisplayString
+    - name: snmp_zvolReferenced
+      oid: 1.3.6.1.4.1.50536.1.3.1.1.7
+      type: gauge
+      help: zvolReferenced () - 1.3.6.1.4.1.50536.1.3.1.1.7
+      indexes:
+      - labelname: zvolIndex
+        type: gauge
+      lookups:
+      - labels: *id003
+        labelname: zvolDescr
+        oid: 1.3.6.1.4.1.50536.1.3.1.1.2
+        type: DisplayString

@@ -1,0 +1,60 @@
+// Isolated Alloy harness: Cisco / non-RFC syslog ingest matrix.
+// Requires: alloy run --stability.level=experimental
+// Metrics default :12345/metrics  → loki_source_syslog_*
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+loki.source.syslog "rfc5424" {
+  listener {
+    address       = "0.0.0.0:15140"
+    protocol      = "udp"
+    syslog_format = "rfc5424"
+    labels        = { mode = "rfc5424", test = "cisco-syslog" }
+  }
+  forward_to = [loki.write.sink.receiver]
+}
+
+loki.source.syslog "rfc3164" {
+  listener {
+    address       = "0.0.0.0:15141"
+    protocol      = "udp"
+    syslog_format = "rfc3164"
+    labels        = { mode = "rfc3164", test = "cisco-syslog" }
+  }
+  forward_to = [loki.write.sink.receiver]
+}
+
+// Experimental: Cisco IOS extensions on RFC3164
+loki.source.syslog "rfc3164_cisco" {
+  listener {
+    address       = "0.0.0.0:15142"
+    protocol      = "udp"
+    syslog_format = "rfc3164"
+    labels        = { mode = "rfc3164_cisco", test = "cisco-syslog" }
+
+    rfc3164_cisco_components {
+      enable_all = true
+    }
+  }
+  forward_to = [loki.write.sink.receiver]
+}
+
+// Experimental: raw (no parse)
+loki.source.syslog "raw" {
+  listener {
+    address       = "0.0.0.0:15143"
+    protocol      = "udp"
+    syslog_format = "raw"
+    labels        = { mode = "raw", test = "cisco-syslog" }
+  }
+  forward_to = [loki.write.sink.receiver]
+}
+
+loki.write "sink" {
+  endpoint {
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+  }
+}

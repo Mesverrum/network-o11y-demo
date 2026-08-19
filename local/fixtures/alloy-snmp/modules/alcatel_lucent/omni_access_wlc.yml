@@ -1,0 +1,77 @@
+# GENERATED from kentik/snmp-profiles — module omni_access_wlc
+# Pair with embedded if_mib: module = "if_mib,omni_access_wlc"
+modules:
+  omni_access_wlc:
+    walk:
+    - 1.3.6.1.4.1.14823.2.2.1.1.1.9
+    - 1.3.6.1.4.1.14823.2.2.1.1.1.10
+    - 1.3.6.1.4.1.14823.2.2.1.1.1.11
+    metrics:
+    - name: snmp_CPU
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.9.1.3
+      type: gauge
+      help: sysXProcessorLoad () - 1.3.6.1.4.1.14823.2.2.1.1.1.9.1.3
+      indexes:
+      - labelname: sysXProcessorID
+        type: gauge
+      lookups:
+      - labels:
+        - sysXProcessorID
+        labelname: sysXProcessorDescr
+        oid: 1.3.6.1.4.1.14823.2.2.1.1.1.9.1.2
+        type: DisplayString
+    - name: snmp_sysXStorageSize
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.3
+      type: gauge
+      help: sysXStorageSize () - 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.3
+      indexes:
+      - labelname: sysXStorageIndex
+        type: gauge
+      lookups:
+      - labels: &id001
+        - sysXStorageIndex
+        labelname: sysXStorageType
+        oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.2
+        type: EnumAsInfo
+      - labels: &id002
+        - sysXStorageIndex
+        labelname: sysXStorageName
+        oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.5
+        type: DisplayString
+    - name: snmp_sysXStorageUsed
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.4
+      type: gauge
+      help: sysXStorageUsed () - 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.4
+      indexes:
+      - labelname: sysXStorageIndex
+        type: gauge
+      lookups:
+      - labels: *id001
+        labelname: sysXStorageType
+        oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.2
+        type: EnumAsInfo
+      - labels: *id002
+        labelname: sysXStorageName
+        oid: 1.3.6.1.4.1.14823.2.2.1.1.1.10.1.5
+        type: DisplayString
+    - name: snmp_MemoryTotal
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.2
+      type: gauge
+      help: sysXMemorySize () - 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.2
+      indexes:
+      - labelname: sysXMemoryIndex
+        type: gauge
+    - name: snmp_MemoryUsed
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.3
+      type: gauge
+      help: sysXMemoryUsed () - 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.3
+      indexes:
+      - labelname: sysXMemoryIndex
+        type: gauge
+    - name: snmp_MemoryFree
+      oid: 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.4
+      type: gauge
+      help: sysXMemoryFree () - 1.3.6.1.4.1.14823.2.2.1.1.1.11.1.4
+      indexes:
+      - labelname: sysXMemoryIndex
+        type: gauge
