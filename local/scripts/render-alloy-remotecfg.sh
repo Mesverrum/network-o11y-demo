@@ -11,7 +11,15 @@ OUT="${ROOT}/alloy/remotecfg.generated.alloy"
 if [[ -f "${ROOT}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091
-  source <(sed 's/\r$//' "${ROOT}/.env")
+  # Do not clobber vars already exported by the caller (e.g. LAB_ALLOY_FLEET=0).
+  source <(sed 's/\r$//' "${ROOT}/.env" | awk -F= '
+    /^[[:space:]]*#/ || NF<2 { next }
+    {
+      key=$1
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      if (key != "" && !(key in ENVIRON && ENVIRON[key] != "")) print
+    }
+  ')
   set +a
 fi
 

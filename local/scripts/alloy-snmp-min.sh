@@ -20,8 +20,10 @@ fi
 # Re-assert after .env (fabric-nodes already honored the export; keep it).
 export LAB_FABRIC_PROFILE=snmp-min
 # Laptop snmp-min verifies the local prometheus.exporter.snmp path (ip_addr on
-# the cold scrape). A Fleet-owned River stub would skip that exporter entirely.
+# the cold scrape). A Fleet-owned River stub would skip that exporter entirely,
+# and remotecfg SNMP would double-scrape the same node.
 export LAB_ALLOY_FLEET_SNMP=0
+export LAB_ALLOY_FLEET=0
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
