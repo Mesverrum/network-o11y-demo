@@ -20,7 +20,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: alloy
-          image: grafana/alloy:latest
+          image: __ALLOY_IMAGE__
           args:
             - run
             - /etc/alloy/config.alloy
@@ -43,6 +43,24 @@ spec:
                 secretKeyRef:
                   name: grafana-cloud-credentials
                   key: GC_OTLP_KEY
+            - name: GC_OTLP_URL_2
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_URL_2
+                  optional: true
+            - name: GC_OTLP_ACCOUNT_2
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_ACCOUNT_2
+                  optional: true
+            - name: GC_OTLP_KEY_2
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_KEY_2
+                  optional: true
             - name: OTEL_METRIC_EXPORT_INTERVAL
               value: "1000"
             - name: OTEL_RESOURCE_ATTRIBUTES
@@ -54,6 +72,12 @@ spec:
             - name: ui
               containerPort: 12346
               protocol: TCP
+            - name: netflow
+              containerPort: 2055
+              protocol: UDP
+            - name: sflow
+              containerPort: 6344
+              protocol: UDP
           volumeMounts:
             - name: config
               mountPath: /etc/alloy/config.alloy

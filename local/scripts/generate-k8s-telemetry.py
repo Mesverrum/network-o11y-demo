@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -43,6 +44,20 @@ def load_ktrans_host() -> str:
     return subprocess.check_output(
         ["bash", str(LOCAL / "scripts" / "host-id.sh")], text=True
     ).strip()
+
+
+def load_alloy_image() -> str:
+    img = os.environ.get("ALLOY_IMAGE", "").strip()
+    if img:
+        return img
+    env_file = LOCAL / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("ALLOY_IMAGE="):
+                val = line.split("=", 1)[1].strip()
+                if val:
+                    return val
+    return "grafana/alloy:latest"
 
 
 def write_manifest(name: str, body: str, dry_run: bool) -> None:
@@ -423,8 +438,13 @@ def main() -> int:
     if not catalog_path.exists():
         raise SystemExit(f"missing {catalog_path}")
 
+    alloy_image = load_alloy_image()
     for tmpl in sorted(TEMPLATES.glob("*.yaml.tmpl")):
-        body = read_text(tmpl).replace("__KTRANS_HOST__", host)
+        body = (
+            read_text(tmpl)
+            .replace("__KTRANS_HOST__", host)
+            .replace("__ALLOY_IMAGE__", alloy_image)
+        )
         write_manifest(tmpl.name.replace(".yaml.tmpl", ".yaml"), body, args.dry_run)
 
     write_manifest(
@@ -440,7 +460,23 @@ data:
         args.dry_run,
     )
 
+    subprocess.run(
+        ["bash", str(LOCAL / "scripts" / "render-alloy-otlp-export.sh")],
+        cwd=LOCAL,
+        check=True,
+    )
+    subprocess.run(
+        ["bash", str(LOCAL / "scripts" / "render-alloy-netflow.sh")],
+        cwd=LOCAL,
+        check=True,
+    )
     alloy_cfg = read_text(LOCAL / "alloy" / "config.alloy")
+    alloy_export = read_text(LOCAL / "alloy" / "otlp-export.generated.alloy")
+    parts = [alloy_cfg.rstrip(), alloy_export.lstrip()]
+    netflow_path = LOCAL / "alloy" / "netflow.generated.alloy"
+    if netflow_path.exists():
+        parts.append(read_text(netflow_path).lstrip())
+    alloy_merged = "\n\n".join(parts)
     write_manifest(
         "alloy-configmap.yaml",
         f"""apiVersion: v1
@@ -450,7 +486,7 @@ metadata:
   namespace: {NAMESPACE}
 data:
   config.alloy: |
-{yaml_block(alloy_cfg)}
+{yaml_block(alloy_merged)}
 """,
         args.dry_run,
     )
