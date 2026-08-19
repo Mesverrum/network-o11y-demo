@@ -8,6 +8,8 @@ metadata:
     component: ktranslate-golden
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: alloy
@@ -21,6 +23,7 @@ spec:
       containers:
         - name: alloy
           image: __ALLOY_IMAGE__
+          imagePullPolicy: IfNotPresent
           args:
             - run
             - /etc/alloy/config.alloy

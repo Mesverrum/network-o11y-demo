@@ -79,8 +79,10 @@ SF_PORT="${LAB_ALLOY_SFLOW_PORT:-6344}"
   else
     cat <<EOF
 // LAB_ALLOY_NETFLOW=1 — contrib netflow receiver as-is (logs pdata).
-// Metrics: otelcol.connector.signaltometrics (cumulative Sum). PromQL: rate(...)*8
-//   not ktranslate's sum(network_io_by_flow_bytes)*8/60 gauge contract.
+// Metrics: signaltometrics (delta Sum) → deltatocumulative → Grafana Cloud.
+//   Names are alloy.network.io.by_flow* — ktranslate already owns
+//   network.io.by_flow as a gauge on this tenant; same name + Sum = OTLP 400.
+//   PromQL: rate(alloy_network_io_by_flow_bytes{integration="alloy-netflow"}[5m])*8
 // Logs: optional experimental punt onto the existing OTLP logs export.
 // Do not point softflowd here unless you intend a dual-feed (Alpine: one -n per process).
 
@@ -146,7 +148,7 @@ otelcol.connector.signaltometrics "netflow" {
   error_mode = "ignore"
 
   logs {
-    name        = "network.io.by_flow"
+    name        = "alloy.network.io.by_flow"
     description = "Bytes observed in decoded NetFlow/IPFIX/sFlow records"
     unit        = "By"
     include_resource_attributes {
@@ -176,7 +178,7 @@ otelcol.connector.signaltometrics "netflow" {
   }
 
   logs {
-    name        = "network.io.by_flow.packets"
+    name        = "alloy.network.io.by_flow.packets"
     description = "Packets observed in decoded NetFlow/IPFIX/sFlow records"
     unit        = "{packets}"
     include_resource_attributes {
@@ -204,6 +206,15 @@ otelcol.connector.signaltometrics "netflow" {
       value = "Int(log.attributes[\"flow.io.packets\"])"
     }
   }
+
+  output {
+    metrics = [otelcol.processor.deltatocumulative.netflow.input]
+  }
+}
+
+otelcol.processor.deltatocumulative "netflow" {
+  max_stale   = "5m"
+  max_streams = 100000
 
   output {
     metrics = [otelcol.processor.transform.netflow_metrics.input]
