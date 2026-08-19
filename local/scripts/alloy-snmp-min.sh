@@ -19,6 +19,9 @@ if [[ -f "${ROOT}/.env" ]]; then
 fi
 # Re-assert after .env (fabric-nodes already honored the export; keep it).
 export LAB_FABRIC_PROFILE=snmp-min
+# Laptop snmp-min verifies the local prometheus.exporter.snmp path (ip_addr on
+# the cold scrape). A Fleet-owned River stub would skip that exporter entirely.
+export LAB_ALLOY_FLEET_SNMP=0
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -35,13 +38,16 @@ clab_bin() {
 wait_sr_cli() {
   local n=$1 tries="${2:-90}"
   while (( tries-- > 0 )); do
-    local out
-    out=$(docker exec "$n" sr_cli -ec 'show version' 2>&1) || true
+    local out rc=0
+    # timeout: docker exec can hang if the node is SIGTERM'd mid-wait.
+    # Treat "Software Version" as ready even when sr_cli exits non-zero
+    # (snmp-min postdeploy: community-entry ce1 already exists).
+    out=$(timeout 20 docker exec "$n" sr_cli -ec 'show version' 2>&1) || rc=$?
     if grep -qi 'yang reload' <<<"$out"; then
       sleep 3
       continue
     fi
-    if docker exec "$n" sr_cli -ec 'show version' >/dev/null 2>&1; then
+    if grep -qiE 'Software Version|SR Linux' <<<"$out"; then
       return 0
     fi
     sleep 2
@@ -89,6 +95,8 @@ cmd_up() {
 
   info "Stopping traffic / extra collectors / extra fabric nodes..."
   stop_heavy_sidecars
+  # Alloy on clab would steal 172.20.20.2 before spine1 if left running.
+  docker stop alloy snmp_discovery >/dev/null 2>&1 || true
 
   info "Destroying leftover Clos / min topologies..."
   bash "${ROOT}/scripts/clab.sh" destroy || true
@@ -99,7 +107,13 @@ cmd_up() {
 
   info "Waiting for sr_cli on spine1..."
   wait_sr_cli spine1
-  bash "${ROOT}/scripts/enable-snmp-srl.sh" --node spine1
+  ip="$(docker inspect -f "{{(index .NetworkSettings.Networks \"${CLAB_NETWORK:-clab}\").IPAddress}}" spine1 2>/dev/null || true)"
+  if [[ -n "${ip}" && "${ip}" != "<no value>" ]] \
+    && snmpget -v2c -c public -t 3 "${ip}:161" 1.3.6.1.2.1.1.5.0 >/dev/null 2>&1; then
+    info "SNMP already answering on ${ip}:161 — skip enable-snmp-srl (avoids duplicate community commit)"
+  else
+    bash "${ROOT}/scripts/enable-snmp-srl.sh" --node spine1 || warn "enable-snmp commit failed (community may already exist)"
+  fi
 
   info "Rendering Alloy SNMP overlay (LAB_ALLOY_SNMP=1, traps=1, syslog=1)..."
   mkdir -p "${ROOT}/alloy"
@@ -110,13 +124,14 @@ cmd_up() {
   bash "${ROOT}/scripts/render-alloy-snmp-scrape.sh"
   bash "${ROOT}/scripts/render-alloy-snmp-trap.sh"
 
-  info "Starting Alloy + snmp_discovery (no ktranslate / gnmic / flow)..."
+  info "SNMP discovery (group file: CIDR + named auth)..."
+  rm -f "${ROOT}/alloy/snmp-targets.yml.state.json" "${ROOT}/alloy/"*.state.json
+  LAB_FABRIC_PROFILE=snmp-min bash "${ROOT}/scripts/alloy-snmp-discover.sh"
+
+  info "Starting Alloy + snmp_discovery (catalog already written)..."
   export SNMP_DISCOVERY_UID="$(id -u)"
   export SNMP_DISCOVERY_GID="$(id -g)"
   (cd "${ROOT}" && compose_alloy up -d --no-deps --force-recreate alloy)
-
-  info "SNMP discovery (group file: CIDR + named auth)..."
-  LAB_FABRIC_PROFILE=snmp-min bash "${ROOT}/scripts/alloy-snmp-discover.sh"
   (cd "${ROOT}" && compose_alloy up -d --no-deps --force-recreate snmp_discovery)
 
   info "Pointing spine1 traps at Alloy :1620 and syslog at Alloy :1514..."

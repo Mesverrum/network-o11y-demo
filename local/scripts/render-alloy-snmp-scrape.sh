@@ -124,6 +124,32 @@ TOPO_INTERVAL="${LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL:-15m}"
 HOT_TIMEOUT="${LAB_ALLOY_SNMP_HOT_TIMEOUT:-55s}"
 COLD_TIMEOUT="${LAB_ALLOY_SNMP_COLD_TIMEOUT:-4m}"
 TOPO_TIMEOUT="${LAB_ALLOY_SNMP_TOPOLOGY_TIMEOUT:-2m}"
+# prometheus.scrape rejects timeout >= interval (lab often shortens cold to 60s).
+eval "$(python3 - "${HOT_INTERVAL}" "${HOT_TIMEOUT}" "${COLD_INTERVAL}" "${COLD_TIMEOUT}" "${TOPO_INTERVAL}" "${TOPO_TIMEOUT}" <<'PY'
+import sys
+
+def secs(s: str) -> float:
+    s = s.strip().lower()
+    if s.endswith("ms"):
+        return float(s[:-2]) / 1000.0
+    for suf, mul in (("s", 1), ("m", 60), ("h", 3600)):
+        if s.endswith(suf):
+            return float(s[:-1]) * mul
+    return float(s)
+
+def clamp(interval: str, timeout: str) -> str:
+    iv, to = secs(interval), secs(timeout)
+    if to < iv:
+        return timeout
+    keep = max(1, int(iv * 0.9))
+    return f"{keep}s"
+
+hi, ht, ci, ct, ti, tt = sys.argv[1:]
+print(f"HOT_TIMEOUT={clamp(hi, ht)}")
+print(f"COLD_TIMEOUT={clamp(ci, ct)}")
+print(f"TOPO_TIMEOUT={clamp(ti, tt)}")
+PY
+)"
 SNMP_CONFIG_FILE="${SNMP_TARGETS_DIR}/snmp-network.yml"
 
 {

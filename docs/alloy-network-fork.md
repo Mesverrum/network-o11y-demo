@@ -4,6 +4,8 @@
 
 **This repo** is the test harness. Default `make up` still runs **ktranslate** so existing dashboards keep working. The destination is **Alloy with the network addons** (SNMP + traps + syslog + flow) replacing the KtransToGrafana pairing. The Alloy path is opt-in today (`LAB_ALLOY_SNMP=1`, …) and runs in parallel until that cutover.
 
+**License (SNMP library snapshot):** `local/fixtures/alloy-snmp/` is derived from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) (Apache-2.0). See [`NOTICE`](../local/fixtures/alloy-snmp/NOTICE) and [`LICENSE`](../local/fixtures/alloy-snmp/LICENSE). Authored `ip_addr` is original (IETF IP-MIB), not Kentik `ip-mib.yml`. This is attribution of origin, not a Kentik trademark license.
+
 Fork docs: [`docs/network-snmp.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/network-snmp.md) (after the branch is pushed).
 
 ## Why this shape (Prometheus maintainers)
