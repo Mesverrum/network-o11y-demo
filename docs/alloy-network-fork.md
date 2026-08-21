@@ -2,7 +2,9 @@
 
 **Home:** [Mesverrum/alloy](https://github.com/Mesverrum/alloy) branch `network-snmp` (fork of [grafana/alloy](https://github.com/grafana/alloy)). Sibling clone: `../alloy` next to this repo (`C:\Users\mesve\projects\alloy` on this machine).
 
-**This repo** is the test harness. Default `make up` still runs **ktranslate** so existing dashboards keep working. The destination is **Alloy with the network addons** (SNMP + traps + syslog + flow) replacing the KtransToGrafana pairing. The Alloy path is opt-in today (`LAB_ALLOY_SNMP=1`, …) and runs in parallel until that cutover.
+**This repo** is the test harness. Default laptop `make up` still runs **ktranslate** so existing dashboards keep working. The destination is **Alloy with the network addons** (SNMP + traps + syslog + flow) replacing the KtransToGrafana pairing. The Alloy path is opt-in on the laptop (`LAB_ALLOY_SNMP=1`, …) and takes over on colocated k3s with `LAB_KTRANSLATE=0` (`make -C local alloy-cutover-colocated`).
+
+**Current operator default:** AWS colocated only. Do not start the laptop Clos or Compose Alloy until asked.
 
 **License (SNMP library snapshot):** `local/fixtures/alloy-snmp/` is derived from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) (Apache-2.0). See [`NOTICE`](../local/fixtures/alloy-snmp/NOTICE) and [`LICENSE`](../local/fixtures/alloy-snmp/LICENSE). Authored `ip_addr` is original (IETF IP-MIB), not Kentik `ip-mib.yml`. This is attribution of origin, not a Kentik trademark license.
 
@@ -40,8 +42,8 @@ Fleet Management can only push **config** for components in the running binary. 
 
 | Tier | Interval | Modules (typical) | Toggle |
 |--|--|--|--|
-| **hot** | 60s (`LAB_ALLOY_SNMP_HOT_INTERVAL`) | alerting/troubleshooting that fits 60s: `if_mib` counters/oper, inlined `snmp_device_info` + `snmp_Uptime` (on the vendor module or `device_base`), CPU/mem, chassis | always on when SNMP enabled |
-| **cold** | 5m lab / 30m fleet (`LAB_ALLOY_SNMP_COLD_INTERVAL`) | names/descriptions/MAC (`if_mib_meta`) + IP inventory (`ip_addr`) | always on when SNMP enabled |
+| **hot** | 60s (`LAB_ALLOY_SNMP_HOT_INTERVAL`) | things you page on: `if_mib` **octets / oper / ifHighSpeed**, inlined `snmp_device_info` + `snmp_Uptime`, CPU/mem, chassis | always on when SNMP enabled |
+| **cold** | 5m lab / 30m fleet (`LAB_ALLOY_SNMP_COLD_INTERVAL`) | names/descriptions/MAC (`if_mib_meta`) + **packet counters** (ucast/mcast/bcast) + **errors** + **discards** + IP inventory (`ip_addr`) | always on when SNMP enabled |
 | **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | optional LLDP/CDP experiments — not BGP | `LAB_ALLOY_SNMP_TOPOLOGY=1` |
 
 
@@ -59,22 +61,36 @@ Default `make up` is unchanged (ktranslate).
 
 ### Fleet Management (real enroll)
 
-Laptop Alloy can enroll in Grafana Fleet Management and pull the SNMP scrape River remotely:
+`remotecfg` is isolated: it cannot call components in the local ConfigMap. So OTLP receive / docker scrape / preprocess stay **local**. Fleet owns the network addons in **one** pipeline (`network_o11y_alloy` ← `local/fixtures/alloy-fleet/network.pipeline.alloy`) that exports OTLP itself via `GC_OTLP_*`.
+
+Laptop:
 
 ```bash
 # GC_FM_URL auto-detected from Collector app on marcnetterfield1
 # (https://fleet-management-prod-008.grafana.net); GC_FM_TOKEN defaults to GC_OTLP_KEY.
 LAB_ALLOY_FLEET=1
-LAB_ALLOY_FLEET_SNMP=1   # move hot/cold River to Fleet pipeline
+LAB_ALLOY_FLEET_SNMP=1   # stub local SNMP River; Fleet delivers the combined pipeline
 make -C local alloy-fleet-up
 ```
+
+Colocated k3s (same pipeline — `alloy-cutover-colocated` also stubs local traps/syslog/netflow):
+
+```bash
+LAB_ALLOY_FLEET=1
+LAB_ALLOY_FLEET_SNMP=1
+LAB_ALLOY_FLEET_EVENTS=1
+LAB_ALLOY_FLEET_NETFLOW=1
+make -C local alloy-cutover-colocated
+```
+
+Matcher: `lab="network-o11y-demo"`, `role="network-snmp"`. CIDRs and extra join aliases live **in the pipeline** (`group { }` + a YAML backtick list) so they are editable in the Fleet GUI. The SNMP **library** (`snmp-network.yml`, `fingerprinters.yml`, MIBs) stays in the image — those files are megabytes and are not operator config. `LAB_ALLOY_FLEET_EVENTS` / `_NETFLOW` only stub the **local** ConfigMap — they do not split Fleet.
 
 Local `snmp-discovery` still writes `snmp-targets*.yml` on the overlay image. With a **from-source** image, prefer Fleet River:
 
 ```alloy
 discovery.snmp "fabric" {
-  snmp_config = "/etc/alloy/snmp-network.yml"
-  tier        = "hot"   // or "all" + discovery.relabel by snmp_tier
+  auths = env("SNMP_AUTHS")
+  tier  = "hot"   // or "all" + discovery.relabel by snmp_tier
   group {
     name  = "hq"
     cidrs = ["172.20.20.0/24"]
@@ -82,10 +98,12 @@ discovery.snmp "fabric" {
   }
 }
 prometheus.exporter.snmp "fabric_hot" {
-  config_file = "/etc/alloy/snmp-network.yml"
-  targets     = discovery.snmp.fabric.targets
+  auths   = env("SNMP_AUTHS")
+  targets = discovery.snmp.fabric.targets
 }
 ```
+
+The image library paths (`snmp_config`, `fingerprinters`, `config_file`, `mib_paths`) are component defaults. Set them only to override. Credentials are `SNMP_AUTHS` (snmp_exporter `auths:` YAML) or `auths_file` — see the fork [`snmp/auths.example.yml`](https://github.com/Mesverrum/alloy/blob/network-snmp/snmp/auths.example.yml). Empty `SNMP_AUTHS` falls back to auths already in the image library.
 
 Build with discovery.snmp compiled in:
 
@@ -107,7 +125,55 @@ Curated `snmp_*` names (converter prefix + vital `tag` stems). Target label `dev
 | IF-MIB `ifHCInOctets` | `snmp_ifHCInOctets` |
 | BGP `tBgpPeerNgConnState` | `snmp_tBgpPeerNgConnState` |
 
-Interface counters use `rate(snmp_ifHCInOctets[$__rate_interval]) * 8` (Prometheus counters). Composites (memory %, error %, bps) are optional recording rules: [`local/fixtures/alloy-snmp/recording-rules.yaml`](../local/fixtures/alloy-snmp/recording-rules.yaml).
+Interface counters use `rate(snmp_ifHCInOctets[$__rate_interval]) * 8` (Prometheus counters). Do **not** use ktranslate’s `(ifHCInOctets) * 8 / 60` (delta gauges).
+
+### Computed metrics (recording rules)
+
+ktranslate computes several series in-process (`MemoryUtilization`, `ifInErrorPercent`, NR `IfInUtilization`). The Alloy converter does **not** — scrapes stay native `snmp_*`. Grafana-managed recording rules fill that gap with Prometheus colon names (`level:metric:operations`) so they cannot collide with a scrape.
+
+| | |
+|--|--|
+| **Provision** | `make -C local alloy-snmp-recording-rules` |
+| **Script** | `local/scripts/provision-alloy-snmp-recording-rules.py` |
+| **YAML export** | [`local/fixtures/alloy-snmp/recording-rules.yaml`](../local/fixtures/alloy-snmp/recording-rules.yaml) |
+| **Stack** | folder `network-lab` — **Network Lab / alloy-snmp composites** (1m) and **… composites cold** (5m), write to `grafanacloud-prom` |
+| **Selector** | all exprs filter `job="alloy-snmp"` |
+
+| Recorded name | ktranslate / NR equivalent | Formula (lab) | Notes |
+|---|---|---|---|
+| `device:snmp_MemoryUtilization:percent` | `kentik_snmp_MemoryUtilization` | Vendor percent OIDs **or** `100 * Used / (Used+Free)` **or** `(Total-Free)/Total` **or** `Used/Total` | Device-level `max by (instance, device_name, job, snmp_group)`. Matches [ktranslate `device_metrics.go`](https://github.com/kentik/ktranslate/blob/master/pkg/inputs/snmp/metrics/device_metrics.go). Nokia SRL uses Used+Free (`sgiKbMemoryAvailable` → `snmp_MemoryFree`). |
+| `if:snmp_ifInErrors:rate5m` | `(kentik_snmp_ifInErrors) / 60` | `rate(snmp_ifInErrors[15m])` | **Cold group (5m).** Errors live on `if_mib_meta` with packet counters — not a 60s page. |
+| `if:snmp_ifOutErrors:rate5m` | `(kentik_snmp_ifOutErrors) / 60` | `rate(snmp_ifOutErrors[15m])` | Same, outbound. |
+| `if:snmp_ifInErrorPercent:percent` | `kentik_snmp_ifInErrorPercent` | `100 * rate(errors[15m]) / rate(ucast pkts[15m])` when ucast > 0 | **Cold group (5m).** Same-tier join on `device_name, ifIndex, if_interface_name` (**not** `instance` — still drop it so lingering hot series cannot pair). |
+| `if:snmp_ifOutErrorPercent:percent` | `kentik_snmp_ifOutErrorPercent` | Same, outbound | Idle ifaces (0 unicast) stay empty — no fake 100%. |
+| `if:snmp_ifHCInOctets:rate5m` | `(kentik_snmp_ifHCInOctets) / 60` | `rate(snmp_ifHCInOctets[5m])` | Octets/s. Dashboards: `* 8` for bps. |
+| `if:snmp_ifHCOutOctets:rate5m` | `(kentik_snmp_ifHCOutOctets) / 60` | `rate(snmp_ifHCOutOctets[5m])` | Same, outbound. |
+| `if:snmp_IfInUtilization:percent` | NR `kentik.snmp.IfInUtilization` | `100 * rate(octets[5m])*8 / ((ifHighSpeed > 0) * 1e6)` | ifHighSpeed is Mbps (RFC 2863). `== 0` (mgmt / unnumbered) is dropped to avoid `+Inf`. |
+| `if:snmp_IfOutUtilization:percent` | NR `kentik.snmp.IfOutUtilization` | Same, outbound | Same-tier join (octets + speed are both hot) — `instance` is safe here. |
+
+**Not recorded**
+
+| ktranslate behavior | Why Alloy skips it |
+|---|---|
+| `CPU` from `100 - CPUIdle` | Nokia already scrapes `snmp_CPU` (tagged percent). No `snmp_CPUIdle` in the library. |
+| `hrStorageUsedPercent` | HOST-RESOURCES not on the SRL cold set; converter would still emit Used/Size, not a percent name. |
+| Packet rates (`ifHCInUcastPkts` / mcast / bcast) | Already scraped on **cold** `if_mib_meta`. Not recorded — modern fabrics rarely page on pps; use the raw counter if you need a one-off. |
+| Discard rates (`ifInDiscards` / `ifOutDiscards`) | Same cold walk as errors. Not recorded. |
+
+**Join gotcha:** Fleet hot/cold use different Alloy `instance` labels (`prometheus.exporter.snmp.fabric_hot` vs `fabric_cold`). Cross-tier ratios (e.g. lingering hot error series vs cold packets) must not match on `instance`. Error % drops `instance` on purpose.
+
+**Alerts:** parallel Grafana group `Network Lab / alloy` (`make -C local alloy-network-alerts`) mirrors the ktranslate network rules onto `snmp_*` / recording rules / Loki `{service_name="alloy-snmptrap"}`. Does not replace `Network Lab / ktranslate`. Enums are numeric on this path (BGP established = 6).
+
+Example queries:
+
+```promql
+max by (device_name) (device:snmp_MemoryUtilization:percent)
+if:snmp_ifInErrorPercent:percent{device_name=~"$device"}
+if:snmp_ifHCInOctets:rate5m{device_name=~"$device"} * 8
+if:snmp_IfInUtilization:percent{device_name=~"$device"}
+```
+
+Name map (scrape MIB → `snmp_*` → ktranslate): [`local/fixtures/alloy-snmp/ktranslate-name-map.md`](../local/fixtures/alloy-snmp/ktranslate-name-map.md).
 
 ## Laptop: minimum lab (recommended while iterating)
 
@@ -167,14 +233,16 @@ Dashboard UID: `alloy-snmp-device-details` (folder `network-lab`).
 
 - `local.file` + `encoding.from_yaml` of `alloy/snmp-targets.yml` (official Alloy snmp exporter pattern)
 - `prometheus.exporter.snmp` with `config_merge_strategy = "replace"` (our `snmp-network.yml` only — no stock embedded merge)
-- `make alloy-snmp-discover` writes `alloy/snmp-discovery.yml` (group: CIDRs + named auths) and a one-shot probe
+- `make alloy-snmp-discover` writes `alloy/snmp-discovery.yml` (groups: CIDRs + named auths) and a one-shot probe. Each group name becomes **`snmp_group`** on `snmp_device_info` and the rest of the scrape. Laptop is one job (`hq`). Colocated is three jobs (`hq` / `branch1` / `branch2`) matching `fabric_site_for_node` — not a single `colocated` bucket. `ALLOY_SNMP_GROUP=` forces one job.
 - Compose profile `alloy-snmp` runs `snmp_discovery` with `--interval 5m` and `--listen :9780` (HTTP SD catalog for a poller pool; laptop Alloy still scrapes `snmp-targets.yml`)
 - Scrape 60s → `otelcol.receiver.prometheus` → existing OTLP preprocess/export
 - Relabel `job=alloy-snmp`
 
-ktranslate SNMP / flow / syslog are **not** disabled. Traps stay on ktranslate unless `LAB_ALLOY_SNMPTRAP=1` (`make alloy-snmptrap-up`) — then SRL trap-group points at Alloy `loki.source.snmptrap` `:1620` and Loki `{service_name="alloy-snmptrap"}`. Device syslog stays on ktranslate unless `LAB_ALLOY_SYSLOG=1` (`make alloy-syslog-up`) — then remote-server points at Alloy `loki.source.syslog` `:1514` and Loki `{service_name="alloy-syslog"}`. Both stamp `device_name` from `snmp-targets.yml`.
+ktranslate SNMP / flow / syslog are **not** disabled. Traps stay on ktranslate unless `LAB_ALLOY_SNMPTRAP=1` (`make alloy-snmptrap-up`) — then SRL trap-group points at Alloy `loki.source.snmptrap` `:1620` and Loki `{service_name="alloy-snmptrap"}`. Device syslog stays on ktranslate unless `LAB_ALLOY_SYSLOG=1` (`make alloy-syslog-up`) — then remote-server points at Alloy `loki.source.syslog` `:1514` and Loki `{service_name="alloy-syslog"}`. Both stamp `device_name` from `device-join.yml` (SNMP catalog plus fabric clients).
 
-Optional Alloy-native flow (`LAB_ALLOY_NETFLOW=1`, `make alloy-netflow-up`) wraps contrib `otelcol.receiver.netflow` on **2055/udp** (NetFlow/IPFIX) and **6344/udp** (sFlow) so it does **not** steal ktranslate `:9995` / `:6343`. Optional `targets` join `flow.sampler_address` to `device_name` from `snmp-targets.yml` (same catalog as traps/syslog). Two outputs:
+Alloy dashboard clones (A3 `ma8p7dn`, A4 `alloy-device-details`) query those streams directly — not ktranslate `eventType="KSnmpTrap"` / `instrumentation_name="ktranslate-syslog"`. Syslog lines are **plain text** (do not `| json`). Group traps by the `trap_oid` label (MIB names are not resolving on the lab image yet). Patch: `python local/scripts/patch-alloy-event-panels.py`. A2 Flow Summary has no event panels.
+
+Optional Alloy-native flow (`LAB_ALLOY_NETFLOW=1`, `make alloy-netflow-up`) wraps contrib `otelcol.receiver.netflow` on **2055/udp** (NetFlow/IPFIX) and **6344/udp** (sFlow) so it does **not** steal ktranslate `:9995` / `:6343`. `targets` join `flow.sampler_address` / conversation IPs to `device_name` / `src_device` / `dst_device` from `device-join.yml`. Reverse-DNS uses the same LRU + `net.LookupAddr` pattern as `loki.source.syslog` (`udp_host_cache_size`) to stamp `src_host` / `dst_host` (PTR wins; catalog name on miss). Logs are renamed onto the same `network.local.*` / `network.peer.*` contract as ktranslate before `signaltometrics`. Two outputs:
 
 | Flag | Default | What it does |
 |------|---------|--------------|
@@ -191,10 +259,11 @@ Discovery modes (`sweep` / `crawl` / `both`): CIDR ping-then-SNMP (max ~1024 hos
 
 ### Adding a credential (scoped, like a ktranslate group)
 
-1. Add a named block under `auths:` in `snmp/snmp-network.yml` (v2c `community` + `version: 2`, or v3 USM: `version: 3`, `username`, `password`, optional `priv_password`, `security_level`, `auth_protocol`, `priv_protocol`).
-2. Add a **group** in `alloy/snmp-discovery.yml` with that group's CIDRs and `auths: [that_name]` — do not dump every community/user onto every CIDR.
-3. Optional pins/ignores: `alloy/snmp-overrides.yml`.
-4. `make alloy-snmp-discover` or wait for `--interval`. Community / v3 secrets never appear in SD — only the auth **name**.
+1. Copy a named block from the fork `snmp/auths.example.yml` into `SNMP_AUTHS` or a Secret file (`auths_file`). Do not edit `snmp-network.yml` on the collector. v2c: `community` + `version: 2`. v3 USM: `version: 3`, `username`, `password`, optional `priv_password`, `security_level`, `auth_protocol`, `priv_protocol`.
+2. Point both `discovery.snmp` and `prometheus.exporter.snmp` at the same overlay (`auths = env("SNMP_AUTHS")`).
+3. Add a **group** (Fleet River or `alloy/snmp-discovery.yml`) with that group's CIDRs and `auths: [that_name]` — do not dump every community/user onto every CIDR.
+4. Optional pins/ignores: `alloy/snmp-overrides.yml`.
+5. `make alloy-snmp-discover` or wait for `--interval`. Community / v3 secrets never appear in SD — only the auth **name**.
 
 Profile conversion is **not** the bottleneck (kentik YAML → snmp_exporter modules already works). Discovery is the remaining admin-effort gap vs ktranslate.
 
@@ -205,6 +274,7 @@ Prefer editing `snmp/modules/<vendor>/` in the fork (that YAML is the library). 
 1. Drop the profile YAML in the fork or point `--profiles` at the cookbook tree.
 2. `python3 tools/snmp-profile-convert/convert.py --profiles … --clean-modules` once → split modules + `snmp-network.yml` + fingerprinters.
 3. Hand-trim if needed (Nokia hot/chassis split, drop BGP walks). Rebuild the overlay image. Unknown `sysObjectID` scrapes `device_base,if_mib`.
+4. Fingerprinters and `snmp-network.yml` are one catalog — do not add a `module=` name that convert did not write. Re-extract both from the image after rebuild.
 
 ## Converter (one-shot ingest)
 
@@ -223,6 +293,8 @@ python3 ../alloy/tools/snmp-profile-convert/convert.py \
 ```
 
 Kentik profile YAML (numeric OIDs) → split `snmp/modules/<vendor>/` + concatenated `snmp-network.yml` + `fingerprinters.yml`. Metric `type` prefers `snmp/oid-syntax.yaml` (Counter32/64 vs Gauge32). Snapshot: [`local/fixtures/alloy-snmp/`](../local/fixtures/alloy-snmp/).
+
+**One catalog (do not drift).** `module=` on SD targets must be keys under `modules:` in the snmp.yml the exporter loads. Convert intersects fingerprinter lists with converted module names (no invented `nokia_srlinux_hot` unless that sidecar was written). Discovery drops names missing from the live `config_file`. Keep `snmp-network.yml` and `fingerprinters.yml` from the **same convert as the running image** — `alloy-snmp-discover.sh` re-extracts both from the image; `render-alloy-snmp-scrape.sh` must not overwrite that library with older `fixtures/alloy-snmp/`. Mixing generations looks like `up=1` with no `snmp_CPU`, or a collector panic.
 
 **Extends:** kentik `extends:` → discovery `module=` chains (transitive), e.g. `if_mib,nokia_srlinux` or `if_mib,cisco_all_devices,cisco_catalyst`. Kentik `system-mib.yml` is folded into `snmp_device_info` on the fingerprint module (not a sibling scrape). `_general` bases are converted modules; Alloy uses `config_merge_strategy = "replace"`.
 

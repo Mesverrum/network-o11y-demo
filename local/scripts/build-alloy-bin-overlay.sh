@@ -31,12 +31,18 @@ COPY snmp-discovery /usr/bin/snmp-discovery
 COPY snmp-network.yml /etc/alloy/snmp-network.yml
 COPY fingerprinters.yml /etc/alloy/fingerprinters.yml
 COPY auths.yml /etc/alloy/auths.yml
+COPY auths.example.yml /etc/alloy/auths.example.yml
 COPY NOTICE /etc/alloy/NOTICE.snmp-profiles
+COPY LICENSE /etc/alloy/LICENSE.snmp-profiles
 EOF
 
-cp -f build/alloy build/snmp-discovery snmp/snmp-network.yml snmp/fingerprinters.yml snmp/auths.yml snmp/NOTICE "$WORKDIR/"
-mv "$WORKDIR/NOTICE" "$WORKDIR/NOTICE" 2>/dev/null || true
+cp -f build/alloy build/snmp-discovery snmp/snmp-network.yml snmp/fingerprinters.yml snmp/auths.yml snmp/auths.example.yml snmp/NOTICE "$WORKDIR/"
 cp -f snmp/NOTICE "$WORKDIR/NOTICE"
+if [[ -f snmp/LICENSE ]]; then
+  cp -f snmp/LICENSE "$WORKDIR/LICENSE"
+else
+  printf '%s\n' "Apache License 2.0 — see https://www.apache.org/licenses/LICENSE-2.0" >"$WORKDIR/LICENSE"
+fi
 
 echo "==> docker build $TAG"
 docker build -t "$TAG" "$WORKDIR"

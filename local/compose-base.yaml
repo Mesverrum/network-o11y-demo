@@ -27,6 +27,8 @@ services:
       - KTRANS_HOST=${KTRANS_HOST:-}
       # Fleet-shaped secret surface: community for snmp.yml auths (not in River text).
       - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
+      # Auth overlay (snmp_exporter auths: YAML). Empty → image library auths.
+      - SNMP_AUTHS=${SNMP_AUTHS:-}
       - OTEL_METRIC_EXPORT_INTERVAL=1000
       # Stamped onto every signal so all telemetry from this host carries it.
       - OTEL_RESOURCE_ATTRIBUTES=deployment.host=${KTRANS_HOST}

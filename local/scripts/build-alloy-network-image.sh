@@ -96,6 +96,9 @@ fi
 if [[ -f "${SRC}/snmp/auths.yml" ]]; then
   cp -f "${SRC}/snmp/auths.yml" "${ROOT}/fixtures/alloy-snmp/auths.yml"
 fi
+if [[ -f "${SRC}/snmp/auths.example.yml" ]]; then
+  cp -f "${SRC}/snmp/auths.example.yml" "${ROOT}/fixtures/alloy-snmp/auths.example.yml"
+fi
 if [[ -d "${SRC}/snmp/modules" ]]; then
   rm -rf "${ROOT}/fixtures/alloy-snmp/modules"
   cp -a "${SRC}/snmp/modules" "${ROOT}/fixtures/alloy-snmp/modules"

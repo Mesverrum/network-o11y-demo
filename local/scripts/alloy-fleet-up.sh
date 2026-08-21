@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Enroll lab Alloy in Grafana Fleet Management and (optionally) push SNMP scrape via pipeline.
+# Enroll lab Alloy in Grafana Fleet Management and upsert network.pipeline.alloy.
 #
 # Prereqs:
 #   GC_FM_URL  — from Collector app (or Connections → Fleet Management → API)
@@ -64,12 +64,16 @@ export LAB_ALLOY_SNMP="${LAB_ALLOY_SNMP:-1}"
 export LAB_ALLOY_FLEET_SNMP="${LAB_ALLOY_FLEET_SNMP:-1}"
 # Default: in-process discovery.snmp (requires ALLOY_NETWORK_FROM_SOURCE image).
 export LAB_ALLOY_FLEET_DISCOVERY="${LAB_ALLOY_FLEET_DISCOVERY:-1}"
+# Combined pipeline network_o11y_alloy binds traps/syslog/netflow. Stub those
+# locally so remotecfg does not collide on :1620 / :1514 / :2055 / :6344.
+export LAB_ALLOY_FLEET_EVENTS="${LAB_ALLOY_FLEET_EVENTS:-1}"
+export LAB_ALLOY_FLEET_NETFLOW="${LAB_ALLOY_FLEET_NETFLOW:-1}"
 
 bash "${ROOT}/scripts/render-alloy-remotecfg.sh"
 
 if [[ "${LAB_ALLOY_FLEET_SNMP}" == "1" ]]; then
   if python3 "${ROOT}/scripts/fleet-upsert-snmp-pipeline.py"; then
-    echo "==> Fleet owns SNMP River (discovery=${LAB_ALLOY_FLEET_DISCOVERY})"
+    echo "==> Fleet owns network River (discovery=${LAB_ALLOY_FLEET_DISCOVERY})"
   else
     echo "WARN: Fleet pipeline upsert failed (need fleet-management:write on GC_FM_TOKEN)." >&2
     echo "WARN: Falling back to local snmp-scrape.generated.alloy; remotecfg enrollment still proceeds." >&2
@@ -80,6 +84,8 @@ if [[ "${LAB_ALLOY_FLEET_SNMP}" == "1" ]]; then
 fi
 
 LAB_ALLOY_FLEET_SNMP="${LAB_ALLOY_FLEET_SNMP}" bash "${ROOT}/scripts/render-alloy-snmp-scrape.sh"
+LAB_ALLOY_FLEET_EVENTS="${LAB_ALLOY_FLEET_EVENTS}" bash "${ROOT}/scripts/render-alloy-snmp-trap.sh"
+LAB_ALLOY_FLEET_NETFLOW="${LAB_ALLOY_FLEET_NETFLOW}" bash "${ROOT}/scripts/render-alloy-netflow.sh"
 
 # Refresh CIDR group file for discovery.snmp (and legacy sidecar).
 export SNMP_DISCOVERY_UID="$(id -u)" SNMP_DISCOVERY_GID="$(id -g)"

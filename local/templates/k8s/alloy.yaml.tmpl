@@ -70,6 +70,22 @@ spec:
               value: "deployment.host=__KTRANS_HOST__"
             - name: SNMP_COMMUNITY
               value: "public"
+            - name: SNMP_AUTHS
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: SNMP_AUTHS
+                  optional: true
+            - name: KTRANS_HOST
+              value: "__KTRANS_HOST__"
+            - name: GC_FM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_KEY
+          securityContext:
+            capabilities:
+              add: ["NET_RAW"]
           ports:
             - name: otlp-grpc
               containerPort: 4317
@@ -83,6 +99,12 @@ spec:
             - name: sflow
               containerPort: 6344
               protocol: UDP
+            - name: snmptrap
+              containerPort: 1620
+              protocol: UDP
+            - name: syslog
+              containerPort: 1514
+              protocol: UDP
           volumeMounts:
             - name: config
               mountPath: /etc/alloy/config.alloy
@@ -90,6 +112,26 @@ spec:
               readOnly: true
             - name: snmp-sd
               mountPath: /snmp-sd
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/snmp-discovery.yml
+              subPath: snmp-discovery.yml
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/snmp-overrides.yml
+              subPath: snmp-overrides.yml
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/device-join.yml
+              subPath: device-join.yml
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/snmp-targets.yml
+              subPath: snmp-targets.yml
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/snmp-targets-cold.yml
+              subPath: snmp-targets-cold.yml
               readOnly: true
             - name: storage
               mountPath: /var/lib/alloy/data
