@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module barracuda_waf
-# Pair with embedded if_mib: module = "if_mib,barracuda_waf"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   barracuda_waf:
     walk:
@@ -17,26 +17,72 @@ modules:
     - 1.3.6.1.4.1.20632.8.50.16
     - 1.3.6.1.4.1.20632.8.50.17
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: currentFirmwareVersion
+        oid: 1.3.6.1.4.1.20632.8.25
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.20632.8.28
+        type: DisplayString
     - name: snmp_sslProxyActiveConn
       oid: 1.3.6.1.4.1.20632.8.50.2.1.4
       type: counter
       help: sslProxyActiveConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.4
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - sslProxyAddressType
         - sslProxyAddress
         - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: &id002
+      - labels:
         - sslProxyAddressType
         - sslProxyAddress
         - sslProxyPort
@@ -49,17 +95,23 @@ modules:
       help: sslProxyFullHandshakes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.5
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -69,17 +121,23 @@ modules:
       help: sslProxyResumptionHandshakes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.6
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -89,17 +147,23 @@ modules:
       help: sslProxyHandshakeAttempts (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.7
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -109,17 +173,23 @@ modules:
       help: sslProxyCacheHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.8
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -129,17 +199,23 @@ modules:
       help: sslProxyCacheMiss (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.9
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -149,17 +225,23 @@ modules:
       help: sslProxyCacheTimeouts (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.10
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -169,17 +251,23 @@ modules:
       help: sslProxyErrPms (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.11
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -189,17 +277,23 @@ modules:
       help: sslProxyAuthBadCertErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.12
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -209,17 +303,23 @@ modules:
       help: sslProxyAuthBadCNErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.13
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -229,17 +329,23 @@ modules:
       help: sslProxyBadDNCErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.14
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -249,17 +355,23 @@ modules:
       help: sslProxyBadCRLErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.15
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -269,17 +381,23 @@ modules:
       help: sslProxyInBytes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.16
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -289,17 +407,23 @@ modules:
       help: sslProxyOutBytes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.17
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -309,17 +433,23 @@ modules:
       help: sslProxyTotalReq (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.18
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -329,17 +459,23 @@ modules:
       help: sslProxyTotalConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.19
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -349,17 +485,23 @@ modules:
       help: sslProxyCurrentConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.2.1.20
       indexes:
       - labelname: sslProxyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslProxyAddress
         type: InetAddress
       - labelname: sslProxyPort
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyAddress
         oid: 1.3.6.1.4.1.20632.8.50.2.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - sslProxyAddressType
+        - sslProxyAddress
+        - sslProxyPort
         labelname: sslProxyPort
         oid: 1.3.6.1.4.1.20632.8.50.2.1.3
         type: DisplayString
@@ -369,19 +511,19 @@ modules:
       help: sslSrvrTotReqAccepted (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.7
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: &id003
+      - labels:
         - sslSrvrSrvcAddressType
         - sslSrvrSrvcAddress
         - sslSrvrSrvcPort
@@ -391,7 +533,7 @@ modules:
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: &id004
+      - labels:
         - sslSrvrSrvcAddressType
         - sslSrvrSrvcAddress
         - sslSrvrSrvcPort
@@ -401,7 +543,7 @@ modules:
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: &id005
+      - labels:
         - sslSrvrSrvcAddressType
         - sslSrvrSrvcAddress
         - sslSrvrSrvcPort
@@ -411,7 +553,7 @@ modules:
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: &id006
+      - labels:
         - sslSrvrSrvcAddressType
         - sslSrvrSrvcAddress
         - sslSrvrSrvcPort
@@ -427,31 +569,55 @@ modules:
       help: sslSrvrTotReqActive (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.8
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -461,31 +627,55 @@ modules:
       help: sslSrvrTotReqRejected (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.9
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -495,31 +685,55 @@ modules:
       help: sslSrvrTotSuccess (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.10
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -529,31 +743,55 @@ modules:
       help: sslSrvrTotRefused (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.11
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -563,31 +801,55 @@ modules:
       help: sslSrvrTotTimedout (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.12
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -597,31 +859,55 @@ modules:
       help: sslSrvrAvgReqPerConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.13
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -631,31 +917,55 @@ modules:
       help: sslSrvrTotResponse (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.14
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -665,31 +975,55 @@ modules:
       help: sslSrvrAvgResTime (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.15
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -699,31 +1033,55 @@ modules:
       help: sslSrvrMaxResTime (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.16
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -733,31 +1091,55 @@ modules:
       help: sslSrvrMinResTime (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.17
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -767,31 +1149,55 @@ modules:
       help: sslSrvrNumReqEnqueue (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.18
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -801,31 +1207,55 @@ modules:
       help: sslSrvrNumFreeConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.19
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -835,31 +1265,55 @@ modules:
       help: sslSrvrNumOpeningConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.20
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -869,31 +1323,55 @@ modules:
       help: sslSrvrNumConn (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.21
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -903,31 +1381,55 @@ modules:
       help: sslSrvrNumIBDisabled (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.22
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -937,31 +1439,55 @@ modules:
       help: sslSrvrNumOOBDisabled (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.23
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -971,31 +1497,55 @@ modules:
       help: sslSrvrNumOOBEnabled (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.24
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -1005,31 +1555,55 @@ modules:
       help: sslSrvrLastDisabledTime (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.25
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -1039,31 +1613,55 @@ modules:
       help: sslSrvrState (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.26
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -1076,31 +1674,55 @@ modules:
       help: sslSrvrInBytes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.27
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -1110,31 +1732,55 @@ modules:
       help: sslSrvrOutBytes (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.6.1.28
       indexes:
       - labelname: sslSrvrSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrSrvcAddress
         type: InetAddress
       - labelname: sslSrvrSrvcPort
         type: gauge
       - labelname: sslSrvrAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: sslSrvrAddress
         type: InetAddress
       - labelname: sslSrvrPort
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.2
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.3
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrAddress
         oid: 1.3.6.1.4.1.20632.8.50.6.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - sslSrvrSrvcAddressType
+        - sslSrvrSrvcAddress
+        - sslSrvrSrvcPort
+        - sslSrvrAddressType
+        - sslSrvrAddress
+        - sslSrvrPort
         labelname: sslSrvrPort
         oid: 1.3.6.1.4.1.20632.8.50.6.1.6
         type: DisplayString
@@ -1144,20 +1790,20 @@ modules:
       help: ipsReqSrvcNoOfUrlProfMatched (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.7.1.4
       indexes:
       - labelname: ipsReqSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqSrvcAddress
         type: InetAddress
       - labelname: ipsReqSrvcPort
         type: gauge
       lookups:
-      - labels: &id007
+      - labels:
         - ipsReqSrvcAddressType
         - ipsReqSrvcAddress
         - ipsReqSrvcPort
         labelname: ipsReqSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.7.1.2
         type: DisplayString
-      - labels: &id008
+      - labels:
         - ipsReqSrvcAddressType
         - ipsReqSrvcAddress
         - ipsReqSrvcPort
@@ -1170,17 +1816,23 @@ modules:
       help: ipsReqSrvcNoOfAppProfViol (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.7.1.5
       indexes:
       - labelname: ipsReqSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqSrvcAddress
         type: InetAddress
       - labelname: ipsReqSrvcPort
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - ipsReqSrvcAddressType
+        - ipsReqSrvcAddress
+        - ipsReqSrvcPort
         labelname: ipsReqSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.7.1.2
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - ipsReqSrvcAddressType
+        - ipsReqSrvcAddress
+        - ipsReqSrvcPort
         labelname: ipsReqSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.7.1.3
         type: DisplayString
@@ -1190,17 +1842,23 @@ modules:
       help: ipsReqSrvcTotProfViol (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.7.1.6
       indexes:
       - labelname: ipsReqSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqSrvcAddress
         type: InetAddress
       - labelname: ipsReqSrvcPort
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - ipsReqSrvcAddressType
+        - ipsReqSrvcAddress
+        - ipsReqSrvcPort
         labelname: ipsReqSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.7.1.2
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - ipsReqSrvcAddressType
+        - ipsReqSrvcAddress
+        - ipsReqSrvcPort
         labelname: ipsReqSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.7.1.3
         type: DisplayString
@@ -1210,20 +1868,20 @@ modules:
       help: ipsLrnSrvcUpdatesByReq (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.4
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: &id009
+      - labels:
         - ipsLrnSrvcAddressType
         - ipsLrnSrvcAddress
         - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: &id010
+      - labels:
         - ipsLrnSrvcAddressType
         - ipsLrnSrvcAddress
         - ipsLrnSrvcPort
@@ -1236,17 +1894,23 @@ modules:
       help: ipsLrnSrvcUpdatesByRsp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.5
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1256,17 +1920,23 @@ modules:
       help: ipsLrnSrvcTotUpdatesByReq (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.6
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1276,17 +1946,23 @@ modules:
       help: ipsLrnSrvcTotUpdatesByRsp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.7
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1296,17 +1972,23 @@ modules:
       help: ipsLrnSrvcTotUrlUpdated (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.8
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1316,17 +1998,23 @@ modules:
       help: ipsLrnSrvcTotParamsLearned (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.9
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1336,17 +2024,23 @@ modules:
       help: ipsLrnSrvcTimeLastUpdated (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.10
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1356,17 +2050,23 @@ modules:
       help: ipsLrnSrvcTimeLocked (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.8.1.11
       indexes:
       - labelname: ipsLrnSrvcAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsLrnSrvcAddress
         type: InetAddress
       - labelname: ipsLrnSrvcPort
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcAddress
         oid: 1.3.6.1.4.1.20632.8.50.8.1.2
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - ipsLrnSrvcAddressType
+        - ipsLrnSrvcAddress
+        - ipsLrnSrvcPort
         labelname: ipsLrnSrvcPort
         oid: 1.3.6.1.4.1.20632.8.50.8.1.3
         type: DisplayString
@@ -1376,20 +2076,20 @@ modules:
       help: ipsReqLimitUrlLenOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.4
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: &id011
+      - labels:
         - ipsReqLimitAddressType
         - ipsReqLimitAddress
         - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: &id012
+      - labels:
         - ipsReqLimitAddressType
         - ipsReqLimitAddress
         - ipsReqLimitPort
@@ -1402,17 +2102,23 @@ modules:
       help: ipsReqLimitQueryLenOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.5
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1422,17 +2128,23 @@ modules:
       help: ipsReqLimitReqLenOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.6
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1442,17 +2154,23 @@ modules:
       help: ipsReqLimitCookieLenOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.7
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1462,17 +2180,23 @@ modules:
       help: ipsReqLimitHdrCntOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.8
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1482,17 +2206,23 @@ modules:
       help: ipsReqLimitHdrLenOFErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.9
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1502,17 +2232,23 @@ modules:
       help: ipsReqLimitContentLenErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.10
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1522,17 +2258,23 @@ modules:
       help: ipsReqLimitBlkdMethodErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.9.1.11
       indexes:
       - labelname: ipsReqLimitAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsReqLimitAddress
         type: InetAddress
       - labelname: ipsReqLimitPort
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitAddress
         oid: 1.3.6.1.4.1.20632.8.50.9.1.2
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - ipsReqLimitAddressType
+        - ipsReqLimitAddress
+        - ipsReqLimitPort
         labelname: ipsReqLimitPort
         oid: 1.3.6.1.4.1.20632.8.50.9.1.3
         type: DisplayString
@@ -1542,20 +2284,20 @@ modules:
       help: ipsUrlNormEncodingErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.10.1.4
       indexes:
       - labelname: ipsUrlNormAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlNormAddress
         type: InetAddress
       - labelname: ipsUrlNormPort
         type: gauge
       lookups:
-      - labels: &id013
+      - labels:
         - ipsUrlNormAddressType
         - ipsUrlNormAddress
         - ipsUrlNormPort
         labelname: ipsUrlNormAddress
         oid: 1.3.6.1.4.1.20632.8.50.10.1.2
         type: DisplayString
-      - labels: &id014
+      - labels:
         - ipsUrlNormAddressType
         - ipsUrlNormAddress
         - ipsUrlNormPort
@@ -1568,17 +2310,23 @@ modules:
       help: ipsUrlNormSlashDotInUrlErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.10.1.5
       indexes:
       - labelname: ipsUrlNormAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlNormAddress
         type: InetAddress
       - labelname: ipsUrlNormPort
         type: gauge
       lookups:
-      - labels: *id013
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormAddress
         oid: 1.3.6.1.4.1.20632.8.50.10.1.2
         type: DisplayString
-      - labels: *id014
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormPort
         oid: 1.3.6.1.4.1.20632.8.50.10.1.3
         type: DisplayString
@@ -1588,17 +2336,23 @@ modules:
       help: ipsUrlNormTildaInUrl (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.10.1.6
       indexes:
       - labelname: ipsUrlNormAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlNormAddress
         type: InetAddress
       - labelname: ipsUrlNormPort
         type: gauge
       lookups:
-      - labels: *id013
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormAddress
         oid: 1.3.6.1.4.1.20632.8.50.10.1.2
         type: DisplayString
-      - labels: *id014
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormPort
         oid: 1.3.6.1.4.1.20632.8.50.10.1.3
         type: DisplayString
@@ -1608,17 +2362,23 @@ modules:
       help: ipsUrlNormCharSetEncodingErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.10.1.7
       indexes:
       - labelname: ipsUrlNormAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlNormAddress
         type: InetAddress
       - labelname: ipsUrlNormPort
         type: gauge
       lookups:
-      - labels: *id013
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormAddress
         oid: 1.3.6.1.4.1.20632.8.50.10.1.2
         type: DisplayString
-      - labels: *id014
+      - labels:
+        - ipsUrlNormAddressType
+        - ipsUrlNormAddress
+        - ipsUrlNormPort
         labelname: ipsUrlNormPort
         oid: 1.3.6.1.4.1.20632.8.50.10.1.3
         type: DisplayString
@@ -1628,20 +2388,20 @@ modules:
       help: ipsCookieSecEncrypted (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.4
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: &id015
+      - labels:
         - ipsCookieSecAddressType
         - ipsCookieSecAddress
         - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: &id016
+      - labels:
         - ipsCookieSecAddressType
         - ipsCookieSecAddress
         - ipsCookieSecPort
@@ -1654,17 +2414,23 @@ modules:
       help: ipsCookieSecTampered (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.5
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1674,17 +2440,23 @@ modules:
       help: ipsCookieSecNumCookieAllow (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.6
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1694,17 +2466,23 @@ modules:
       help: ipsCookieSecNumCookieSet (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.7
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1714,17 +2492,23 @@ modules:
       help: ipsCookieSecNumCookieErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.8
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1734,17 +2518,23 @@ modules:
       help: ipsCookieSecCookieDecErr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.9
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1754,17 +2544,23 @@ modules:
       help: ipsCookieSecCookieDecrypted (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.11.1.10
       indexes:
       - labelname: ipsCookieSecAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsCookieSecAddress
         type: InetAddress
       - labelname: ipsCookieSecPort
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecAddress
         oid: 1.3.6.1.4.1.20632.8.50.11.1.2
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - ipsCookieSecAddressType
+        - ipsCookieSecAddress
+        - ipsCookieSecPort
         labelname: ipsCookieSecPort
         oid: 1.3.6.1.4.1.20632.8.50.11.1.3
         type: DisplayString
@@ -1774,20 +2570,20 @@ modules:
       help: ipsUrlAclProcessAclHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.12.1.4
       indexes:
       - labelname: ipsUrlAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlAclAddress
         type: InetAddress
       - labelname: ipsUrlAclPort
         type: gauge
       lookups:
-      - labels: &id017
+      - labels:
         - ipsUrlAclAddressType
         - ipsUrlAclAddress
         - ipsUrlAclPort
         labelname: ipsUrlAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.12.1.2
         type: DisplayString
-      - labels: &id018
+      - labels:
         - ipsUrlAclAddressType
         - ipsUrlAclAddress
         - ipsUrlAclPort
@@ -1800,17 +2596,23 @@ modules:
       help: ipsUrlAclPolicyHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.12.1.5
       indexes:
       - labelname: ipsUrlAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlAclAddress
         type: InetAddress
       - labelname: ipsUrlAclPort
         type: gauge
       lookups:
-      - labels: *id017
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.12.1.2
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclPort
         oid: 1.3.6.1.4.1.20632.8.50.12.1.3
         type: DisplayString
@@ -1820,17 +2622,23 @@ modules:
       help: ipsUrlAclTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.12.1.6
       indexes:
       - labelname: ipsUrlAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlAclAddress
         type: InetAddress
       - labelname: ipsUrlAclPort
         type: gauge
       lookups:
-      - labels: *id017
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.12.1.2
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclPort
         oid: 1.3.6.1.4.1.20632.8.50.12.1.3
         type: DisplayString
@@ -1840,17 +2648,23 @@ modules:
       help: ipsUrlAclAllowAclHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.12.1.8
       indexes:
       - labelname: ipsUrlAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlAclAddress
         type: InetAddress
       - labelname: ipsUrlAclPort
         type: gauge
       lookups:
-      - labels: *id017
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.12.1.2
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - ipsUrlAclAddressType
+        - ipsUrlAclAddress
+        - ipsUrlAclPort
         labelname: ipsUrlAclPort
         oid: 1.3.6.1.4.1.20632.8.50.12.1.3
         type: DisplayString
@@ -1860,20 +2674,20 @@ modules:
       help: ipsHdrAclHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.13.1.4
       indexes:
       - labelname: ipsHdrAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsHdrAclAddress
         type: InetAddress
       - labelname: ipsHdrAclPort
         type: gauge
       lookups:
-      - labels: &id019
+      - labels:
         - ipsHdrAclAddressType
         - ipsHdrAclAddress
         - ipsHdrAclPort
         labelname: ipsHdrAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.13.1.2
         type: DisplayString
-      - labels: &id020
+      - labels:
         - ipsHdrAclAddressType
         - ipsHdrAclAddress
         - ipsHdrAclPort
@@ -1886,17 +2700,23 @@ modules:
       help: ipsHdrAclTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.13.1.5
       indexes:
       - labelname: ipsHdrAclAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsHdrAclAddress
         type: InetAddress
       - labelname: ipsHdrAclPort
         type: gauge
       lookups:
-      - labels: *id019
+      - labels:
+        - ipsHdrAclAddressType
+        - ipsHdrAclAddress
+        - ipsHdrAclPort
         labelname: ipsHdrAclAddress
         oid: 1.3.6.1.4.1.20632.8.50.13.1.2
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - ipsHdrAclAddressType
+        - ipsHdrAclAddress
+        - ipsHdrAclPort
         labelname: ipsHdrAclPort
         oid: 1.3.6.1.4.1.20632.8.50.13.1.3
         type: DisplayString
@@ -1906,20 +2726,20 @@ modules:
       help: ipsWebAddrTransReqUrlTrans (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.4
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: &id021
+      - labels:
         - ipsWebAddrTransAddressType
         - ipsWebAddrTransAddress
         - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: &id022
+      - labels:
         - ipsWebAddrTransAddressType
         - ipsWebAddrTransAddress
         - ipsWebAddrTransPort
@@ -1932,17 +2752,23 @@ modules:
       help: ipsWebAddrTransRspUrlTrans (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.5
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -1952,17 +2778,23 @@ modules:
       help: ipsWebAddrTransReqUrlReWritten (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.6
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -1972,17 +2804,23 @@ modules:
       help: ipsWebAddrTransReqHdrReWritten (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.7
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -1992,17 +2830,23 @@ modules:
       help: ipsWebAddrTransRspHdrReWritten (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.8
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -2012,17 +2856,23 @@ modules:
       help: ipsWebAddrTransReqReDirection (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.9
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -2032,17 +2882,23 @@ modules:
       help: ipsWebAddrTransTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.14.1.10
       indexes:
       - labelname: ipsWebAddrTransAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsWebAddrTransAddress
         type: InetAddress
       - labelname: ipsWebAddrTransPort
         type: gauge
       lookups:
-      - labels: *id021
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransAddress
         oid: 1.3.6.1.4.1.20632.8.50.14.1.2
         type: DisplayString
-      - labels: *id022
+      - labels:
+        - ipsWebAddrTransAddressType
+        - ipsWebAddrTransAddress
+        - ipsWebAddrTransPort
         labelname: ipsWebAddrTransPort
         oid: 1.3.6.1.4.1.20632.8.50.14.1.3
         type: DisplayString
@@ -2052,20 +2908,20 @@ modules:
       help: ipsAccessCtrlMissingCookie (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.4
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: &id023
+      - labels:
         - ipsAccessCtrlAddressType
         - ipsAccessCtrlAddress
         - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: &id024
+      - labels:
         - ipsAccessCtrlAddressType
         - ipsAccessCtrlAddress
         - ipsAccessCtrlPort
@@ -2078,17 +2934,23 @@ modules:
       help: ipsAccessCtrlNoAuthHdr (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.5
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2098,17 +2960,23 @@ modules:
       help: ipsAccessCtrlInvalidCookie (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.6
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2118,17 +2986,23 @@ modules:
       help: ipsAccessCtrlExpiredCookie (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.7
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2138,17 +3012,23 @@ modules:
       help: ipsAccessCtrlAccessDenied (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.8
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2158,17 +3038,23 @@ modules:
       help: ipsAccessCtrlGenFailure (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.9
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2178,17 +3064,23 @@ modules:
       help: ipsAccessCtrlAccessAttempts (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.10
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2198,17 +3090,23 @@ modules:
       help: ipsAccessCtrlAccessAttemptsTotRtt (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.11
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2218,17 +3116,23 @@ modules:
       help: ipsAccessCtrlInvalidSrcIp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.12
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2238,17 +3142,23 @@ modules:
       help: ipsAccessCtrlAuthCacheHits (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.13
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2258,17 +3168,23 @@ modules:
       help: ipsAccessCtrlAuthCacheMiss (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.14
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2278,17 +3194,23 @@ modules:
       help: ipsAccessCtrlAuthCacheExp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.15
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2298,17 +3220,23 @@ modules:
       help: ipsAccessCtrlTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.15.1.16
       indexes:
       - labelname: ipsAccessCtrlAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsAccessCtrlAddress
         type: InetAddress
       - labelname: ipsAccessCtrlPort
         type: gauge
       lookups:
-      - labels: *id023
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlAddress
         oid: 1.3.6.1.4.1.20632.8.50.15.1.2
         type: DisplayString
-      - labels: *id024
+      - labels:
+        - ipsAccessCtrlAddressType
+        - ipsAccessCtrlAddress
+        - ipsAccessCtrlPort
         labelname: ipsAccessCtrlPort
         oid: 1.3.6.1.4.1.20632.8.50.15.1.3
         type: DisplayString
@@ -2318,20 +3246,20 @@ modules:
       help: ipsRCTotServed (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.16.1.4
       indexes:
       - labelname: ipsRCAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsRCAddress
         type: InetAddress
       - labelname: ipsRCPort
         type: gauge
       lookups:
-      - labels: &id025
+      - labels:
         - ipsRCAddressType
         - ipsRCAddress
         - ipsRCPort
         labelname: ipsRCAddress
         oid: 1.3.6.1.4.1.20632.8.50.16.1.2
         type: DisplayString
-      - labels: &id026
+      - labels:
         - ipsRCAddressType
         - ipsRCAddress
         - ipsRCPort
@@ -2344,17 +3272,23 @@ modules:
       help: ipsRCTotQueued (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.16.1.5
       indexes:
       - labelname: ipsRCAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsRCAddress
         type: InetAddress
       - labelname: ipsRCPort
         type: gauge
       lookups:
-      - labels: *id025
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCAddress
         oid: 1.3.6.1.4.1.20632.8.50.16.1.2
         type: DisplayString
-      - labels: *id026
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCPort
         oid: 1.3.6.1.4.1.20632.8.50.16.1.3
         type: DisplayString
@@ -2364,17 +3298,23 @@ modules:
       help: ipsRCTotDropped (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.16.1.6
       indexes:
       - labelname: ipsRCAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsRCAddress
         type: InetAddress
       - labelname: ipsRCPort
         type: gauge
       lookups:
-      - labels: *id025
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCAddress
         oid: 1.3.6.1.4.1.20632.8.50.16.1.2
         type: DisplayString
-      - labels: *id026
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCPort
         oid: 1.3.6.1.4.1.20632.8.50.16.1.3
         type: DisplayString
@@ -2384,17 +3324,23 @@ modules:
       help: ipsRCTotOutOfResource (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.16.1.7
       indexes:
       - labelname: ipsRCAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsRCAddress
         type: InetAddress
       - labelname: ipsRCPort
         type: gauge
       lookups:
-      - labels: *id025
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCAddress
         oid: 1.3.6.1.4.1.20632.8.50.16.1.2
         type: DisplayString
-      - labels: *id026
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCPort
         oid: 1.3.6.1.4.1.20632.8.50.16.1.3
         type: DisplayString
@@ -2404,17 +3350,23 @@ modules:
       help: ipsRCTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.16.1.8
       indexes:
       - labelname: ipsRCAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsRCAddress
         type: InetAddress
       - labelname: ipsRCPort
         type: gauge
       lookups:
-      - labels: *id025
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCAddress
         oid: 1.3.6.1.4.1.20632.8.50.16.1.2
         type: DisplayString
-      - labels: *id026
+      - labels:
+        - ipsRCAddressType
+        - ipsRCAddress
+        - ipsRCPort
         labelname: ipsRCPort
         oid: 1.3.6.1.4.1.20632.8.50.16.1.3
         type: DisplayString
@@ -2424,20 +3376,20 @@ modules:
       help: ipsUrlPolicyTotServed (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.4
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: &id027
+      - labels:
         - ipsUrlPolicyAddressType
         - ipsUrlPolicyAddress
         - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: &id028
+      - labels:
         - ipsUrlPolicyAddressType
         - ipsUrlPolicyAddress
         - ipsUrlPolicyPort
@@ -2450,17 +3402,23 @@ modules:
       help: ipsUrlPolicyTotQueued (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.5
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: *id027
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: *id028
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyPort
         oid: 1.3.6.1.4.1.20632.8.50.17.1.3
         type: DisplayString
@@ -2470,17 +3428,23 @@ modules:
       help: ipsUrlPolicyTotDropped (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.6
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: *id027
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: *id028
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyPort
         oid: 1.3.6.1.4.1.20632.8.50.17.1.3
         type: DisplayString
@@ -2490,17 +3454,23 @@ modules:
       help: ipsUrlPolicyTotOutOfResource (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.7
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: *id027
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: *id028
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyPort
         oid: 1.3.6.1.4.1.20632.8.50.17.1.3
         type: DisplayString
@@ -2510,17 +3480,23 @@ modules:
       help: ipsUrlPolicyEntryCtrlAuth (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.8
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: *id027
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: *id028
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyPort
         oid: 1.3.6.1.4.1.20632.8.50.17.1.3
         type: DisplayString
@@ -2530,17 +3506,32 @@ modules:
       help: ipsUrlPolicyTimeStamp (BWS-MIB) - 1.3.6.1.4.1.20632.8.50.17.1.9
       indexes:
       - labelname: ipsUrlPolicyAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: ipsUrlPolicyAddress
         type: InetAddress
       - labelname: ipsUrlPolicyPort
         type: gauge
       lookups:
-      - labels: *id027
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyAddress
         oid: 1.3.6.1.4.1.20632.8.50.17.1.2
         type: DisplayString
-      - labels: *id028
+      - labels:
+        - ipsUrlPolicyAddressType
+        - ipsUrlPolicyAddress
+        - ipsUrlPolicyPort
         labelname: ipsUrlPolicyPort
         oid: 1.3.6.1.4.1.20632.8.50.17.1.3
         type: DisplayString
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.20632.8.25.0
+    - 1.3.6.1.4.1.20632.8.28.0

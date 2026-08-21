@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module huawei_routers
-# Pair with embedded if_mib: module = "if_mib,huawei_routers"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   huawei_routers:
     walk:
@@ -13,6 +13,47 @@ modules:
     - 1.3.6.1.4.1.2011.5.25.226.2.3.2
     - 1.3.6.1.4.1.2011.5.25.226.2.14.2
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: hwEntitySystemModel
+        oid: 1.3.6.1.4.1.2011.5.25.31.6.5
+        type: DisplayString
     - name: snmp_hwBgpPeerState
       oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.5
       type: gauge
@@ -21,22 +62,22 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: &id002
+      - labels:
         - index
         labelname: negotiated_version
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.1
         type: DisplayString
-      - labels: &id003
+      - labels:
         - index
         labelname: remote_as
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.2
         type: gauge
-      - labels: &id004
+      - labels:
         - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
@@ -56,19 +97,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - index
         labelname: negotiated_version
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.1
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: remote_as
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.2
         type: gauge
-      - labels: *id004
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -80,19 +125,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - index
         labelname: negotiated_version
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.1
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: remote_as
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.2
         type: gauge
-      - labels: *id004
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -104,19 +153,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - index
         labelname: negotiated_version
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.1
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: remote_as
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.2
         type: gauge
-      - labels: *id004
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -136,12 +189,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: &id006
+      - labels:
         - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
@@ -154,11 +207,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -170,11 +225,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -186,12 +243,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id007
+      - labels:
         - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: &id008
+      - labels:
         - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
@@ -204,11 +261,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -220,11 +279,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -236,11 +297,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -252,11 +315,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -268,11 +333,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -284,11 +351,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -300,11 +369,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -316,11 +387,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -332,11 +405,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -348,11 +423,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -364,11 +441,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: hwBgpPeerVrfName
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.1.1.6
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: neighbor_ip
         oid: 1.3.6.1.4.1.2011.5.25.177.1.1.2.1.4
         type: DisplayString
@@ -394,7 +473,7 @@ modules:
         - hwDnsDomainName
         labelname: hwDnsAlias
         oid: 1.3.6.1.4.1.2011.5.25.194.1.1.1.4
-        type: gauge
+        type: DisplayString
     - name: snmp_hwServerStatus
       oid: 1.3.6.1.4.1.2011.5.25.194.1.4.1.2
       type: gauge
@@ -418,6 +497,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventSrcVrfName
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.3
       type: gauge
@@ -425,6 +505,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventSrcIpAddress
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.4
       type: gauge
@@ -432,6 +513,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventDstIpAddress
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.7
       type: gauge
@@ -439,6 +521,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventSrcIpPort
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.9
       type: gauge
@@ -446,6 +529,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventDstIpPort
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.11
       type: gauge
@@ -453,6 +537,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwNetEventDescription
       oid: 1.3.6.1.4.1.2011.5.25.222.1.1.2.4.1.16
       type: gauge
@@ -460,6 +545,7 @@ modules:
       indexes:
       - labelname: hwFwNetEventIndex
         type: gauge
+      lookups: []
     - name: snmp_hwFwConnectionStatCount
       oid: 1.3.6.1.4.1.2011.5.25.222.1.2.2.2.1.4
       type: counter
@@ -516,6 +602,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionDstLocalAddr
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.2
       type: gauge
@@ -533,6 +620,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionSrcLocalPort
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.3
       type: gauge
@@ -550,6 +638,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionDstLocalPort
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.4
       type: gauge
@@ -567,6 +656,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionProtocol
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.5
       type: EnumAsInfo
@@ -589,6 +679,7 @@ modules:
         2: icmp
         3: udp
         4: tcp
+      lookups: []
     - name: snmp_hwNatSessionSrcGlobalAddr
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.6
       type: gauge
@@ -606,6 +697,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionDstGlobalAddr
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.7
       type: gauge
@@ -623,6 +715,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionSrcGlobalPort
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.8
       type: gauge
@@ -640,6 +733,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionDstGlobalPort
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.9
       type: gauge
@@ -657,6 +751,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionSrcVPN
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.10
       type: gauge
@@ -674,6 +769,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionDstVPN
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.11
       type: gauge
@@ -691,6 +787,7 @@ modules:
         type: gauge
       - labelname: hwNatSessionSrcVPN
         type: gauge
+      lookups: []
     - name: snmp_hwNatSessionStatus
       oid: 1.3.6.1.4.1.2011.5.25.226.2.14.2.1.12
       type: gauge
@@ -715,3 +812,12 @@ modules:
         4: createAndGo
         5: createAndWait
         6: destroy
+      lookups: []
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.2011.5.25.31.6.5.0

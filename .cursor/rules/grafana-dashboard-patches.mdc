@@ -48,6 +48,8 @@ These are fixes the operator applies via Grafana Assistant / UI. **Do not overwr
 | **Flow bytes** | `max_over_time(network_io_by_flow_bytes[...])` | `rate(network_io_by_flow_bytes[...])` |
 | **Trap volume** | Loki: `count_over_time({service_name=~"ktranslate.*"} \|~ "(?i)(KSnmpTrap\|linkDown\|…)" [$__interval])` | `rate(kentik_ktranslate_chf_kkc_snmp_traps[5m])` |
 | **Syslog volume** | Loki: `sum by (severity) (count_over_time({service_name=~"ktranslate.*"} \| json \| severity != "" [$__interval]))` | `rate(kentik_ktranslate_chf_kkc_syslog_messages[5m])` |
+| **Trap volume (Alloy A3/A4)** | Loki `{service_name="alloy-snmptrap"}`; group by `trap_oid` | `eventType="KSnmpTrap"`, `TrapName`, CHF `kkc_snmp_traps` |
+| **Syslog volume (Alloy A3/A4)** | Loki `{service_name="alloy-syslog"}` (plain text; `severity` is a label) | `instrumentation_name="ktranslate-syslog"`; `\| json` on syslog |
 | **CHF metrics** | Collector health / heartbeat panels only | Event volume or device telemetry |
 | **Fleet count stats** | `count(...) OR vector(0)` | Bare `count(...)` → "No data" |
 | **Δ24h stats** | `instant: false` on stat; current expr minus `offset 24h` subquery | Single instant snapshot |

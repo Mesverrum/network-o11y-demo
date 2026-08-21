@@ -1,11 +1,47 @@
 # GENERATED from kentik/snmp-profiles — module juniper_mx_router
-# Pair with embedded if_mib: module = "if_mib,juniper_mx_router"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   juniper_mx_router:
     walk:
     - 1.3.6.1.4.1.2636.3.5.2
     - 1.3.6.1.4.1.2636.3.40.1.4.1.2
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
     - name: snmp_jnxFWCounterPacketCount
       oid: 1.3.6.1.4.1.2636.3.5.2.1.4
       type: counter
@@ -14,17 +50,17 @@ modules:
       - labelname: jnxFWCounterFilterName
         type: DisplayString
       lookups:
-      - labels: &id001
+      - labels:
         - jnxFWCounterFilterName
         labelname: firewall_filter_name
         oid: 1.3.6.1.4.1.2636.3.5.2.1.1
         type: DisplayString
-      - labels: &id002
+      - labels:
         - jnxFWCounterFilterName
         labelname: counter_name
         oid: 1.3.6.1.4.1.2636.3.5.2.1.2
         type: DisplayString
-      - labels: &id003
+      - labels:
         - jnxFWCounterFilterName
         labelname: counter_type
         oid: 1.3.6.1.4.1.2636.3.5.2.1.3
@@ -37,15 +73,18 @@ modules:
       - labelname: jnxFWCounterFilterName
         type: DisplayString
       lookups:
-      - labels: *id001
+      - labels:
+        - jnxFWCounterFilterName
         labelname: firewall_filter_name
         oid: 1.3.6.1.4.1.2636.3.5.2.1.1
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - jnxFWCounterFilterName
         labelname: counter_name
         oid: 1.3.6.1.4.1.2636.3.5.2.1.2
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - jnxFWCounterFilterName
         labelname: counter_type
         oid: 1.3.6.1.4.1.2636.3.5.2.1.3
         type: DisplayString
@@ -59,7 +98,7 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: &id004
+      - labels:
         - jnxVirtualChassisFpcId
         - jnxVirtualChassisPortName
         labelname: port_name
@@ -75,7 +114,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -89,7 +130,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -103,7 +146,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -117,7 +162,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -131,7 +178,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -145,7 +194,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -159,7 +210,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -173,7 +226,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -187,7 +242,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -201,7 +258,7 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - jnxVirtualChassisFpcId
         - jnxVirtualChassisPortName
         labelname: port_name
@@ -217,7 +274,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -231,7 +290,9 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
@@ -246,7 +307,16 @@ modules:
       - labelname: jnxVirtualChassisPortName
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - jnxVirtualChassisFpcId
+        - jnxVirtualChassisPortName
         labelname: port_name
         oid: 1.3.6.1.4.1.2636.3.40.1.4.1.2.1.2
         type: DisplayString
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0

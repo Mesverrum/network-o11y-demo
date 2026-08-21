@@ -515,3 +515,5 @@ When a session changes bring-up, topology, collectors, network names, or metric 
 1. This file (`AGENTS.md`)
 2. Relevant `.cursor/rules/*.mdc`
 3. [`local/README.md`](local/README.md) if operator-facing steps changed
+
+Keep the working tree in sync with git: commit harness/docs/scripts/fixtures in the same change. After an Alloy image convert, restore `../alloy/snmp/` to HEAD — do not leave convert-regenerated `snmp/modules` dirty or commit them. Scratch `_*.sh` / `tmp-*` stay gitignored.

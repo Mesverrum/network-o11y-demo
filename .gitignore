@@ -105,7 +105,11 @@ local/groups/*.bak
 /tmp-*.txt
 /tmp-*.json
 
+# Internal GTM / win-rate analytics — keep local, never commit
+docs/alloy-network-additions.md
+
 # SolarWinds inventory dumps (may contain internal SWQL / hostnames)
+tools/solarwinds-grafana-reference/tmp-*.py
 tools/solarwinds-grafana-reference/out/
 tools/solarwinds-grafana-reference/swis.env
 tools/solarwinds-grafana-reference/*.env

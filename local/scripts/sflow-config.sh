@@ -10,7 +10,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLAB_NET="${CLAB_NETWORK:-clab}"
-SFLOW_PORT="${SFLOW_PORT:-6343}"
 PKT_SFLOW_PORT="${ORB_PKTVISOR_SFLOW_PORT:-16343}"
 # Space-separated list; default spine only.
 SFLOW_DEVICES="${SFLOW_DEVICES:-spine1}"
@@ -18,7 +17,23 @@ SFLOW_DEVICES="${SFLOW_DEVICES:-spine1}"
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" sflow 2>/dev/null || true)"
+use_alloy_sflow=0
+case "${LAB_ALLOY_NETFLOW:-0}" in
+  1|true|TRUE|yes|YES|on|ON)
+    case "${LAB_KTRANSLATE:-1}" in
+      0|false|FALSE|no|NO|off|OFF) use_alloy_sflow=1 ;;
+    esac
+    ;;
+esac
+sflow_ip=""
+if [[ "${use_alloy_sflow}" == "1" ]]; then
+  SFLOW_PORT="${SFLOW_PORT:-6344}"
+  sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
+  info "sFlow sink: Alloy (LAB_KTRANSLATE=0)"
+else
+  SFLOW_PORT="${SFLOW_PORT:-6343}"
+  sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" sflow 2>/dev/null || true)"
+fi
 if [[ -z "$sflow_ip" || "$sflow_ip" == "<no value>" ]]; then
   sflow_ip="${KTRANSLATE_CLAB_HOST:-}"
 fi

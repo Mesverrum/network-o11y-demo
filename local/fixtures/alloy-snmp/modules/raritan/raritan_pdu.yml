@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module raritan_pdu
-# Pair with embedded if_mib: module = "if_mib,raritan_pdu"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   raritan_pdu:
     walk:
@@ -9,6 +9,42 @@ modules:
     - 1.3.6.1.4.1.13742.6.5.3.3
     - 3.6.1.4.1.13742.6.3.4.4
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
     - name: snmp_outletName
       oid: 1.3.6.1.4.1.13742.6.3.5.3.1.3
       type: gauge
@@ -18,6 +54,7 @@ modules:
         type: gauge
       - labelname: outletId
         type: gauge
+      lookups: []
     - name: snmp_measurementsInletPoleSensorIsAvailable
       oid: 1.3.6.1.4.1.13742.6.5.2.4.1.2
       type: gauge
@@ -31,6 +68,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsInletPoleSensorState
       oid: 1.3.6.1.4.1.13742.6.5.2.4.1.3
       type: gauge
@@ -44,6 +82,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsInletPoleSensorValue
       oid: 1.3.6.1.4.1.13742.6.5.2.4.1.4
       type: gauge
@@ -57,6 +96,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsInletPoleSensorSignedValue
       oid: 1.3.6.1.4.1.13742.6.5.2.4.1.6
       type: gauge
@@ -70,6 +110,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_inletPoleSensorDecimalDigits
       oid: 1.3.6.1.4.1.13742.6.3.3.6.1.7
       type: gauge
@@ -83,6 +124,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsOverCurrentProtectorSensorIsAvailable
       oid: 1.3.6.1.4.1.13742.6.5.3.3.1.2
       type: gauge
@@ -95,6 +137,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsOverCurrentProtectorSensorState
       oid: 1.3.6.1.4.1.13742.6.5.3.3.1.3
       type: gauge
@@ -106,6 +149,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsOverCurrentProtectorSensorValue
       oid: 1.3.6.1.4.1.13742.6.5.3.3.1.4
       type: gauge
@@ -117,6 +161,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_measurementsOverCurrentProtectorSensorSignedValue
       oid: 1.3.6.1.4.1.13742.6.5.3.3.1.6
       type: gauge
@@ -129,6 +174,7 @@ modules:
         type: gauge
       - labelname: sensorType
         type: gauge
+      lookups: []
     - name: snmp_overCurrentProtectorSensorDecimalDigits
       oid: 1.3.6.1.4.1.13742.6.3.4.4.1.7
       type: gauge
@@ -162,3 +208,10 @@ modules:
         labelname: outletRatedVoltage
         oid: 1.3.6.1.4.1.13742.6.3.5.3.1.6
         type: DisplayString
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0

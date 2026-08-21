@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module netscaler_sdx
-# Pair with embedded if_mib: module = "if_mib,netscaler_sdx"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   netscaler_sdx:
     walk:
@@ -11,6 +11,57 @@ modules:
     - 1.3.6.1.4.1.5951.6.3.1
     - 1.3.6.1.4.1.5951.6.3.2
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: systemBuildNumber
+        oid: 1.3.6.1.4.1.5951.6.2.3
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.5951.6.2.16
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: systemBiosVersion
+        oid: 1.3.6.1.4.1.5951.6.2.19
+        type: DisplayString
     - name: snmp_hardwareResourceStatus
       oid: 1.3.6.1.4.1.5951.6.2.1000.1.1.7
       type: gauge
@@ -19,7 +70,7 @@ modules:
       - labelname: hardwareResourceName
         type: gauge
       - labelname: hardwareResourceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: hardwareResourceHostIPAddress
         type: InetAddress
       lookups:
@@ -38,7 +89,7 @@ modules:
       - labelname: softwareResourceName
         type: gauge
       - labelname: softwareResourceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: softwareResourceHostIPAddress
         type: InetAddress
       lookups:
@@ -59,11 +110,11 @@ modules:
       - labelname: srBayNumber
         type: gauge
       - labelname: srHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: srHostIPAddress
         type: InetAddress
       lookups:
-      - labels: &id001
+      - labels:
         - srName
         - srBayNumber
         - srHostIPAddressType
@@ -71,7 +122,7 @@ modules:
         labelname: srName
         oid: 1.3.6.1.4.1.5951.6.2.1000.4.1.1
         type: DisplayString
-      - labels: &id002
+      - labels:
         - srName
         - srBayNumber
         - srHostIPAddressType
@@ -89,15 +140,23 @@ modules:
       - labelname: srBayNumber
         type: gauge
       - labelname: srHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: srHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id001
+      - labels:
+        - srName
+        - srBayNumber
+        - srHostIPAddressType
+        - srHostIPAddress
         labelname: srName
         oid: 1.3.6.1.4.1.5951.6.2.1000.4.1.1
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - srName
+        - srBayNumber
+        - srHostIPAddressType
+        - srHostIPAddress
         labelname: srBayNumber
         oid: 1.3.6.1.4.1.5951.6.2.1000.4.1.2
         type: DisplayString
@@ -111,15 +170,23 @@ modules:
       - labelname: srBayNumber
         type: gauge
       - labelname: srHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: srHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id001
+      - labels:
+        - srName
+        - srBayNumber
+        - srHostIPAddressType
+        - srHostIPAddress
         labelname: srName
         oid: 1.3.6.1.4.1.5951.6.2.1000.4.1.1
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - srName
+        - srBayNumber
+        - srHostIPAddressType
+        - srHostIPAddress
         labelname: srBayNumber
         oid: 1.3.6.1.4.1.5951.6.2.1000.4.1.2
         type: DisplayString
@@ -131,24 +198,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: &id003
+      - labels:
         - interfaceMappedPort
         - interfaceHostIPAddressType
         - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: &id004
+      - labels:
         - interfaceMappedPort
         - interfaceHostIPAddressType
         - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceRxPackets
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.5
       type: gauge
@@ -157,18 +224,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceTxPackets
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.6
       type: gauge
@@ -177,18 +250,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceRxBytes
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.7
       type: gauge
@@ -197,18 +276,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceTxBytes
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.8
       type: gauge
@@ -217,18 +302,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceRxErrors
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.9
       type: gauge
@@ -237,18 +328,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_interfaceTxErrors
       oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.10
       type: gauge
@@ -257,18 +354,24 @@ modules:
       - labelname: interfaceMappedPort
         type: gauge
       - labelname: interfaceHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: interfaceHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id003
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_interface_name
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.1
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - interfaceMappedPort
+        - interfaceHostIPAddressType
+        - interfaceHostIPAddress
         labelname: if_Alias
         oid: 1.3.6.1.4.1.5951.6.2.1000.5.1.13
-        type: gauge
+        type: DisplayString
     - name: snmp_hmStatus
       oid: 1.3.6.1.4.1.5951.6.2.1000.6.1.4
       type: gauge
@@ -277,12 +380,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - index
         labelname: hmName
         oid: 1.3.6.1.4.1.5951.6.2.1000.6.1.1
         type: DisplayString
-      - labels: &id006
+      - labels:
         - index
         labelname: hmUnit
         oid: 1.3.6.1.4.1.5951.6.2.1000.6.1.6
@@ -295,11 +398,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - index
         labelname: hmName
         oid: 1.3.6.1.4.1.5951.6.2.1000.6.1.1
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - index
         labelname: hmUnit
         oid: 1.3.6.1.4.1.5951.6.2.1000.6.1.6
         type: DisplayString
@@ -309,33 +414,35 @@ modules:
       help: xenCpuUsage (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.1.1.8
       indexes:
       - labelname: xenIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: xenIpAddress
         type: InetAddress
+      lookups: []
     - name: snmp_xenMemoryUsage
       oid: 1.3.6.1.4.1.5951.6.3.1.1.11
       type: gauge
       help: xenMemoryUsage (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.1.1.11
       indexes:
       - labelname: xenIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: xenIpAddress
         type: InetAddress
+      lookups: []
     - name: snmp_nsInstanceState
       oid: 1.3.6.1.4.1.5951.6.3.2.1.15
       type: gauge
       help: nsInstanceState (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.15
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: &id007
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -343,7 +450,7 @@ modules:
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: &id008
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -351,7 +458,7 @@ modules:
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: &id009
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -359,7 +466,7 @@ modules:
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: &id010
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -367,7 +474,7 @@ modules:
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: &id011
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -375,7 +482,7 @@ modules:
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: &id012
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -383,7 +490,7 @@ modules:
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: &id013
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -391,7 +498,7 @@ modules:
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: &id014
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -399,7 +506,7 @@ modules:
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: &id015
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -407,7 +514,7 @@ modules:
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: &id016
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -415,7 +522,7 @@ modules:
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: &id017
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -423,7 +530,7 @@ modules:
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: &id018
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -431,7 +538,7 @@ modules:
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: &id019
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -439,7 +546,7 @@ modules:
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: &id020
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -447,7 +554,7 @@ modules:
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: &id021
+      - labels:
         - nsIpAddressType
         - nsIpAddress
         - nsHostIPAddressType
@@ -461,71 +568,131 @@ modules:
       help: nsVmState (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.18
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -535,71 +702,131 @@ modules:
       help: nsNsCPUUsage (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.33
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -609,71 +836,131 @@ modules:
       help: nsNsMemoryUsage (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.35
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -683,71 +970,131 @@ modules:
       help: nsNsTx (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.36
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -757,71 +1104,131 @@ modules:
       help: nsNsRx (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.37
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -831,71 +1238,131 @@ modules:
       help: nsHttpReq (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.38
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -905,71 +1372,131 @@ modules:
       help: nsHaMasterState (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.41
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -979,71 +1506,131 @@ modules:
       help: nsNodeState (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.44
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
@@ -1053,71 +1640,141 @@ modules:
       help: nsHaSync (SDX-ROOT-MIB) - 1.3.6.1.4.1.5951.6.3.2.1.45
       indexes:
       - labelname: nsIpAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsIpAddress
         type: InetAddress
       - labelname: nsHostIPAddressType
-        type: InetAddressType
+        type: gauge
       - labelname: nsHostIPAddress
         type: InetAddress
       lookups:
-      - labels: *id007
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIpAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.1
         type: EnumAsInfo
-      - labels: *id008
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.2
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsProfileName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.5
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsName
         oid: 1.3.6.1.4.1.5951.6.3.2.1.6
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmaskType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.7
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsNetmask
         oid: 1.3.6.1.4.1.5951.6.3.2.1.8
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGatewayType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.9
         type: EnumAsInfo
-      - labels: *id014
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsGateway
         oid: 1.3.6.1.4.1.5951.6.3.2.1.10
         type: DisplayString
-      - labels: *id015
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHostname
         oid: 1.3.6.1.4.1.5951.6.3.2.1.11
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.12
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVersion
         oid: 1.3.6.1.4.1.5951.6.3.2.1.13
         type: DisplayString
-      - labels: *id018
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsVmDescription
         oid: 1.3.6.1.4.1.5951.6.3.2.1.30
         type: DisplayString
-      - labels: *id019
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsThroughput
         oid: 1.3.6.1.4.1.5951.6.3.2.1.31
         type: DisplayString
-      - labels: *id020
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddressType
         oid: 1.3.6.1.4.1.5951.6.3.2.1.42
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - nsIpAddressType
+        - nsIpAddress
+        - nsHostIPAddressType
+        - nsHostIPAddress
         labelname: nsHaIPAddress
         oid: 1.3.6.1.4.1.5951.6.3.2.1.43
         type: DisplayString
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.5951.6.2.3.0
+    - 1.3.6.1.4.1.5951.6.2.16.0
+    - 1.3.6.1.4.1.5951.6.2.19.0

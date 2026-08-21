@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module servertech_pdu3
-# Pair with embedded if_mib: module = "if_mib,servertech_pdu3"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   servertech_pdu3:
     walk:
@@ -11,15 +11,71 @@ modules:
     get:
     - 1.3.6.1.4.1.1718.3.1.6.0
     - 1.3.6.1.4.1.1718.3.1.15.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.1718.3.1.1.0
+    - 1.3.6.1.4.1.1718.3.1.2.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: systemVersion
+        oid: 1.3.6.1.4.1.1718.3.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.1718.3.1.2
+        type: DisplayString
     - name: snmp_systemTotalPower
       oid: 1.3.6.1.4.1.1718.3.1.6
       type: gauge
       help: systemTotalPower (SENTRY3-MIB) - 1.3.6.1.4.1.1718.3.1.6.0
+      lookups: []
     - name: snmp_systemConfigModifiedCount
       oid: 1.3.6.1.4.1.1718.3.1.15
       type: gauge
       help: systemConfigModifiedCount (SENTRY3-MIB) - 1.3.6.1.4.1.1718.3.1.15.0
+      lookups: []
     - name: snmp_towerStatus
       oid: 1.3.6.1.4.1.1718.3.2.1.1.4
       type: gauge
@@ -28,22 +84,22 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: &id002
+      - labels:
         - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: &id003
+      - labels:
         - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: &id004
+      - labels:
         - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
@@ -63,19 +119,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -87,19 +147,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -111,19 +175,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -135,19 +203,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -159,19 +231,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -183,19 +259,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -207,19 +287,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -231,19 +315,23 @@ modules:
       - labelname: towerIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - towerIndex
         labelname: towerID
         oid: 1.3.6.1.4.1.1718.3.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - towerIndex
         labelname: towerName
         oid: 1.3.6.1.4.1.1718.3.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - towerIndex
         labelname: towerProductSN
         oid: 1.3.6.1.4.1.1718.3.2.1.1.6
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - towerIndex
         labelname: towerModelNumber
         oid: 1.3.6.1.4.1.1718.3.2.1.1.7
         type: DisplayString
@@ -257,31 +345,31 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - towerIndex
         - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: &id006
+      - labels:
         - towerIndex
         - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: &id007
+      - labels:
         - towerIndex
         - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: &id008
+      - labels:
         - towerIndex
         - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: &id009
+      - labels:
         - towerIndex
         - infeedIndex
         labelname: infeedPhaseID
@@ -308,23 +396,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -347,23 +445,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -377,23 +485,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -407,23 +525,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -437,23 +565,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -467,23 +605,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -497,23 +645,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -527,23 +685,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -562,23 +730,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -592,23 +770,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -622,23 +810,33 @@ modules:
       - labelname: infeedIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedName
         oid: 1.3.6.1.4.1.1718.3.2.2.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.21
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedLineToLineID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.22
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - towerIndex
+        - infeedIndex
         labelname: infeedPhaseID
         oid: 1.3.6.1.4.1.1718.3.2.2.1.23
         type: DisplayString
@@ -654,14 +852,14 @@ modules:
       - labelname: outletIndex
         type: gauge
       lookups:
-      - labels: &id010
+      - labels:
         - towerIndex
         - infeedIndex
         - outletIndex
         labelname: outletID
         oid: 1.3.6.1.4.1.1718.3.2.3.1.2
         type: DisplayString
-      - labels: &id011
+      - labels:
         - towerIndex
         - infeedIndex
         - outletIndex
@@ -691,11 +889,17 @@ modules:
       - labelname: outletIndex
         type: gauge
       lookups:
-      - labels: *id010
+      - labels:
+        - towerIndex
+        - infeedIndex
+        - outletIndex
         labelname: outletID
         oid: 1.3.6.1.4.1.1718.3.2.3.1.2
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - towerIndex
+        - infeedIndex
+        - outletIndex
         labelname: outletName
         oid: 1.3.6.1.4.1.1718.3.2.3.1.3
         type: DisplayString
@@ -730,11 +934,17 @@ modules:
       - labelname: outletIndex
         type: gauge
       lookups:
-      - labels: *id010
+      - labels:
+        - towerIndex
+        - infeedIndex
+        - outletIndex
         labelname: outletID
         oid: 1.3.6.1.4.1.1718.3.2.3.1.2
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - towerIndex
+        - infeedIndex
+        - outletIndex
         labelname: outletName
         oid: 1.3.6.1.4.1.1718.3.2.3.1.3
         type: DisplayString
@@ -773,13 +983,13 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: &id012
+      - labels:
         - envMonIndex
         - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: &id013
+      - labels:
         - envMonIndex
         - tempHumidSensorIndex
         labelname: tempHumidSensorName
@@ -800,11 +1010,15 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorName
         oid: 1.3.6.1.4.1.1718.3.2.5.1.3
         type: DisplayString
@@ -827,11 +1041,15 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorName
         oid: 1.3.6.1.4.1.1718.3.2.5.1.3
         type: DisplayString
@@ -845,11 +1063,15 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorName
         oid: 1.3.6.1.4.1.1718.3.2.5.1.3
         type: DisplayString
@@ -872,11 +1094,15 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorName
         oid: 1.3.6.1.4.1.1718.3.2.5.1.3
         type: DisplayString
@@ -890,11 +1116,15 @@ modules:
       - labelname: tempHumidSensorIndex
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorID
         oid: 1.3.6.1.4.1.1718.3.2.5.1.2
         type: DisplayString
-      - labels: *id013
+      - labels:
+        - envMonIndex
+        - tempHumidSensorIndex
         labelname: tempHumidSensorName
         oid: 1.3.6.1.4.1.1718.3.2.5.1.3
         type: DisplayString

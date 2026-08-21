@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module cyberpower_pdu
-# Pair with embedded if_mib: module = "if_mib,cyberpower_pdu"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   cyberpower_pdu:
     walk:
@@ -15,6 +15,67 @@ modules:
     - 1.3.6.1.4.1.3808.1.1.6.5.4
     - 1.3.6.1.4.1.3808.1.1.6.6.1.4
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: pdu_name
+        oid: 1.3.6.1.4.1.3808.1.1.3.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: model
+        oid: 1.3.6.1.4.1.3808.1.1.3.1.5
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.3808.1.1.3.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: envirIdentName
+        oid: 1.3.6.1.4.1.3808.1.1.4.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: envirIdentLocation
+        oid: 1.3.6.1.4.1.3808.1.1.4.1.2
+        type: DisplayString
     - name: snmp_ePDULoadStatusLoad
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.2
       type: gauge
@@ -22,6 +83,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDULoadStatusLoadState
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.3
       type: gauge
@@ -34,6 +96,7 @@ modules:
         2: loadLow
         3: loadNearOverload
         4: loadOverload
+      lookups: []
     - name: snmp_ePDULoadStatusVoltage
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.6
       type: gauge
@@ -41,6 +104,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDULoadStatusActivePower
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.7
       type: gauge
@@ -48,6 +112,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDULoadStatusApparentPower
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.8
       type: gauge
@@ -55,6 +120,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDULoadStatusPowerFactor
       oid: 1.3.6.1.4.1.3808.1.1.3.2.3.1.1.9
       type: gauge
@@ -62,6 +128,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDULoadBankConfigAlarm
       oid: 1.3.6.1.4.1.3808.1.1.3.2.4.1.1.5
       type: gauge
@@ -74,6 +141,7 @@ modules:
         2: underCurrentAlarm
         3: nearOverCurrentAlarm
         4: overCurrentAlarm
+      lookups: []
     - name: snmp_ePDUOutletStatusOutletState
       oid: 1.3.6.1.4.1.3808.1.1.3.3.5.1.1.4
       type: gauge
@@ -82,7 +150,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: ePDUOutletStatusOutletName
         oid: 1.3.6.1.4.1.3808.1.1.3.3.5.1.1.2
@@ -98,7 +166,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: ePDUOutletStatusOutletName
         oid: 1.3.6.1.4.1.3808.1.1.3.3.5.1.1.2
         type: DisplayString
@@ -110,7 +179,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: ePDUOutletStatusOutletName
         oid: 1.3.6.1.4.1.3808.1.1.3.3.5.1.1.2
         type: DisplayString
@@ -122,7 +192,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: ePDUOutletStatusOutletName
         oid: 1.3.6.1.4.1.3808.1.1.3.3.5.1.1.2
         type: DisplayString
@@ -141,6 +212,7 @@ modules:
       enum_values:
         1: powerSupplyOneOk
         2: powerSupplyOneFailed
+      lookups: []
     - name: snmp_ePDUPowerSupply2Status
       oid: 1.3.6.1.4.1.3808.1.1.3.4.1.2
       type: gauge
@@ -152,6 +224,7 @@ modules:
         1: powerSupplyTwoOk
         2: powerSupplyTwoFailed
         3: powerSupplyTwoNotPresent
+      lookups: []
     - name: snmp_ePDUPowerSupplyAlarm
       oid: 1.3.6.1.4.1.3808.1.1.3.4.1.3
       type: gauge
@@ -164,6 +237,7 @@ modules:
         2: powerSupplyOneFailed
         3: powerSupplyTwoFailed
         4: powerSupplyOneandTwoFailed
+      lookups: []
     - name: snmp_ePDUStatusBankState
       oid: 1.3.6.1.4.1.3808.1.1.3.5.2.1.3
       type: gauge
@@ -176,6 +250,7 @@ modules:
         2: bankLoadLow
         3: bankLoadNearOverload
         4: bankLoadOverload
+      lookups: []
     - name: snmp_ePDUStatusPhaseState
       oid: 1.3.6.1.4.1.3808.1.1.3.5.4.1.3
       type: gauge
@@ -188,6 +263,7 @@ modules:
         2: phaseLoadLow
         3: phaseLoadNearOverload
         4: phaseLoadOverload
+      lookups: []
     - name: snmp_ePDUStatusOutletState
       oid: 1.3.6.1.4.1.3808.1.1.3.5.6.1.3
       type: gauge
@@ -200,6 +276,7 @@ modules:
         2: outletLoadLow
         3: outletLoadNearOverload
         4: outletLoadOverload
+      lookups: []
     - name: snmp_ePDUStatusInputVoltage
       oid: 1.3.6.1.4.1.3808.1.1.3.5.7
       type: gauge
@@ -207,6 +284,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDUStatusInputFrequency
       oid: 1.3.6.1.4.1.3808.1.1.3.5.8
       type: gauge
@@ -214,6 +292,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2DeviceStatusLoadState
       oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.4
       type: gauge
@@ -222,12 +301,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id002
+      - labels:
         - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: &id003
+      - labels:
         - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
@@ -245,11 +324,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -261,11 +342,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -277,11 +360,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -296,11 +381,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -315,11 +402,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -334,11 +423,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -350,11 +441,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusName
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: ePDU2DeviceStatusRoleType
         oid: 1.3.6.1.4.1.3808.1.1.6.3.4.1.17
         type: EnumAsInfo
@@ -370,6 +463,7 @@ modules:
         2: normal
         3: nearOverload
         4: overload
+      lookups: []
     - name: snmp_ePDU2PhaseStatusLoad
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.5
       type: gauge
@@ -377,6 +471,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2PhaseStatusVoltage
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.6
       type: gauge
@@ -384,6 +479,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2PhaseStatusPower
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.7
       type: gauge
@@ -391,6 +487,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2PhaseStatusApparentPower
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.8
       type: gauge
@@ -398,6 +495,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2PhaseStatusPowerFactor
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.9
       type: gauge
@@ -405,6 +503,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2PhaseStatusPeakLoad
       oid: 1.3.6.1.4.1.3808.1.1.6.4.4.1.10
       type: gauge
@@ -412,6 +511,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2BankStatusLoadState
       oid: 1.3.6.1.4.1.3808.1.1.6.5.4.1.4
       type: gauge
@@ -424,6 +524,7 @@ modules:
         2: normal
         3: nearOverload
         4: overload
+      lookups: []
     - name: snmp_ePDU2BankStatusLoad
       oid: 1.3.6.1.4.1.3808.1.1.6.5.4.1.5
       type: gauge
@@ -431,6 +532,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2BankStatusPeakLoad
       oid: 1.3.6.1.4.1.3808.1.1.6.5.4.1.6
       type: gauge
@@ -438,6 +540,7 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []
     - name: snmp_ePDU2OutletSwitchedStatusState
       oid: 1.3.6.1.4.1.3808.1.1.6.6.1.4.1.5
       type: gauge
@@ -454,3 +557,15 @@ modules:
       enum_values:
         1: outletStatusOn
         2: outletStatusOff
+    get:
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.3808.1.1.3.1.1.0
+    - 1.3.6.1.4.1.3808.1.1.3.1.5.0
+    - 1.3.6.1.4.1.3808.1.1.3.1.6.0
+    - 1.3.6.1.4.1.3808.1.1.4.1.1.0
+    - 1.3.6.1.4.1.3808.1.1.4.1.2.0

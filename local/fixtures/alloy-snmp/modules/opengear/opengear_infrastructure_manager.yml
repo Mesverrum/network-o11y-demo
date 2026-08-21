@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module opengear_infrastructure_manager
-# Pair with embedded if_mib: module = "if_mib,opengear_infrastructure_manager"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   opengear_infrastructure_manager:
     walk:
@@ -10,20 +10,65 @@ modules:
     - 1.3.6.1.4.1.2021.4.5.0
     - 1.3.6.1.4.1.2021.4.6.0
     - 1.3.6.1.4.1.2021.10.1.5.1
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
     - name: snmp_MemoryTotal
       oid: 1.3.6.1.4.1.2021.4.5
       type: gauge
       help: memTotalReal (UCD-SNMP-MIB) - 1.3.6.1.4.1.2021.4.5.0
+      lookups: []
     - name: snmp_MemoryFree
       oid: 1.3.6.1.4.1.2021.4.6
       type: gauge
       help: memAvailReal (UCD-SNMP-MIB) - 1.3.6.1.4.1.2021.4.6.0
+      lookups: []
     - name: snmp_CPULoad
       oid: 1.3.6.1.4.1.2021.10.1.5.1
       type: gauge
       help: laLoadInt1Min (UCD-SNMP-MIB) - 1.3.6.1.4.1.2021.10.1.5.1 [Unix load average,
         not utilization %]
+      lookups: []
     - name: snmp_ogSerialPortStatusRxBytes
       oid: 1.3.6.1.4.1.25049.16.1.1.3
       type: counter
@@ -32,17 +77,17 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: &id002
+      - labels:
         - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: &id003
+      - labels:
         - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
@@ -55,15 +100,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -75,15 +123,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -98,15 +149,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -121,15 +175,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -144,15 +201,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -167,15 +227,18 @@ modules:
       - labelname: ogSerialPortStatusIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusPort
         oid: 1.3.6.1.4.1.25049.16.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusSpeed
         oid: 1.3.6.1.4.1.25049.16.1.1.5
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - ogSerialPortStatusIndex
         labelname: ogSerialPortStatusLabel
         oid: 1.3.6.1.4.1.25049.16.1.1.11
         type: DisplayString
@@ -203,7 +266,7 @@ modules:
       - labelname: ogEmdStatusIndex
         type: gauge
       lookups:
-      - labels: &id004
+      - labels:
         - ogEmdStatusIndex
         labelname: ogEmdStatusName
         oid: 1.3.6.1.4.1.25049.16.4.1.2
@@ -216,7 +279,8 @@ modules:
       - labelname: ogEmdStatusIndex
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - ogEmdStatusIndex
         labelname: ogEmdStatusName
         oid: 1.3.6.1.4.1.25049.16.4.1.2
         type: DisplayString

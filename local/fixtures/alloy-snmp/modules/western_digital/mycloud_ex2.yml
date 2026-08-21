@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module mycloud_ex2
-# Pair with embedded if_mib: module = "if_mib,mycloud_ex2"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   mycloud_ex2:
     walk:
@@ -12,27 +12,86 @@ modules:
     - 1.3.6.1.2.1.25.3.3.1.2.196608
     - 1.3.6.1.4.1.5127.1.1.1.8.1.7.0
     - 1.3.6.1.4.1.5127.1.1.1.8.1.8.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.5127.1.1.1.8.1.2.0
+    - 1.3.6.1.4.1.5127.1.1.1.8.1.3.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: firmware
+        oid: 1.3.6.1.4.1.5127.1.1.1.8.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: wdmycloudex2HostName
+        oid: 1.3.6.1.4.1.5127.1.1.1.8.1.3
+        type: DisplayString
     - name: snmp_MemoryTotal
       oid: 1.3.6.1.2.1.25.2.3.1.5.1
       type: gauge
       help: hrStorageSizeRAM (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.2.3.1.5.1
+      lookups: []
     - name: snmp_MemoryUsed
       oid: 1.3.6.1.2.1.25.2.3.1.6.1
       type: gauge
       help: hrStorageUsedRAM (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.2.3.1.6.1
+      lookups: []
     - name: snmp_CPU
       oid: 1.3.6.1.2.1.25.3.3.1.2.196608
       type: gauge
       help: hrProcessorLoadCombined (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.3.3.1.2.196608
+      lookups: []
     - name: snmp_wdmycloudex2Temperature
       oid: 1.3.6.1.4.1.5127.1.1.1.8.1.7
       type: gauge
       help: wdmycloudex2Temperature (WDMYCLOUDEX2-MIB) - 1.3.6.1.4.1.5127.1.1.1.8.1.7.0
+      lookups: []
     - name: snmp_wdmycloudex2FanStatus
       oid: 1.3.6.1.4.1.5127.1.1.1.8.1.8
       type: gauge
       help: wdmycloudex2FanStatus (WDMYCLOUDEX2-MIB) - 1.3.6.1.4.1.5127.1.1.1.8.1.8.0
+      lookups: []
     - name: snmp_wdmycloudex2VolumeSize
       oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.5
       type: gauge
@@ -41,22 +100,22 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: wdmycloudex2VolumeNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.1
         type: DisplayString
-      - labels: &id002
+      - labels:
         - index
         labelname: wdmycloudex2VolumeName
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.2
         type: DisplayString
-      - labels: &id003
+      - labels:
         - index
         labelname: wdmycloudex2VolumeFsType
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.3
         type: DisplayString
-      - labels: &id004
+      - labels:
         - index
         labelname: wdmycloudex2VolumeRaidLevel
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.4
@@ -69,19 +128,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: wdmycloudex2VolumeNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.1
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - index
         labelname: wdmycloudex2VolumeName
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.2
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - index
         labelname: wdmycloudex2VolumeFsType
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - index
         labelname: wdmycloudex2VolumeRaidLevel
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.9.1.4
         type: DisplayString
@@ -93,22 +156,22 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - index
         labelname: wdmycloudex2DiskNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.1
         type: DisplayString
-      - labels: &id006
+      - labels:
         - index
         labelname: wdmycloudex2DiskVendor
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.2
         type: DisplayString
-      - labels: &id007
+      - labels:
         - index
         labelname: wdmycloudex2DiskModel
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.3
         type: DisplayString
-      - labels: &id008
+      - labels:
         - index
         labelname: wdmycloudex2DiskSerialNumber
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.4
@@ -121,19 +184,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - index
         labelname: wdmycloudex2DiskNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.1
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - index
         labelname: wdmycloudex2DiskVendor
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.2
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - index
         labelname: wdmycloudex2DiskModel
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.3
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: wdmycloudex2DiskSerialNumber
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.10.1.4
         type: DisplayString
@@ -145,22 +212,22 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id009
+      - labels:
         - index
         labelname: wdmycloudex2UPSNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.1
         type: DisplayString
-      - labels: &id010
+      - labels:
         - index
         labelname: wdmycloudex2UPSMode
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.2
         type: DisplayString
-      - labels: &id011
+      - labels:
         - index
         labelname: wdmycloudex2UPSManufacturer
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.3
         type: DisplayString
-      - labels: &id012
+      - labels:
         - index
         labelname: wdmycloudex2UPSProduct
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.4
@@ -173,19 +240,23 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - index
         labelname: wdmycloudex2UPSNum
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.1
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - index
         labelname: wdmycloudex2UPSMode
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.2
         type: DisplayString
-      - labels: *id011
+      - labels:
+        - index
         labelname: wdmycloudex2UPSManufacturer
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.3
         type: DisplayString
-      - labels: *id012
+      - labels:
+        - index
         labelname: wdmycloudex2UPSProduct
         oid: 1.3.6.1.4.1.5127.1.1.1.8.1.11.4
         type: DisplayString

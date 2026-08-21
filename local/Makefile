@@ -244,7 +244,7 @@ alloy-snmp-up: compose-host-env ## Enable Alloy-native SNMP scrape (LAB_ALLOY_SN
 	  $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy snmp_discovery
 
 .PHONY: alloy-fleet-up
-alloy-fleet-up: ## Enroll Alloy in Fleet Management + upsert SNMP pipeline
+alloy-fleet-up: ## Enroll Alloy in Fleet Management + upsert network.pipeline.alloy
 	bash $(ROOT)scripts/alloy-fleet-up.sh
 
 .PHONY: alloy-snmp-min
@@ -266,6 +266,10 @@ alloy-syslog-up: compose-host-env ## Enable loki.source.syslog + retarget SRL re
 	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/render-alloy-snmp-trap.sh
 	@cd $(ROOT) && $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy
 	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/syslog-config.sh
+
+.PHONY: alloy-cutover-colocated
+alloy-cutover-colocated: ## Colocated k3s: scale ktranslate to 0; Alloy remotecfg + Fleet pipelines
+	bash $(ROOT)scripts/alloy-cutover-colocated.sh
 
 .PHONY: alloy-netflow-up
 alloy-netflow-up: compose-host-env ## Enable otelcol.receiver.netflow (+ signaltometrics). Does not steal ktranslate ports
@@ -399,8 +403,16 @@ wan-ifalias: ## Set WAN interface descriptions (ifAlias) on spine/leaves
 	python3 $(ROOT)scripts/apply-wan-ifalias.py
 
 .PHONY: network-alerts
-network-alerts: ## Provision Grafana network alert rules (marcnetterfield1 / network-lab folder)
+network-alerts: ## Provision Grafana network alert rules (ktranslate group)
 	python3 $(ROOT)scripts/provision-network-alerts.py
+
+.PHONY: alloy-network-alerts
+alloy-network-alerts: ## Provision parallel Alloy SNMP/flow alert rules (does not replace ktranslate)
+	python3 $(ROOT)scripts/provision-network-alerts.py --alloy
+
+.PHONY: alloy-snmp-recording-rules
+alloy-snmp-recording-rules: ## Provision Alloy SNMP composite recording rules (colon names, Grafana-managed)
+	python3 $(ROOT)scripts/provision-alloy-snmp-recording-rules.py
 
 .PHONY: snmp-traps-config
 snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate or Alloy (LAB_ALLOY_SNMPTRAP=1)

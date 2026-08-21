@@ -37,6 +37,8 @@ if bash "${ROOT}/scripts/lab-alloy-snmp.sh" enabled; then
   info "Alloy SNMP discovery (named auth + sysObjectID→module)..."
   bash "${ROOT}/scripts/alloy-snmp-discover.sh" \
     || warn "alloy-snmp-discover failed — run: make alloy-snmp-discover"
+  python3 "${ROOT}/scripts/render-device-join.py" \
+    || warn "device-join catalog failed — flow/trap device_name join may miss clients"
   if docker inspect alloy >/dev/null 2>&1; then
     info "Recreating alloy to pick up SNMP scrape overlay..."
     (cd "${ROOT}" && docker compose --env-file .env --env-file compose-host.generated.env \

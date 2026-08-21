@@ -193,6 +193,7 @@ make alloy-snmp-min
 # In .env: ALLOY_IMAGE=srl-local/alloy:network-dev  and  LAB_ALLOY_SNMP=1
 make alloy-snmp-up          # discover + recreate (or: make alloy-snmp-discover)
 make alloy-snmp-dash
+make alloy-snmp-recording-rules   # 1m: memory/octets/util; 5m: errors/s + error % (colon names)
 ```
 
 **Optional Alloy-native flow** (does **not** replace ktranslate; needs from-source image):
@@ -236,6 +237,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make alloy-snmp-min` | **Laptop light:** 1× SRL + Alloy SNMP only (stops Clos/clients/ktranslate/traffic) |
 | `make alloy-snmp-min-down` | Tear down snmp-min |
 | `make alloy-snmp-dash` | Build+import `alloy-snmp-device-details` (curated `snmp_*` names) |
+| `make alloy-snmp-recording-rules` | Grafana-managed composites: 1m memory/octets/util; 5m errors/s + error % |
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |

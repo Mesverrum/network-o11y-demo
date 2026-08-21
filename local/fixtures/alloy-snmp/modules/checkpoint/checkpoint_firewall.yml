@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module checkpoint_firewall
-# Pair with embedded if_mib: module = "if_mib,checkpoint_firewall"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   checkpoint_firewall:
     walk:
@@ -20,7 +20,49 @@ modules:
     - 1.3.6.1.4.1.2620.1.1.5.0
     - 1.3.6.1.4.1.2620.1.1.25.3.0
     - 1.3.6.1.4.1.2620.1.1.25.4.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
     - name: snmp_multiProcUserTime
       oid: 1.3.6.1.4.1.2620.1.6.7.5.1.2
       type: gauge
@@ -29,7 +71,7 @@ modules:
       - labelname: multiProcIndex
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - multiProcIndex
         labelname: cpu_core
         oid: 1.3.6.1.4.1.2620.1.6.7.5.1.1
@@ -42,7 +84,8 @@ modules:
       - labelname: multiProcIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - multiProcIndex
         labelname: cpu_core
         oid: 1.3.6.1.4.1.2620.1.6.7.5.1.1
         type: DisplayString
@@ -54,7 +97,8 @@ modules:
       - labelname: multiProcIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - multiProcIndex
         labelname: cpu_core
         oid: 1.3.6.1.4.1.2620.1.6.7.5.1.1
         type: DisplayString
@@ -66,7 +110,8 @@ modules:
       - labelname: multiProcIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - multiProcIndex
         labelname: cpu_core
         oid: 1.3.6.1.4.1.2620.1.6.7.5.1.1
         type: DisplayString
@@ -74,26 +119,32 @@ modules:
       oid: 1.3.6.1.4.1.2620.1.6.7.2.7
       type: gauge
       help: procNum (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.2.7.0
+      lookups: []
     - name: snmp_MemoryTotal
       oid: 1.3.6.1.4.1.2620.1.6.7.4.3
       type: counter
       help: memTotalReal64 (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.4.3.0
+      lookups: []
     - name: snmp_memActiveReal64
       oid: 1.3.6.1.4.1.2620.1.6.7.4.4
       type: counter
       help: memActiveReal64 (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.4.4.0
+      lookups: []
     - name: snmp_MemoryFree
       oid: 1.3.6.1.4.1.2620.1.6.7.4.5
       type: counter
       help: memFreeReal64 (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.4.5.0
+      lookups: []
     - name: snmp_memTotalVirtual64
       oid: 1.3.6.1.4.1.2620.1.6.7.4.1
       type: counter
       help: memTotalVirtual64 (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.4.1.0
+      lookups: []
     - name: snmp_memActiveVirtual64
       oid: 1.3.6.1.4.1.2620.1.6.7.4.2
       type: counter
       help: memActiveVirtual64 (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.6.7.4.2.0
+      lookups: []
     - name: snmp_multiDiskSize
       oid: 1.3.6.1.4.1.2620.1.6.7.6.1.3
       type: counter
@@ -102,12 +153,12 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: &id002
+      - labels:
         - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: &id003
+      - labels:
         - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
@@ -120,11 +171,13 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: *id003
+      - labels:
+        - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
         type: DisplayString
@@ -136,11 +189,13 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: *id003
+      - labels:
+        - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
         type: DisplayString
@@ -152,11 +207,13 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: *id003
+      - labels:
+        - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
         type: DisplayString
@@ -168,11 +225,13 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: *id003
+      - labels:
+        - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
         type: DisplayString
@@ -184,11 +243,13 @@ modules:
       - labelname: multiDiskIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - multiDiskIndex
         labelname: disk_index
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.1
         type: gauge
-      - labels: *id003
+      - labels:
+        - multiDiskIndex
         labelname: disk_name
         oid: 1.3.6.1.4.1.2620.1.6.7.6.1.2
         type: DisplayString
@@ -200,12 +261,12 @@ modules:
       - labelname: fanSpeedSensorIndex
         type: gauge
       lookups:
-      - labels: &id004
+      - labels:
         - fanSpeedSensorIndex
         labelname: sensor_index
         oid: 1.3.6.1.4.1.2620.1.6.7.8.2.1.1
         type: gauge
-      - labels: &id005
+      - labels:
         - fanSpeedSensorIndex
         labelname: sensor_name
         oid: 1.3.6.1.4.1.2620.1.6.7.8.2.1.2
@@ -218,11 +279,13 @@ modules:
       - labelname: fanSpeedSensorIndex
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - fanSpeedSensorIndex
         labelname: sensor_index
         oid: 1.3.6.1.4.1.2620.1.6.7.8.2.1.1
         type: gauge
-      - labels: *id005
+      - labels:
+        - fanSpeedSensorIndex
         labelname: sensor_name
         oid: 1.3.6.1.4.1.2620.1.6.7.8.2.1.2
         type: DisplayString
@@ -238,12 +301,12 @@ modules:
       - labelname: tempertureSensorIndex
         type: gauge
       lookups:
-      - labels: &id006
+      - labels:
         - tempertureSensorIndex
         labelname: sensor_index
         oid: 1.3.6.1.4.1.2620.1.6.7.8.1.1.1
         type: gauge
-      - labels: &id007
+      - labels:
         - tempertureSensorIndex
         labelname: sensor_name
         oid: 1.3.6.1.4.1.2620.1.6.7.8.1.1.2
@@ -256,11 +319,13 @@ modules:
       - labelname: tempertureSensorIndex
         type: gauge
       lookups:
-      - labels: *id006
+      - labels:
+        - tempertureSensorIndex
         labelname: sensor_index
         oid: 1.3.6.1.4.1.2620.1.6.7.8.1.1.1
         type: gauge
-      - labels: *id007
+      - labels:
+        - tempertureSensorIndex
         labelname: sensor_name
         oid: 1.3.6.1.4.1.2620.1.6.7.8.1.1.2
         type: DisplayString
@@ -272,22 +337,27 @@ modules:
       oid: 1.3.6.1.4.1.2620.1.1.4
       type: gauge
       help: fwAccepted (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.1.4.0
+      lookups: []
     - name: snmp_fwDropped
       oid: 1.3.6.1.4.1.2620.1.1.6
       type: gauge
       help: fwDropped (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.1.6.0
+      lookups: []
     - name: snmp_fwRejected
       oid: 1.3.6.1.4.1.2620.1.1.5
       type: gauge
       help: fwRejected (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.1.5.0
+      lookups: []
     - name: snmp_fwNumConn
       oid: 1.3.6.1.4.1.2620.1.1.25.3
       type: gauge
       help: fwNumConn (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.1.25.3.0
+      lookups: []
     - name: snmp_fwPeakNumConn
       oid: 1.3.6.1.4.1.2620.1.1.25.4
       type: gauge
       help: fwPeakNumConn (CHECKPOINT-MIB) - 1.3.6.1.4.1.2620.1.1.25.4.0
+      lookups: []
     - name: snmp_powerSupplySensorStatus
       oid: 1.3.6.1.4.1.2620.1.6.7.9.1.1.2
       type: gauge
@@ -295,3 +365,4 @@ modules:
       indexes:
       - labelname: index
         type: gauge
+      lookups: []

@@ -29,6 +29,19 @@ HOST_NETWORK_STRATEGY = """  strategy:
 """
 
 
+def load_local_env() -> None:
+    """Last-wins .env into os.environ so child render scripts see Fleet flags."""
+    env_file = LOCAL / ".env"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ[k.strip()] = v.strip().strip('"').strip("'")
+
+
 def run_generate_groups() -> None:
     subprocess.run(["bash", str(LOCAL / "scripts" / "generate-groups.sh")], cwd=LOCAL, check=True)
     subprocess.run(["bash", str(LOCAL / "scripts" / "write-compose-host-env.sh")], cwd=LOCAL, check=True)
@@ -44,6 +57,25 @@ def load_ktrans_host() -> str:
     return subprocess.check_output(
         ["bash", str(LOCAL / "scripts" / "host-id.sh")], text=True
     ).strip()
+
+
+def env_flag(name: str, default: str = "0") -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        env_file = LOCAL / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith(f"{name}="):
+                    raw = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+    if raw is None:
+        raw = default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def ktranslate_replicas() -> int:
+    """LAB_KTRANSLATE=0 scales ktranslate Deployments to 0 (Alloy cutover)."""
+    return 1 if env_flag("LAB_KTRANSLATE", "1") else 0
 
 
 def load_alloy_image() -> str:
@@ -157,7 +189,7 @@ metadata:
     app: {name}
     component: ktranslate-golden
 spec:
-  replicas: 1
+  replicas: {ktranslate_replicas()}
 {HOST_NETWORK_STRATEGY}  selector:
     matchLabels:
       app: {name}
@@ -280,7 +312,7 @@ metadata:
     app: {name}
     component: ktranslate-golden
 spec:
-  replicas: 1
+  replicas: {ktranslate_replicas()}
 {HOST_NETWORK_STRATEGY}  selector:
     matchLabels:
       app: {name}
@@ -430,6 +462,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    load_local_env()
     run_generate_groups()
     host = load_ktrans_host()
     groups = load_poller_configs()
@@ -465,16 +498,35 @@ data:
         cwd=LOCAL,
         check=True,
     )
+    snmp_env = os.environ.copy()
+    # k3s: hostPath local/alloy → /snmp-sd for targets/SD files.
+    # prometheus.exporter.snmp config_file stays /etc/alloy/snmp-network.yml (image).
+    snmp_env.setdefault("ALLOY_SNMP_TARGETS_DIR", "/snmp-sd")
+    subprocess.run(
+        [sys.executable, str(LOCAL / "scripts" / "render-device-join.py")],
+        cwd=LOCAL,
+        check=False,
+    )
     subprocess.run(
         ["bash", str(LOCAL / "scripts" / "render-alloy-netflow.sh")],
         cwd=LOCAL,
         check=True,
+        env=snmp_env,
     )
-    snmp_env = os.environ.copy()
-    # k3s: hostPath local/alloy → /snmp-sd (do not hide image /etc/alloy/snmp-network.yml).
-    snmp_env.setdefault("ALLOY_SNMP_TARGETS_DIR", "/snmp-sd")
     subprocess.run(
         ["bash", str(LOCAL / "scripts" / "render-alloy-snmp-scrape.sh")],
+        cwd=LOCAL,
+        check=True,
+        env=snmp_env,
+    )
+    subprocess.run(
+        ["bash", str(LOCAL / "scripts" / "render-alloy-snmp-trap.sh")],
+        cwd=LOCAL,
+        check=True,
+        env=snmp_env,
+    )
+    subprocess.run(
+        ["bash", str(LOCAL / "scripts" / "render-alloy-remotecfg.sh")],
         cwd=LOCAL,
         check=True,
         env=snmp_env,
@@ -482,12 +534,18 @@ data:
     alloy_cfg = read_text(LOCAL / "alloy" / "config.alloy")
     alloy_export = read_text(LOCAL / "alloy" / "otlp-export.generated.alloy")
     parts = [alloy_cfg.rstrip(), alloy_export.lstrip()]
+    remotecfg_path = LOCAL / "alloy" / "remotecfg.generated.alloy"
+    if remotecfg_path.exists():
+        parts.append(read_text(remotecfg_path).lstrip())
     netflow_path = LOCAL / "alloy" / "netflow.generated.alloy"
     if netflow_path.exists():
         parts.append(read_text(netflow_path).lstrip())
     snmp_path = LOCAL / "alloy" / "snmp-scrape.generated.alloy"
     if snmp_path.exists():
         parts.append(read_text(snmp_path).lstrip())
+    trap_path = LOCAL / "alloy" / "snmp-trap.generated.alloy"
+    if trap_path.exists():
+        parts.append(read_text(trap_path).lstrip())
     alloy_merged = "\n\n".join(parts)
     write_manifest(
         "alloy-configmap.yaml",

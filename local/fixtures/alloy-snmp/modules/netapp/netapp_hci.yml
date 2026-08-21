@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module netapp_hci
-# Pair with embedded if_mib: module = "if_mib,netapp_hci"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   netapp_hci:
     walk:
@@ -18,7 +18,61 @@ modules:
     - 1.3.6.1.4.1.7244.1.2.1.2.7.0
     - 1.3.6.1.4.1.7244.1.2.1.2.8.0
     - 1.3.6.1.4.1.7244.1.2.1.2.9.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.7244.1.2.1.1.1.0
+    - 1.3.6.1.4.1.7244.1.2.1.1.8.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: agentBMCVersion
+        oid: 1.3.6.1.4.1.7244.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: agentSystemBIOSVersion
+        oid: 1.3.6.1.4.1.7244.1.2.1.1.8
+        type: DisplayString
     - name: snmp_agentChassisStatus
       oid: 1.3.6.1.4.1.7244.1.2.1.1.4
       type: gauge
@@ -29,6 +83,7 @@ modules:
         4: interlock
         8: powerFault
         16: powerControlFault
+      lookups: []
     - name: snmp_agentPowerControl
       oid: 1.3.6.1.4.1.7244.1.2.1.1.5
       type: gauge
@@ -39,6 +94,7 @@ modules:
         2: 'on'
         3: reset
         4: cycle
+      lookups: []
     - name: snmp_voltageStatusOverall
       oid: 1.3.6.1.4.1.7244.1.2.1.2.1
       type: gauge
@@ -50,6 +106,7 @@ modules:
         4: nonCritical
         5: critical
         6: nonRecoverable
+      lookups: []
     - name: snmp_fanStatusOverall
       oid: 1.3.6.1.4.1.7244.1.2.1.2.3
       type: gauge
@@ -61,6 +118,7 @@ modules:
         4: nonCritical
         5: critical
         6: nonRecoverable
+      lookups: []
     - name: snmp_temperatureStatusOverall
       oid: 1.3.6.1.4.1.7244.1.2.1.2.5
       type: gauge
@@ -72,6 +130,7 @@ modules:
         4: nonCritical
         5: critical
         6: nonRecoverable
+      lookups: []
     - name: snmp_powerSupplyRedundancy
       oid: 1.3.6.1.4.1.7244.1.2.1.2.7
       type: gauge
@@ -80,6 +139,7 @@ modules:
         1: other
         2: full
         3: lost
+      lookups: []
     - name: snmp_powerSupply0Status
       oid: 1.3.6.1.4.1.7244.1.2.1.2.8
       type: gauge
@@ -91,6 +151,7 @@ modules:
         8: inputLost
         16: lostOrOutOfRange
         32: outOfRange
+      lookups: []
     - name: snmp_powerSupply1Status
       oid: 1.3.6.1.4.1.7244.1.2.1.2.9
       type: gauge
@@ -102,6 +163,7 @@ modules:
         8: inputLost
         16: lostOrOutOfRange
         32: outOfRange
+      lookups: []
     - name: snmp_processorDeviceInfoStatus
       oid: 1.3.6.1.4.1.7244.1.2.1.3.1.1.2
       type: gauge
@@ -172,7 +234,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: fanDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.3.1.3
@@ -196,7 +258,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: fanDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.3.1.3
         type: DisplayString
@@ -208,7 +271,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id002
+      - labels:
         - index
         labelname: temperatureDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.4.1.3
@@ -232,7 +295,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: temperatureDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.4.1.3
         type: DisplayString
@@ -244,7 +308,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id003
+      - labels:
         - index
         labelname: voltageDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.5.1.3
@@ -268,7 +332,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - index
         labelname: voltageDeviceInfoLocationName
         oid: 1.3.6.1.4.1.7244.1.2.1.3.5.1.3
         type: DisplayString

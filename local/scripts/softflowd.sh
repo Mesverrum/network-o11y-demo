@@ -32,8 +32,17 @@ fi
 # Alpine softflowd 1.1.0 documents multiple -n + optional -l (load-balance), but in
 # practice dual -n starved ktranslate :9995 once pktvisor :19995 was added (only the
 # last collector received exports). Separate processes = reliable fan-out copy.
-DESTS=("${kt_ip}:9995")
-info "NetFlow collector: ${kt_ip}:9995"
+kt_flow=1
+case "${LAB_KTRANSLATE:-1}" in
+  0|false|FALSE|no|NO|off|OFF) kt_flow=0 ;;
+esac
+DESTS=()
+if [[ "${kt_flow}" == "1" ]]; then
+  DESTS+=("${kt_ip}:9995")
+  info "NetFlow collector: ${kt_ip}:9995"
+else
+  info "ktranslate NetFlow dest skipped (LAB_KTRANSLATE=0)"
+fi
 
 pkt_on="${ORB_PKTVISOR:-0}"
 if [[ "$pkt_on" == "1" || "$pkt_on" == "true" || -n "${PKTVISOR_CLAB_HOST:-}" ]]; then
@@ -56,6 +65,8 @@ if [[ "${alloy_nf}" == "1" ]]; then
   DESTS+=("${alloy_ip}:2055")
   info "Alloy NetFlow also: ${alloy_ip}:2055"
 fi
+
+[[ "${#DESTS[@]}" -gt 0 ]] || die "no NetFlow destinations — enable LAB_KTRANSLATE=1 and/or LAB_ALLOY_NETFLOW=1"
 
 # Serialize dest list for the remote shell (space-separated host:port).
 DESTS_STR="${DESTS[*]}"

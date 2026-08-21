@@ -24,6 +24,8 @@ bash local/scripts/deploy-ktranslate-golden.sh
 
 Colocated AWS reference: [`terraform/colocated-network-lab/README.md`](../../terraform/colocated-network-lab/README.md).
 
+This directory is the **Clos lab** translator (hostPath, SR Linux profile bind-mount, gnmic). Portable collectors for real gear live in [KtransToGrafana `k8s/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/k8s) — same groups → generate → discover workflow, with the destination-IP / state / scale / HA limits written down in that repo’s `k8s/LIMITATIONS.md`.
+
 Legacy hand-maintained EKS manifests remain in `k8s/telemetry/` for the blog/EKS path only.
 
 ## Generated files

@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module cisco_asa
-# Pair with embedded if_mib: module = "if_mib,cisco_asa"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   cisco_asa:
     walk:
@@ -8,7 +8,71 @@ modules:
     - 1.3.6.1.4.1.9.9.171.1.2.2
     - 1.3.6.1.4.1.9.9.171.1.2.3
     - 1.3.6.1.4.1.9.9.171.1.3.2
+    get:
+    - 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.6
+    - 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.7
+    - 1.3.6.1.4.1.9.9.392.1.4.1.2.0
+    - 1.3.6.1.4.1.9.9.392.1.3.1.0
+    - 1.3.6.1.4.1.9.9.392.1.1.1.0
+    - 1.3.6.1.4.1.9.9.392.1.3.3.0
+    - 1.3.6.1.4.1.9.9.392.1.1.2.0
+    - 1.3.6.1.4.1.9.9.392.1.4.1.3.0
+    - 1.3.6.1.4.1.9.9.171.1.3.1.1.0
+    - 1.3.6.1.4.1.9.9.171.1.3.1.4.0
+    - 1.3.6.1.4.1.9.9.171.1.3.1.17.0
+    - 1.3.6.1.4.1.9.9.171.1.2.1.1.0
+    - 1.3.6.1.4.1.9.9.171.1.2.1.3.0
+    - 1.3.6.1.4.1.9.9.171.1.2.1.4.0
+    - 1.3.6.1.4.1.9.9.171.1.2.1.11.0
+    - 1.3.6.1.4.1.9.9.171.1.2.1.12.0
+    - 1.3.6.1.4.1.9.9.171.1.3.1.9.0
+    - 1.3.6.1.4.1.9.9.171.1.3.1.22.0
+    - 1.3.6.1.4.1.9.9.491.1.3.1.2.0
+    - 1.3.6.1.4.1.9.9.491.1.3.1.5.0
+    - 1.3.6.1.4.1.9.9.491.1.3.1.6.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
     - name: snmp_cfwHardwareStatusValue
       oid: 1.3.6.1.4.1.9.9.147.1.2.1.1.1.3
       type: gauge
@@ -38,6 +102,16 @@ modules:
         8: backup
         9: active
         10: standby
+    - name: snmp_cfwConnectionStatValue
+      oid: 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.6
+      type: gauge
+      help: cfwConnectionStatValue (CISCO-FIREWALL-MIB) - 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.6
+      lookups: []
+    - name: snmp_cfwConnectionStatValue
+      oid: 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.7
+      type: gauge
+      help: cfwConnectionStatValue (CISCO-FIREWALL-MIB) - 1.3.6.1.4.1.9.9.147.1.2.2.2.1.5.40.7
+      lookups: []
     - name: snmp_cempMemPoolType
       oid: 1.3.6.1.4.1.9.9.221.1.1.1.1.2
       type: EnumAsInfo
@@ -46,7 +120,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: cempMemPoolName
         oid: 1.3.6.1.4.1.9.9.221.1.1.1.1.3
@@ -74,7 +148,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: cempMemPoolName
         oid: 1.3.6.1.4.1.9.9.221.1.1.1.1.3
         type: DisplayString
@@ -86,10 +161,106 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: cempMemPoolName
         oid: 1.3.6.1.4.1.9.9.221.1.1.1.1.3
         type: DisplayString
+    - name: snmp_crasNumDeclinedSessions
+      oid: 1.3.6.1.4.1.9.9.392.1.4.1.2
+      type: gauge
+      help: crasNumDeclinedSessions (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.4.1.2.0
+      lookups: []
+    - name: snmp_crasNumSessions
+      oid: 1.3.6.1.4.1.9.9.392.1.3.1
+      type: gauge
+      help: crasNumSessions (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.3.1.0
+      lookups: []
+    - name: snmp_crasMaxSessionsSupportable
+      oid: 1.3.6.1.4.1.9.9.392.1.1.1
+      type: gauge
+      help: crasMaxSessionsSupportable (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.1.1.0
+      lookups: []
+    - name: snmp_crasNumUsers
+      oid: 1.3.6.1.4.1.9.9.392.1.3.3
+      type: gauge
+      help: crasNumUsers (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.3.3.0
+      lookups: []
+    - name: snmp_crasMaxUsersSupportable
+      oid: 1.3.6.1.4.1.9.9.392.1.1.2
+      type: gauge
+      help: crasMaxUsersSupportable (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.1.2.0
+      lookups: []
+    - name: snmp_crasNumSetupFailInsufResources
+      oid: 1.3.6.1.4.1.9.9.392.1.4.1.3
+      type: counter
+      help: crasNumSetupFailInsufResources (CISCO-REMOTE-ACCESS-MONITOR-MIB) - 1.3.6.1.4.1.9.9.392.1.4.1.3.0
+      lookups: []
+    - name: snmp_cipSecGlobalActiveTunnels
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.1
+      type: gauge
+      help: cipSecGlobalActiveTunnels (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.1.0
+      lookups: []
+    - name: snmp_cipSecGlobalHcInOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.4
+      type: counter
+      help: cipSecGlobalHcInOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.4.0
+      lookups: []
+    - name: snmp_cipSecGlobalHcOutOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.17
+      type: counter
+      help: cipSecGlobalHcOutOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.17.0
+      lookups: []
+    - name: snmp_cikeGlobalActiveTunnels
+      oid: 1.3.6.1.4.1.9.9.171.1.2.1.1
+      type: gauge
+      help: cikeGlobalActiveTunnels (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.2.1.1.0
+      lookups: []
+    - name: snmp_cikeGlobalInOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.2.1.3
+      type: counter
+      help: cikeGlobalInOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.2.1.3.0
+      lookups: []
+    - name: snmp_cikeGlobalInPkts
+      oid: 1.3.6.1.4.1.9.9.171.1.2.1.4
+      type: counter
+      help: cikeGlobalInPkts (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.2.1.4.0
+      lookups: []
+    - name: snmp_cikeGlobalOutOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.2.1.11
+      type: counter
+      help: cikeGlobalOutOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.2.1.11.0
+      lookups: []
+    - name: snmp_cikeGlobalOutPkts
+      oid: 1.3.6.1.4.1.9.9.171.1.2.1.12
+      type: counter
+      help: cikeGlobalOutPkts (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.2.1.12.0
+      lookups: []
+    - name: snmp_cipSecGlobalActiveTunnels
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.1
+      type: gauge
+      help: cipSecGlobalActiveTunnels (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.1.0
+      lookups: []
+    - name: snmp_cipSecGlobalHcInOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.4
+      type: counter
+      help: cipSecGlobalHcInOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.4.0
+      lookups: []
+    - name: snmp_cipSecGlobalInPkts
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.9
+      type: counter
+      help: cipSecGlobalInPkts (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.9.0
+      lookups: []
+    - name: snmp_cipSecGlobalHcOutOctets
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.17
+      type: counter
+      help: cipSecGlobalHcOutOctets (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.17.0
+      lookups: []
+    - name: snmp_cipSecGlobalOutPkts
+      oid: 1.3.6.1.4.1.9.9.171.1.3.1.22
+      type: counter
+      help: cipSecGlobalOutPkts (CISCO-IPSEC-FLOW-MONITOR-MIB) - 1.3.6.1.4.1.9.9.171.1.3.1.22.0
+      lookups: []
     - name: snmp_cikePeerActiveTime
       oid: 1.3.6.1.4.1.9.9.171.1.2.2.1.8
       type: gauge
@@ -141,62 +312,62 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: &id002
+      - labels:
         - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: &id003
+      - labels:
         - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: &id004
+      - labels:
         - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: &id005
+      - labels:
         - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: &id006
+      - labels:
         - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: &id007
+      - labels:
         - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: &id008
+      - labels:
         - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: &id009
+      - labels:
         - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: &id010
+      - labels:
         - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: &id011
+      - labels:
         - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: &id012
+      - labels:
         - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: &id013
+      - labels:
         - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
@@ -209,51 +380,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -265,51 +448,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -321,51 +516,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -377,51 +584,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -433,51 +652,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -489,51 +720,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -545,51 +788,63 @@ modules:
       - labelname: cikeTunIndex
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.2
         type: EnumAsInfo
-      - labels: *id003
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.3
         type: DisplayString
-      - labels: *id004
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.4
         type: DisplayString
-      - labels: *id005
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunLocalName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.5
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteType
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.6
         type: EnumAsInfo
-      - labels: *id007
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteValue
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.7
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.8
         type: DisplayString
-      - labels: *id009
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunRemoteName
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.9
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunNegoMode
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.10
         type: EnumAsInfo
-      - labels: *id011
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.11
         type: EnumAsInfo
-      - labels: *id012
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.12
         type: EnumAsInfo
-      - labels: *id013
+      - labels:
+        - cikeTunIndex
         labelname: cikeTunHashAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.2.3.1.13
         type: EnumAsInfo
@@ -604,77 +859,77 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: &id014
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: &id015
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: &id016
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: &id017
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: &id018
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: &id019
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: &id020
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: &id021
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: &id022
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: &id023
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: &id024
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: &id025
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: &id026
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: &id027
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: &id028
+      - labels:
         - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
@@ -687,63 +942,78 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
@@ -755,63 +1025,78 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
@@ -823,63 +1108,78 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
@@ -891,63 +1191,78 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
@@ -959,63 +1274,78 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
@@ -1027,66 +1357,96 @@ modules:
       - labelname: cipSecTunIndex
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunIkeTunnelIndex
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.2
         type: gauge
-      - labels: *id015
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunLocalAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.4
         type: DisplayString
-      - labels: *id016
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunRemoteAddr
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.5
         type: DisplayString
-      - labels: *id017
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunKeyType
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.6
         type: EnumAsInfo
-      - labels: *id018
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunEncapMode
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.7
         type: EnumAsInfo
-      - labels: *id019
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.16
         type: EnumAsInfo
-      - labels: *id020
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.17
         type: EnumAsInfo
-      - labels: *id021
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.18
         type: EnumAsInfo
-      - labels: *id022
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.19
         type: EnumAsInfo
-      - labels: *id023
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunInSaDecompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.20
         type: EnumAsInfo
-      - labels: *id024
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaDiffHellmanGrp
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.21
         type: EnumAsInfo
-      - labels: *id025
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEncryptAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.22
         type: EnumAsInfo
-      - labels: *id026
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaAhAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.23
         type: EnumAsInfo
-      - labels: *id027
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaEspAuthAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.24
         type: EnumAsInfo
-      - labels: *id028
+      - labels:
+        - cipSecTunIndex
         labelname: cipSecTunOutSaCompAlgo
         oid: 1.3.6.1.4.1.9.9.171.1.3.2.1.25
         type: EnumAsInfo
       enum_values:
         1: active
         2: destroy
+    - name: snmp_cufwUrlfRequestsNumProcessed
+      oid: 1.3.6.1.4.1.9.9.491.1.3.1.2
+      type: counter
+      help: cufwUrlfRequestsNumProcessed (CISCO-UNIFIED-FIREWALL-MIB) - 1.3.6.1.4.1.9.9.491.1.3.1.2.0
+      lookups: []
+    - name: snmp_cufwUrlfRequestsNumAllowed
+      oid: 1.3.6.1.4.1.9.9.491.1.3.1.5
+      type: counter
+      help: cufwUrlfRequestsNumAllowed (CISCO-UNIFIED-FIREWALL-MIB) - 1.3.6.1.4.1.9.9.491.1.3.1.5.0
+      lookups: []
+    - name: snmp_cufwUrlfRequestsNumDenied
+      oid: 1.3.6.1.4.1.9.9.491.1.3.1.6
+      type: counter
+      help: cufwUrlfRequestsNumDenied (CISCO-UNIFIED-FIREWALL-MIB) - 1.3.6.1.4.1.9.9.491.1.3.1.6.0
+      lookups: []

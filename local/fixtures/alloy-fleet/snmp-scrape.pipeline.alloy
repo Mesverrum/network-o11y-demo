@@ -1,5 +1,5 @@
-// Fleet Management pipeline: network_o11y_alloy_snmp
-// Upserted by scripts/fleet-upsert-snmp-pipeline.py
+// Fallback Fleet pipeline when LAB_ALLOY_FLEET_DISCOVERY=0 (file_sd SNMP only).
+// Default upsert is network.pipeline.alloy (SNMP + events + netflow).
 //
 // remotecfg runs in an isolated scope — cannot reference local components
 // (e.g. otelcol.processor.transform.preprocessing). Export OTLP here via env.
@@ -23,15 +23,11 @@ local.file "snmp_targets_cold" {
 }
 
 prometheus.exporter.snmp "fabric_hot" {
-  config_file           = "/etc/alloy/snmp-network.yml"
-  config_merge_strategy = "replace"
-  targets               = encoding.from_yaml(local.file.snmp_targets_hot.content)
+  targets = encoding.from_yaml(local.file.snmp_targets_hot.content)
 }
 
 prometheus.exporter.snmp "fabric_cold" {
-  config_file           = "/etc/alloy/snmp-network.yml"
-  config_merge_strategy = "replace"
-  targets               = encoding.from_yaml(local.file.snmp_targets_cold.content)
+  targets = encoding.from_yaml(local.file.snmp_targets_cold.content)
 }
 
 prometheus.relabel "alloy_snmp_hot" {

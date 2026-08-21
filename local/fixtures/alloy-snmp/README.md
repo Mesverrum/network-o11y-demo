@@ -10,10 +10,20 @@ cp ../alloy/snmp/sysobjectid-index.yaml local/fixtures/alloy-snmp/
 cp ../alloy/snmp/fingerprinters.yml local/fixtures/alloy-snmp/
 ```
 
+`snmp-network.yml` and `fingerprinters.yml` are one catalog. Refresh **both** from the same convert (or extract both from the running image). Do not mix a newer image library with this snapshot — discovery `module=` names that are missing from the exporter YAML walk empty or can panic.
+
 Kentik profile attribution: `NOTICE` (Apache-2.0).
 
 `snmp_CPU` is utilization (0–100%). Unix load averages (`laLoadInt*`, UniFi `loadValue`) emit as `snmp_CPULoad`.
 
-Cold `ip_addr` is authored (not kentik `ip-mib.yml` stats): `snmp_ipAdEntIfIndex` / `snmp_ipAddressIfIndex` with `ifIndex` labels for dashboard joins. `if_MAC` is a PhysAddress lookup on `if_mib_meta`.
+Cold `ip_addr` is authored (not kentik `ip-mib.yml` stats): `snmp_ipAdEntIfIndex` / `snmp_ipAddressIfIndex` with `ifIndex` labels for dashboard joins. `if_MAC` is a PhysAddress48 lookup on `if_mib_meta` (snmp_exporter panics on MIB type `PhysAddress`).
 
-Composite metrics (memory %, error %, …) are a Mimir recording-rule mock-up in `recording-rules.yaml` — not emitted by the converter.
+Composite metrics are **not** converter output. Grafana-managed recording rules (`make -C local alloy-snmp-recording-rules`) write Prometheus colon names. Catalog + formulas: [`docs/alloy-network-fork.md`](../../../docs/alloy-network-fork.md) § Computed metrics. YAML export: `recording-rules.yaml`.
+
+| Recorded name | Meaning |
+|---|---|
+| `device:snmp_MemoryUtilization:percent` | Memory used % (ktranslate `MemoryUtilization`) |
+| `if:snmp_ifInErrors:rate5m` / `if:snmp_ifOutErrors:rate5m` | Interface errors/s — **5m cold group** (`if_mib_meta`) |
+| `if:snmp_ifInErrorPercent:percent` / `if:snmp_ifOutErrorPercent:percent` | Errors / unicast packets × 100 — **5m cold group** |
+| `if:snmp_ifHCInOctets:rate5m` / `if:snmp_ifHCOutOctets:rate5m` | Octets/s (`* 8` → bps) |
+| `if:snmp_IfInUtilization:percent` / `if:snmp_IfOutUtilization:percent` | Link utilization % vs `ifHighSpeed` |

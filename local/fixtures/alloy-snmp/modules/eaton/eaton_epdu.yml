@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module eaton_epdu
-# Pair with embedded if_mib: module = "if_mib,eaton_epdu"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   eaton_epdu:
     walk:
@@ -17,7 +17,89 @@ modules:
     - 1.3.6.1.4.1.534.6.6.7.7.1
     - 1.3.6.1.4.1.534.6.6.7.7.2
     - 1.3.6.1.4.1.534.6.6.7.7.3
+    get:
+    - 1.3.6.1.4.1.534.6.6.7.1.2.1.30.0
+    - 1.3.6.1.4.1.534.6.6.7.1.2.1.31.0
+    - 1.3.6.1.4.1.534.6.6.7.1.2.1.32.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.534.6.6.7.1.2.1.3.0
+    - 1.3.6.1.4.1.534.6.6.7.1.2.1.4.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: partNumber
+        oid: 1.3.6.1.4.1.534.6.6.7.1.2.1.3
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.534.6.6.7.1.2.1.4
+        type: DisplayString
+    - name: snmp_communicationStatus
+      oid: 1.3.6.1.4.1.534.6.6.7.1.2.1.30
+      type: gauge
+      help: communicationStatus (EATON-EPDU-MIB) - 1.3.6.1.4.1.534.6.6.7.1.2.1.30.0
+      enum_values:
+        0: good
+        1: communicationLost
+      lookups: []
+    - name: snmp_internalStatus
+      oid: 1.3.6.1.4.1.534.6.6.7.1.2.1.31
+      type: gauge
+      help: internalStatus (EATON-EPDU-MIB) - 1.3.6.1.4.1.534.6.6.7.1.2.1.31.0
+      enum_values:
+        0: good
+        1: internalFailure
+      lookups: []
+    - name: snmp_strappingStatus
+      oid: 1.3.6.1.4.1.534.6.6.7.1.2.1.32
+      type: gauge
+      help: strappingStatus (EATON-EPDU-MIB) - 1.3.6.1.4.1.534.6.6.7.1.2.1.32.0
+      enum_values:
+        0: good
+        1: communicationLost
+      lookups: []
     - name: snmp_inputFrequency
       oid: 1.3.6.1.4.1.534.6.6.7.3.1.1.3
       type: gauge
@@ -26,7 +108,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - index
         labelname: inputFeedDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.1.1.10
@@ -39,7 +121,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - index
         labelname: inputFeedDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.1.1.10
         type: DisplayString
@@ -54,7 +137,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id002
+      - labels:
         - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
@@ -67,7 +150,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id002
+      - labels:
+        - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
         type: DisplayString
@@ -85,7 +169,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id003
+      - labels:
         - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
@@ -98,7 +182,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
         type: DisplayString
@@ -116,7 +201,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id003
+      - labels:
+        - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
         type: DisplayString
@@ -128,7 +214,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id004
+      - labels:
         - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
@@ -141,7 +227,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - index
         labelname: inputDescription
         oid: 1.3.6.1.4.1.534.6.6.7.3.3.1.12
         type: DisplayString
@@ -175,12 +262,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: &id006
+      - labels:
         - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
@@ -193,11 +280,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
         type: EnumAsInfo
@@ -215,12 +304,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id007
+      - labels:
         - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: &id008
+      - labels:
         - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
@@ -233,11 +322,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
         type: EnumAsInfo
@@ -255,11 +346,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id007
+      - labels:
+        - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: *id008
+      - labels:
+        - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
         type: EnumAsInfo
@@ -271,12 +364,12 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id009
+      - labels:
         - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: &id010
+      - labels:
         - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
@@ -289,11 +382,13 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - index
         labelname: groupName
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.3
         type: DisplayString
-      - labels: *id010
+      - labels:
+        - index
         labelname: groupType
         oid: 1.3.6.1.4.1.534.6.6.7.5.1.1.4
         type: EnumAsInfo
@@ -328,7 +423,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id011
+      - labels:
         - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
@@ -341,7 +436,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id011
+      - labels:
+        - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
         type: DisplayString
@@ -359,7 +455,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id012
+      - labels:
         - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
@@ -372,7 +468,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
         type: DisplayString
@@ -390,7 +487,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id012
+      - labels:
+        - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
         type: DisplayString
@@ -402,7 +500,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id013
+      - labels:
         - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
@@ -415,7 +513,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id013
+      - labels:
+        - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
         type: DisplayString
@@ -433,7 +532,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id013
+      - labels:
+        - index
         labelname: outletName
         oid: 1.3.6.1.4.1.534.6.6.7.6.1.1.3
         type: DisplayString
@@ -445,7 +545,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id014
+      - labels:
         - index
         labelname: temperatureName
         oid: 1.3.6.1.4.1.534.6.6.7.7.1.1.2
@@ -462,7 +562,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - index
         labelname: temperatureName
         oid: 1.3.6.1.4.1.534.6.6.7.7.1.1.2
         type: DisplayString
@@ -474,7 +575,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id014
+      - labels:
+        - index
         labelname: temperatureName
         oid: 1.3.6.1.4.1.534.6.6.7.7.1.1.2
         type: DisplayString
@@ -492,7 +594,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id015
+      - labels:
         - index
         labelname: humidityName
         oid: 1.3.6.1.4.1.534.6.6.7.7.2.1.2
@@ -509,7 +611,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - index
         labelname: humidityName
         oid: 1.3.6.1.4.1.534.6.6.7.7.2.1.2
         type: DisplayString
@@ -521,7 +624,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id015
+      - labels:
+        - index
         labelname: humidityName
         oid: 1.3.6.1.4.1.534.6.6.7.7.2.1.2
         type: DisplayString
@@ -539,7 +643,7 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: &id016
+      - labels:
         - index
         labelname: contactName
         oid: 1.3.6.1.4.1.534.6.6.7.7.3.1.2
@@ -556,7 +660,8 @@ modules:
       - labelname: index
         type: gauge
       lookups:
-      - labels: *id016
+      - labels:
+        - index
         labelname: contactName
         oid: 1.3.6.1.4.1.534.6.6.7.7.3.1.2
         type: DisplayString

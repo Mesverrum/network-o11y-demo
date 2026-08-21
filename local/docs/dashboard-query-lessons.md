@@ -21,6 +21,21 @@ Compared prior agent patches vs operator/Assistant edits on all five ktranslate 
 | **SNMP inventory** | `count by (device_name) (kentik_snmp_CPU)` | `kentik_snmp_DeviceMetrics` (AWS path) |
 | **Device drill-down** | `/d/ktranslate-device-details?var-instance=${__data.fields.device_name}` | Legacy `magz6qw1` |
 
+### Alloy SNMP composites (recording rules)
+
+Scrape names stay native (`snmp_MemoryUsed`, `snmp_ifInErrors`). Precomputed UX series use colon names — see [`docs/alloy-network-fork.md`](../../docs/alloy-network-fork.md) § Computed metrics. Provision: `make -C local alloy-snmp-recording-rules`.
+
+| Topic | Use | Do not use |
+|-------|-----|------------|
+| **Memory %** | `device:snmp_MemoryUtilization:percent` | Panel ratio `snmp_MemoryUsed / (Used+Free)` once rules exist |
+| **Interface bps** | `if:snmp_ifHCInOctets:rate5m * 8` or `rate(snmp_ifHCInOctets[$__rate_interval]) * 8` | ktranslate `(ifHCInOctets) * 8 / 60` |
+| **Interface errors/s** | `if:snmp_ifInErrors:rate5m` (5m cold group) | `(snmp_ifInErrors) / 60` (that is ktranslate deltas) |
+| **Interface error %** | `if:snmp_ifInErrorPercent:percent` (5m cold group) | Recording packet rates; joining on `instance` (hot/cold Alloy instances differ) |
+| **Link utilization %** | `if:snmp_IfInUtilization:percent` | Dividing by `ifHighSpeed` when it is 0 (mgmt → `+Inf`) |
+| **Trap volume** | Loki `{service_name="alloy-snmptrap"}` + `sum by (trap_oid) (count_over_time(...[$__interval]))` | `eventType="KSnmpTrap"`, `TrapName`, CHF `kentik_ktranslate_chf_kkc_snmp_traps` |
+| **Syslog volume** | Loki `{service_name="alloy-syslog"}` + `sum by (severity) (count_over_time(...))` | `instrumentation_name="ktranslate-syslog"`, `\| json` on syslog lines |
+| **Device filter** | Label matcher `device_name=~"$instance"` (A4) / `$device_name` (A3) | Parsing JSON for `device_name` after the fact |
+
 ## Live stack counts (all dashboards)
 
 - PromQL panel queries: **331**

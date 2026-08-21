@@ -134,7 +134,8 @@ Real switches export NetFlow/sFlow natively — the lab's `softflowd` step is **
 | Agent bring-up | [`AGENTS.md`](../AGENTS.md) |
 | Networking concepts | [`docs/network-observability-primer.md`](network-observability-primer.md) |
 | Grafana dashboards / gcx / flow panels | [`docs/grafana-dashboard-playbook.md`](grafana-dashboard-playbook.md) · [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) |
-| EKS manifests | [`k8s/telemetry/`](../k8s/telemetry/) |
+| EKS manifests (legacy blog) | [`k8s/telemetry/`](../k8s/telemetry/) |
+| Portable ktranslate on Kubernetes (not this Clos lab) | [KtransToGrafana `k8s/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/k8s) — same groups → generate → discover; read `k8s/LIMITATIONS.md` first |
 | SNMP profiles (upstream) | [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) · [writing a profile](https://github.com/kentik/ktranslate/wiki/Tutorial:-Writing-a-custom-yaml-file-for-SNMP) |
 
 **Do not maintain a separate "local vs EKS collector architecture" story** — both paths implement this document.

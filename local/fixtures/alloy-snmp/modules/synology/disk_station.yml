@@ -1,5 +1,5 @@
 # GENERATED from kentik/snmp-profiles — module disk_station
-# Pair with embedded if_mib: module = "if_mib,disk_station"
+# Discovery chain is if_mib + vendor; SNMPv2 identity is inlined as snmp_device_info.
 modules:
   disk_station:
     walk:
@@ -23,24 +23,88 @@ modules:
     - 1.3.6.1.4.1.6574.108.1.0
     - 1.3.6.1.4.1.6574.108.2.0
     - 1.3.6.1.4.1.6574.108.3.0
+    - 1.3.6.1.2.1.1.1.0
+    - 1.3.6.1.2.1.1.2.0
+    - 1.3.6.1.2.1.1.3.0
+    - 1.3.6.1.2.1.1.4.0
+    - 1.3.6.1.2.1.1.5.0
+    - 1.3.6.1.2.1.1.6.0
+    - 1.3.6.1.4.1.6574.1.5.1.0
+    - 1.3.6.1.4.1.6574.1.5.2.0
+    - 1.3.6.1.4.1.6574.1.5.3.0
     metrics:
+    - name: snmp_Uptime
+      oid: 1.3.6.1.2.1.1.3
+      type: gauge
+      help: sysUpTime (SNMPv2-MIB) TimeTicks
+      lookups: []
+    - name: snmp_device_info
+      oid: 1.3.6.1.2.1.1.5
+      type: DisplayString
+      help: "Device identity (info metric, value 1). sysName is the DisplayString;\
+        \ SNMPv2 + vendor scalars are lookups. Dummy snmp_scalar_index (.0) is required:\
+        \ snmp_exporter skips lookups with empty labels. Alloy copies snmp_device_info\
+        \ \u2192 sysName and drops snmp_scalar_index."
+      indexes:
+      - labelname: snmp_scalar_index
+        type: gauge
+      lookups:
+      - labels:
+        - snmp_scalar_index
+        labelname: sysDescr
+        oid: 1.3.6.1.2.1.1.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysObjectID
+        oid: 1.3.6.1.2.1.1.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysContact
+        oid: 1.3.6.1.2.1.1.4
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: sysLocation
+        oid: 1.3.6.1.2.1.1.6
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: model
+        oid: 1.3.6.1.4.1.6574.1.5.1
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: serial
+        oid: 1.3.6.1.4.1.6574.1.5.2
+        type: DisplayString
+      - labels:
+        - snmp_scalar_index
+        labelname: version
+        oid: 1.3.6.1.4.1.6574.1.5.3
+        type: DisplayString
     - name: snmp_CPULoad
       oid: 1.3.6.1.4.1.2021.10.1.5.1
       type: gauge
       help: laLoadInt1Min (UCD-SNMP-MIB) - 1.3.6.1.4.1.2021.10.1.5.1 [Unix load average,
         not utilization %]
+      lookups: []
     - name: snmp_MemoryTotal
       oid: 1.3.6.1.2.1.25.2.3.1.6.1
       type: gauge
       help: hrStorageUsed (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.2.3.1.6.1
+      lookups: []
     - name: snmp_hrStorageUsed
       oid: 1.3.6.1.2.1.25.2.3.1.6.6
       type: gauge
       help: hrStorageUsed (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.2.3.1.6.6
+      lookups: []
     - name: snmp_hrStorageUsed
       oid: 1.3.6.1.2.1.25.2.3.1.6.7
       type: gauge
       help: hrStorageUsed (HOST-RESOURCES-MIB) - 1.3.6.1.2.1.25.2.3.1.6.7
+      lookups: []
     - name: snmp_systemStatus
       oid: 1.3.6.1.4.1.6574.1.1
       type: gauge
@@ -48,10 +112,12 @@ modules:
       enum_values:
         1: normal
         2: failed
+      lookups: []
     - name: snmp_temperature
       oid: 1.3.6.1.4.1.6574.1.2
       type: gauge
       help: temperature (SYNOLOGY-SYSTEM-MIB) - 1.3.6.1.4.1.6574.1.2.0
+      lookups: []
     - name: snmp_powerStatus
       oid: 1.3.6.1.4.1.6574.1.3
       type: gauge
@@ -59,6 +125,7 @@ modules:
       enum_values:
         1: normal
         2: failed
+      lookups: []
     - name: snmp_systemFanStatus
       oid: 1.3.6.1.4.1.6574.1.4.1
       type: gauge
@@ -66,6 +133,7 @@ modules:
       enum_values:
         1: normal
         2: failed
+      lookups: []
     - name: snmp_cpuFanStatus
       oid: 1.3.6.1.4.1.6574.1.4.2
       type: gauge
@@ -73,6 +141,7 @@ modules:
       enum_values:
         1: normal
         2: failed
+      lookups: []
     - name: snmp_upgradeAvailable
       oid: 1.3.6.1.4.1.6574.1.5.4
       type: gauge
@@ -83,6 +152,7 @@ modules:
         3: connecting
         4: disconnected
         5: others
+      lookups: []
     - name: snmp_diskStatus
       oid: 1.3.6.1.4.1.6574.2.1.1.5
       type: gauge
@@ -91,17 +161,17 @@ modules:
       - labelname: diskIndex
         type: gauge
       lookups:
-      - labels: &id001
+      - labels:
         - diskIndex
         labelname: diskID
         oid: 1.3.6.1.4.1.6574.2.1.1.2
         type: DisplayString
-      - labels: &id002
+      - labels:
         - diskIndex
         labelname: diskModel
         oid: 1.3.6.1.4.1.6574.2.1.1.3
         type: DisplayString
-      - labels: &id003
+      - labels:
         - diskIndex
         labelname: diskType
         oid: 1.3.6.1.4.1.6574.2.1.1.4
@@ -120,15 +190,18 @@ modules:
       - labelname: diskIndex
         type: gauge
       lookups:
-      - labels: *id001
+      - labels:
+        - diskIndex
         labelname: diskID
         oid: 1.3.6.1.4.1.6574.2.1.1.2
         type: DisplayString
-      - labels: *id002
+      - labels:
+        - diskIndex
         labelname: diskModel
         oid: 1.3.6.1.4.1.6574.2.1.1.3
         type: DisplayString
-      - labels: *id003
+      - labels:
+        - diskIndex
         labelname: diskType
         oid: 1.3.6.1.4.1.6574.2.1.1.4
         type: DisplayString
@@ -140,7 +213,7 @@ modules:
       - labelname: raidIndex
         type: gauge
       lookups:
-      - labels: &id004
+      - labels:
         - raidIndex
         labelname: raidName
         oid: 1.3.6.1.4.1.6574.3.1.1.2
@@ -175,7 +248,8 @@ modules:
       - labelname: raidIndex
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - raidIndex
         labelname: raidName
         oid: 1.3.6.1.4.1.6574.3.1.1.2
         type: DisplayString
@@ -187,7 +261,8 @@ modules:
       - labelname: raidIndex
         type: gauge
       lookups:
-      - labels: *id004
+      - labels:
+        - raidIndex
         labelname: raidName
         oid: 1.3.6.1.4.1.6574.3.1.1.2
         type: DisplayString
@@ -199,17 +274,17 @@ modules:
       - labelname: diskSMARTInfoIndex
         type: gauge
       lookups:
-      - labels: &id005
+      - labels:
         - diskSMARTInfoIndex
         labelname: diskSMARTInfoDevName
         oid: 1.3.6.1.4.1.6574.5.1.1.2
         type: DisplayString
-      - labels: &id006
+      - labels:
         - diskSMARTInfoIndex
         labelname: diskSMARTAttrName
         oid: 1.3.6.1.4.1.6574.5.1.1.3
         type: DisplayString
-      - labels: &id007
+      - labels:
         - diskSMARTInfoIndex
         labelname: diskSMARTAttrId
         oid: 1.3.6.1.4.1.6574.5.1.1.4
@@ -222,15 +297,18 @@ modules:
       - labelname: diskSMARTInfoIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTInfoDevName
         oid: 1.3.6.1.4.1.6574.5.1.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTAttrName
         oid: 1.3.6.1.4.1.6574.5.1.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTAttrId
         oid: 1.3.6.1.4.1.6574.5.1.1.4
         type: DisplayString
@@ -242,15 +320,18 @@ modules:
       - labelname: diskSMARTInfoIndex
         type: gauge
       lookups:
-      - labels: *id005
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTInfoDevName
         oid: 1.3.6.1.4.1.6574.5.1.1.2
         type: DisplayString
-      - labels: *id006
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTAttrName
         oid: 1.3.6.1.4.1.6574.5.1.1.3
         type: DisplayString
-      - labels: *id007
+      - labels:
+        - diskSMARTInfoIndex
         labelname: diskSMARTAttrId
         oid: 1.3.6.1.4.1.6574.5.1.1.4
         type: DisplayString
@@ -275,7 +356,7 @@ modules:
       - labelname: storageIOIndex
         type: gauge
       lookups:
-      - labels: &id008
+      - labels:
         - storageIOIndex
         labelname: storageIODevice
         oid: 1.3.6.1.4.1.6574.101.1.1.2
@@ -288,7 +369,8 @@ modules:
       - labelname: storageIOIndex
         type: gauge
       lookups:
-      - labels: *id008
+      - labels:
+        - storageIOIndex
         labelname: storageIODevice
         oid: 1.3.6.1.4.1.6574.101.1.1.2
         type: DisplayString
@@ -300,7 +382,8 @@ modules:
       - labelname: storageIOIndex
         type: gauge
       lookups:
-      - labels: *id008
+      - labels:
+        - storageIOIndex
         labelname: storageIODevice
         oid: 1.3.6.1.4.1.6574.101.1.1.2
         type: DisplayString
@@ -312,7 +395,8 @@ modules:
       - labelname: storageIOIndex
         type: gauge
       lookups:
-      - labels: *id008
+      - labels:
+        - storageIOIndex
         labelname: storageIODevice
         oid: 1.3.6.1.4.1.6574.101.1.1.2
         type: DisplayString
@@ -324,7 +408,8 @@ modules:
       - labelname: storageIOIndex
         type: gauge
       lookups:
-      - labels: *id008
+      - labels:
+        - storageIOIndex
         labelname: storageIODevice
         oid: 1.3.6.1.4.1.6574.101.1.1.2
         type: DisplayString
@@ -336,7 +421,7 @@ modules:
       - labelname: spaceIOIndex
         type: gauge
       lookups:
-      - labels: &id009
+      - labels:
         - spaceIOIndex
         labelname: spaceIODevice
         oid: 1.3.6.1.4.1.6574.102.1.1.2
@@ -349,7 +434,8 @@ modules:
       - labelname: spaceIOIndex
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - spaceIOIndex
         labelname: spaceIODevice
         oid: 1.3.6.1.4.1.6574.102.1.1.2
         type: DisplayString
@@ -361,7 +447,8 @@ modules:
       - labelname: spaceIOIndex
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - spaceIOIndex
         labelname: spaceIODevice
         oid: 1.3.6.1.4.1.6574.102.1.1.2
         type: DisplayString
@@ -373,7 +460,8 @@ modules:
       - labelname: spaceIOIndex
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - spaceIOIndex
         labelname: spaceIODevice
         oid: 1.3.6.1.4.1.6574.102.1.1.2
         type: DisplayString
@@ -385,7 +473,8 @@ modules:
       - labelname: spaceIOIndex
         type: gauge
       lookups:
-      - labels: *id009
+      - labels:
+        - spaceIOIndex
         labelname: spaceIODevice
         oid: 1.3.6.1.4.1.6574.102.1.1.2
         type: DisplayString
@@ -396,11 +485,14 @@ modules:
       enum_values:
         0: supported
         1: unsupported
+      lookups: []
     - name: snmp_gpuUtilization
       oid: 1.3.6.1.4.1.6574.108.2
       type: gauge
       help: gpuUtilization (SYNOLOGY-GPUINFO-MIB) - 1.3.6.1.4.1.6574.108.2.0
+      lookups: []
     - name: snmp_gpuMemoryUtilization
       oid: 1.3.6.1.4.1.6574.108.3
       type: gauge
       help: gpuMemoryUtilization (SYNOLOGY-GPUINFO-MIB) - 1.3.6.1.4.1.6574.108.3.0
+      lookups: []
