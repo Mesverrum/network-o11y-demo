@@ -11,7 +11,7 @@ Strategy:
 
 Usage:
   python3 local/scripts/patch-mib-vendor-coverage.py           # write KtransToGrafana
-  python3 local/scripts/patch-mib-vendor-coverage.py --push    # GET live marc → patch → PUT
+  python3 local/scripts/patch-mib-vendor-coverage.py --push --force  # frozen unless --force
 """
 from __future__ import annotations
 
@@ -405,7 +405,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--from-live", action="store_true")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Override freeze: per-MIB has_* on Device Details hurts empty-stack TTI",
+    )
     args = parser.parse_args()
+    if args.push and not args.force:
+        raise SystemExit(
+            "Frozen: vendor per-MIB has_* on Device Details (empty label_values dominate TTI). "
+            "Map to existing capability gates or use a role spoke. "
+            "Pass --force to override. See docs/grafana-network-dashboard-expand-hardware.md"
+        )
 
     path = path_for_uid(UID)
     if args.push or args.from_live:

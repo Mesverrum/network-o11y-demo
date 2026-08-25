@@ -32,7 +32,7 @@ In these skills, **`$device`** means *your* single-device selector variable. Rep
 | Portable (all ktranslate + Grafana Cloud) | Adapt per deployment |
 |-------------------------------------------|----------------------|
 | TabsLayout / row / grid layout | Dashboard UID, folder, datasource variable |
-| `has_*` conditional rows | Exact list of `has_*` vars on your import |
+| `has_*` conditional rows | Exact list of `has_*` vars on your import — keep this **small**; empty `label_values` is slower than a hit |
 | `labelsToFields → merge → organize` for tables | Column renames per vendor MIB |
 | Hide `deployment_host`, `src_addr`, SNMP junk labels | Extra labels your stack adds |
 | `kentik_ping_*` vs `kentik_snmp_*` gate metrics | Gate metric per vendor (see expand skill) |

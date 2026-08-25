@@ -6,7 +6,7 @@ Skips SNMPv2 identity scalars. Marc-only with --push.
 
 Usage:
   python3 local/scripts/patch-mib-full-library-coverage.py
-  python3 local/scripts/patch-mib-full-library-coverage.py --push
+  python3 local/scripts/patch-mib-full-library-coverage.py --push --force  # frozen unless --force
 """
 from __future__ import annotations
 
@@ -340,7 +340,18 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--push", action="store_true")
     ap.add_argument("--from-live", action="store_true")
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="Override freeze: per-MIB has_* on Device Details hurts empty-stack TTI",
+    )
     args = ap.parse_args()
+    if args.push and not args.force:
+        raise SystemExit(
+            "Frozen: full-library per-MIB has_* on Device Details (empty label_values dominate TTI). "
+            "Map to existing capability gates or use a role spoke. "
+            "Pass --force to override. See docs/grafana-network-dashboard-expand-hardware.md"
+        )
 
     path = path_for_uid(UID)
     if args.push or args.from_live:

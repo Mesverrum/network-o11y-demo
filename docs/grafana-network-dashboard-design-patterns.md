@@ -67,6 +67,8 @@ Default `<poll_sec>` is **60** for ktranslate SNMP polls; match your poller `pol
 
 Hidden QueryVariables gate rows. Non-empty → show row; empty → hide row.
 
+**Cost:** every `has_*` is a Prom `label_values` on dashboard open. Confirming a **missing** metric is slower than listing values for a metric that exists, so speculative per-MIB gates dominate TTI on stacks with little or no `kentik_snmp_*` data. Keep capability-level gates only; do not add one `has_*` per vendor table.
+
 ```
 kind: QueryVariable
 name: has_<feature>
