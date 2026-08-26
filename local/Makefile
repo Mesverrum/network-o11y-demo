@@ -271,6 +271,10 @@ alloy-syslog-up: compose-host-env ## Enable loki.source.syslog + retarget SRL re
 alloy-cutover-colocated: ## Colocated k3s: scale ktranslate to 0; Alloy remotecfg + Fleet pipelines
 	bash $(ROOT)scripts/alloy-cutover-colocated.sh
 
+.PHONY: alloy-ktranslate-parallel-colocated
+alloy-ktranslate-parallel-colocated: ## Colocated k3s: ktranslate + Alloy fork (SNMP/netflow; ktranslate owns traps/syslog)
+	bash $(ROOT)scripts/alloy-ktranslate-parallel-colocated.sh
+
 .PHONY: alloy-netflow-up
 alloy-netflow-up: compose-host-env ## Enable otelcol.receiver.netflow (+ signaltometrics). Does not steal ktranslate ports
 	@cd $(ROOT) && LAB_ALLOY_NETFLOW=1 bash scripts/render-alloy-netflow.sh
@@ -525,6 +529,18 @@ telegraf-poc-build: ## Build Telegraf flex PoC image only
 .PHONY: join-app-build
 join-app-build: ## Build join-app binary only
 	bash $(ROOT)scripts/join-app.sh build
+
+.PHONY: workshop-fault
+workshop-fault: ## Webinar hunt: disable leaf1 ethernet-1/1 (sustained)
+	bash $(ROOT)scripts/workshop-inject-fault.sh start
+
+.PHONY: workshop-fault-stop
+workshop-fault-stop: ## Clear webinar hunt fault on leaf1 ethernet-1/1
+	bash $(ROOT)scripts/workshop-inject-fault.sh stop
+
+.PHONY: workshop-fault-status
+workshop-fault-status: ## Show webinar hunt interface admin-state
+	bash $(ROOT)scripts/workshop-inject-fault.sh status
 
 .PHONY: join-fault
 join-fault: ## Inject netem delay/loss on client eth1 (join demo talk track)

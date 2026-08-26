@@ -241,6 +241,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make softflowd` / `make syslog` | Re-apply client/device helpers |
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
+| `make workshop-fault` / `workshop-fault-stop` | Webinar hunt: disable HQ `leaf1` `ethernet-1/1` (sustained). SSM: `python3 local/scripts/ssm-workshop-inject-fault.py start` |
 | `make snmp-traps-config` | Point SRL SNMP traps at ktranslate `:1620`, or Alloy when `LAB_ALLOY_SNMPTRAP=1` |
 | `make alloy-snmptrap-up` | Render `loki.source.snmptrap`, recreate Alloy, retarget SRL trap-group |
 | `make alloy-syslog-up` | Render `loki.source.syslog`, recreate Alloy, retarget SRL remote syslog |
@@ -264,7 +265,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 ## Golden path notes (vs older monolith)
 
 - **Device catalog for flow/syslog/sFlow:** `make generate` writes `config/catalog.yaml` with `@` references to each group's `state/devices-<group>.yaml`. Flow, sFlow, and syslog receivers mount the catalog via `compose-catalog.generated.yaml` (not the per-group poller YAML).
-- **SNMP MIBs / profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). **Temporary:** `local/snmp-profiles/nokia/nokia-srlinux.yml` is bind-mounted until [kentik/snmp-profiles#889](https://github.com/kentik/snmp-profiles/pull/889) merges (SRL `MemoryUtilization`). Run `make generate` after template changes; recreate `ktranslate_snmp_srl-hq` to pick up profile edits.
+- **SNMP MIBs / profiles:** bundled in the ktranslate image from [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles). **Temporary:** `local/snmp-profiles/nokia/nokia-srlinux.yml` is bind-mounted until [kentik/snmp-profiles#889](https://github.com/kentik/snmp-profiles/pull/889) merges (SRL `MemoryUtilization`). Optional fork: set `PROFILE_GIT_URL` (and optional `PROFILE_GIT_COMMIT`) in `.env`, then `make generate` and recreate SNMP + rediscover — ktranslate clones that repo at start ([#803](https://github.com/kentik/ktranslate/pull/803)). Private repo: `KT_GIT_ACCESS_USERNAME` / `KT_GIT_ACCESS_TOKEN` / `KT_GIT_PULL_BRANCH`. Run `make generate` after template changes; recreate `ktranslate_snmp_*` to pick up profile edits.
 - **No more** root `snmp.yaml` + `--snmp_discovery_on_start`. Discovery is a one-shot
   `discover_srl` profile; the long-running poller mounts `config/poller-srl-hq.yaml`
   read-only and `@`-includes `state/devices-srl-hq.yaml`.
