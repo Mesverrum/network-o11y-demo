@@ -4,7 +4,7 @@ Live SNMP for the [Grafana Network Observability webinar](https://github.com/Mes
 
 **Student story is the 3-site Clos** (HQ + two branches). Do **not** start the laptop Clos. Do **not** redeploy campus-core (`clab deploy --reconfigure`).
 
-Student order on that repo: login → data sources → synthetics → import dashboards → explore (healthy) → you inject a Clos fault → they hunt → Infinity. Discovery is **your** share during Lab 1, not a student blocking lab.
+Student order on that repo: login → data sources → synthetics → import dashboards → explore (healthy) → you inject a Clos fault → they hunt → Infinity. Finish `make discover GROUP=…` **before** the session so polling is already live.
 
 ## What students should see
 
@@ -16,13 +16,13 @@ Student order on that repo: login → data sources → synthetics → import das
 
 That is the colocated lab (`network-o11y-demo-colocated-lab`). Discovery is the golden path: `groups/srl-*.env` → `make discover GROUP=…` → `state/devices-srl-*.yaml`. Device Summary **SNMP group** lists those three values (All by default).
 
-Restore collectors:
+Restore collectors if needed, then discover **before** attendees join:
 
 ```text
 python local/scripts/ssm-alloy-ktranslate-parallel.py
 ```
 
-Facilitator share while they add data sources: `local/groups/srl-hq.env` (CIDR + community), then the matching `state/devices-srl-hq.yaml` on the colocated host (`/opt/network-o11y-demo/local/…`). Repeat the idea for the two branch groups.
+Confirm `kentik_snmp_PollingHealth` on your Explore (`spine1`, `leaf1`, `leaf2`, `leaf-br1`, `leaf-br2`). Group env files: `local/groups/srl-hq.env` (and the two branch files); device lists on the colocated host at `/opt/network-o11y-demo/local/state/devices-srl-*.yaml`.
 
 ## Lab 5 incident (after they have explored)
 
