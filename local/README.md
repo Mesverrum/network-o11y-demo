@@ -243,7 +243,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
 | `make workshop-fault` / `workshop-fault-stop` | Webinar hunt: disable HQ `leaf1` `ethernet-1/1` (sustained). SSM: `python3 local/scripts/ssm-workshop-inject-fault.py start` |
 | `make snmp-traps-config` | Point SRL SNMP traps at ktranslate `:1620`, or Alloy when `LAB_ALLOY_SNMPTRAP=1` |
-| `make alloy-snmptrap-up` | Render `loki.source.snmptrap`, recreate Alloy, retarget SRL trap-group |
+| `make alloy-snmptrap-up` | Render `otelcol.receiver.snmptrap`, recreate Alloy, retarget SRL trap-group |
 | `make alloy-syslog-up` | Render `loki.source.syslog`, recreate Alloy, retarget SRL remote syslog |
 | `make alloy-netflow-up` | Render `otelcol.receiver.netflow` + signaltometrics (ports 2055/6344; ktranslate stays) |
 | `make emit-events` | One-shot: configure syslog+traps, flap links for real device events (also runs once when events-loop starts) |

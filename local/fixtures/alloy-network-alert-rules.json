@@ -1313,7 +1313,7 @@
       "execErrState": "Error",
       "for": "5m",
       "annotations": {
-        "summary": "Elevated SNMP trap rate on Alloy loki.source.snmptrap",
+        "summary": "Elevated SNMP trap rate on Alloy otelcol.receiver.snmptrap",
         "description": "Trap log rate exceeds 0.5/s for 5 minutes ({service_name=alloy-snmptrap}).",
         "runbook_url": "https://marcnetterfield1.grafana.net/d/alloy-flow-summary"
       },

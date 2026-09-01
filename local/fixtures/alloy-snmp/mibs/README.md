@@ -1,4 +1,4 @@
-# Curated MIBs for `loki.source.snmptrap`
+# Curated MIBs for `otelcol.receiver.snmptrap`
 
 Small IETF set only (SNMPv2-SMI/TC/MIB + IF-MIB). **Do not** dump distro or Cisco mega-trees here — gosmi can hang.
 

@@ -507,7 +507,7 @@ def alloy_rule_definitions(grafana_url: str = "") -> list[dict[str, Any]]:
             "datasource": "loki",
             "for": "5m",
             "severity": "info",
-            "summary": "Elevated SNMP trap rate on Alloy loki.source.snmptrap",
+            "summary": "Elevated SNMP trap rate on Alloy otelcol.receiver.snmptrap",
             "description": "Trap log rate exceeds 0.5/s for 5 minutes ({service_name=alloy-snmptrap}).",
             "labels": {"domain": "events"},
         },

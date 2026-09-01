@@ -124,46 +124,13 @@ otelcol.receiver.prometheus "alloy_snmp" {
   }
 }
 
-loki.relabel "snmptrap" {
-  forward_to = []
-
-  rule {
-    source_labels = ["__snmptrap_name"]
-    target_label  = "trap"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_oid"]
-    target_label  = "trap_oid"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_source"]
-    target_label  = "source"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_version"]
-    target_label  = "snmp_version"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_pdu"]
-    target_label  = "pdu_type"
-  }
-}
-
-loki.source.snmptrap "lab" {
-  targets        = discovery.relabel.join_catalog.output
-  labels         = {
+otelcol.receiver.snmptrap "lab" {
+  targets = discovery.relabel.join_catalog.output
+  attributes = {
     job       = "snmptrap",
     collector = "alloy-snmptrap",
   }
-  relabel_rules  = loki.relabel.snmptrap.rules
-  forward_to     = [otelcol.receiver.loki.snmptrap.receiver]
-}
 
-otelcol.receiver.loki "snmptrap" {
   output {
     logs = [otelcol.processor.transform.snmptrap_logs.input]
   }

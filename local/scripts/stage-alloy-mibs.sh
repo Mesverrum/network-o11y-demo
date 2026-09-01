@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy a small curated MIB set into fixtures/alloy-snmp/mibs for loki.source.snmptrap.
+# Copy a small curated MIB set into fixtures/alloy-snmp/mibs for otelcol.receiver.snmptrap.
 # Prefer distro net-snmp files; never dump the whole tree (gosmi hangs on mega-sets).
 set -euo pipefail
 

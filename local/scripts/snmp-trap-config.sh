@@ -37,7 +37,7 @@ trap_ip=""
 if [[ "${use_alloy}" == "1" ]]; then
   trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
   [[ -n "$trap_ip" && "$trap_ip" != "<no value>" ]] || die "Alloy not on network ${CLAB_NET} — recreate alloy with LAB_ALLOY_SNMPTRAP=1"
-  info "Trap sink: Alloy ${trap_ip}:1620 (loki.source.snmptrap)"
+  info "Trap sink: Alloy ${trap_ip}:1620 (otelcol.receiver.snmptrap)"
 else
   trap_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" snmp 2>/dev/null || true)"
   if [[ -z "$trap_ip" || "$trap_ip" == "<no value>" ]]; then

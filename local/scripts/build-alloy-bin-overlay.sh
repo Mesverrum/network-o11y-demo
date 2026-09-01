@@ -11,7 +11,7 @@ cd "$ALLOY_SRC"
 echo "==> pwd=$(pwd)"
 [[ -f internal/build/build.go ]] || { echo "missing internal/build"; exit 1; }
 [[ -d internal/component/discovery/snmp ]] || { echo "missing discovery.snmp"; exit 1; }
-[[ -d internal/component/loki/source/snmptrap ]] || { echo "missing loki.source.snmptrap"; exit 1; }
+[[ -d internal/component/otelcol/receiver/snmptrap ]] || { echo "missing otelcol.receiver.snmptrap"; exit 1; }
 [[ -d internal/snmpdiscovery ]] || { echo "missing snmpdiscovery"; exit 1; }
 
 mkdir -p build
@@ -47,5 +47,5 @@ fi
 echo "==> docker build $TAG"
 docker build -t "$TAG" "$WORKDIR"
 docker image inspect "$TAG" --format 'ok {{.Id}} {{.Created}}'
-echo "==> strings check discovery.snmp + loki.source.snmptrap"
-docker run --rm --entrypoint /bin/sh "$TAG" -c 'grep -a -E "discovery.snmp|loki.source.snmptrap" /bin/alloy | head -c 400; echo'
+echo "==> strings check discovery.snmp + otelcol.receiver.snmptrap"
+docker run --rm --entrypoint /bin/sh "$TAG" -c 'grep -a -E "discovery.snmp|otelcol.receiver.snmptrap" /bin/alloy | head -c 400; echo'

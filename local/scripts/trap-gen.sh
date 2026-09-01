@@ -151,7 +151,7 @@ esac
 info "Done. Check Loki in ~30s:"
 if alloy_trap_sink; then
   info "  LogQL: {service_name=\"alloy-snmptrap\"} | json"
-  info "  curl -s localhost:12346/metrics | grep loki_source_snmptrap"
+  info "  curl -s localhost:12346/metrics | grep otelcol_receiver_snmptrap"
 else
   info "  LogQL: {service_name=~\"ktranslate.*\"} |~ \"(?i)trap|linkDown|coldStart|linkUp\""
 fi

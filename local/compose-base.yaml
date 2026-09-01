@@ -55,7 +55,7 @@ services:
     ports:
       - "4317:4317"
       - "12346:12346"
-      # loki.source.snmptrap (LAB_ALLOY_SNMPTRAP=1). Host map for trap-gen; SRL uses clab IP.
+      # otelcol.receiver.snmptrap (LAB_ALLOY_SNMPTRAP=1). Host map for trap-gen; SRL uses clab IP.
       - "1620:1620/udp"
       # loki.source.syslog (LAB_ALLOY_SYSLOG=1). Host 15140 avoids ktranslate_syslog :1514.
       - "15140:1514/udp"

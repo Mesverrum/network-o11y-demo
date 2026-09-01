@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render alloy/snmp-trap.generated.alloy
 #
-# LAB_ALLOY_SNMPTRAP=1 — loki.source.snmptrap on :1620
+# LAB_ALLOY_SNMPTRAP=1 — otelcol.receiver.snmptrap on :1620
 # LAB_ALLOY_SYSLOG=1   — loki.source.syslog on :1514
 # Both join device_name from snmp-targets.yml (file-SD catalog).
 set -euo pipefail
@@ -63,51 +63,18 @@ local.file "device_join_catalog" {
 EOF
     if [[ "${enabled_trap}" == "1" ]]; then
       cat <<'EOF'
-// LAB_ALLOY_SNMPTRAP=1 — SNMP traps/informs as Loki logs (experimental).
-// Query: {service_name="alloy-snmptrap"} | json
+// LAB_ALLOY_SNMPTRAP=1 — SNMP traps/informs as OTel logs (experimental).
+// Query: {service_name="alloy-snmptrap"}
 
-loki.relabel "snmptrap" {
-  forward_to = []
-
-  rule {
-    source_labels = ["__snmptrap_name"]
-    target_label  = "trap"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_oid"]
-    target_label  = "trap_oid"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_source"]
-    target_label  = "source"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_version"]
-    target_label  = "snmp_version"
-  }
-
-  rule {
-    source_labels = ["__snmptrap_pdu"]
-    target_label  = "pdu_type"
-  }
-}
-
-loki.source.snmptrap "lab" {
+otelcol.receiver.snmptrap "lab" {
   listen_address = "0.0.0.0:1620"
   mib_paths      = ["/etc/alloy/mibs"]
   targets        = encoding.from_yaml(local.file.device_join_catalog.content)
-  labels         = {
+  attributes     = {
     job       = "snmptrap",
     collector = "alloy-snmptrap",
   }
-  relabel_rules  = loki.relabel.snmptrap.rules
-  forward_to     = [otelcol.receiver.loki.snmptrap.receiver]
-}
 
-otelcol.receiver.loki "snmptrap" {
   output {
     logs = [otelcol.processor.transform.snmptrap_logs.input]
   }

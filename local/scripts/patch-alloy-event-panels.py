@@ -201,7 +201,7 @@ def patch_a4(doc: dict) -> list[str]:
         ),
         "panel-339": (
             trap,
-            "Recent SNMP traps from Alloy loki.source.snmptrap. JSON body; device_name and trap_oid are labels.",
+            "Recent SNMP traps from Alloy otelcol.receiver.snmptrap. JSON body; device_name and trap_oid are attributes.",
         ),
         "panel-340": (
             f"sum(count_over_time({syslog} [$__interval]))",
@@ -250,7 +250,7 @@ def patch_a3(doc: dict) -> list[str]:
         ),
         "panel-177": (
             trap,
-            "Recent SNMP traps from Alloy loki.source.snmptrap (JSON body; trap_oid + device_name labels).",
+            "Recent SNMP traps from Alloy otelcol.receiver.snmptrap (JSON body; trap_oid + device_name attributes).",
         ),
         "panel-197": (
             f"sum by (device_name) (count_over_time({syslog} [$__interval]))",

@@ -131,7 +131,7 @@ info "deployments"
 kubectl -n network-lab get deploy -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,DESIRED:.spec.replicas
 info "Alloy config markers (local bootstrap; network River should be Fleet stubs)"
 kubectl -n network-lab get cm alloy-config -o jsonpath='{.data.config\.alloy}' \
-  | grep -E 'remotecfg \{|LAB_ALLOY_FLEET_|prometheus.exporter.snmp|loki.source.snmptrap|otelcol.receiver.netflow' \
+  | grep -E 'remotecfg \{|LAB_ALLOY_FLEET_|prometheus.exporter.snmp|otelcol.receiver.snmptrap|otelcol.receiver.netflow' \
   | head -20
 POD="$(kubectl -n network-lab get pod -l app=alloy -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
 if [[ -n "${POD}" ]]; then

@@ -256,7 +256,7 @@ alloy-snmp-min-down: ## Tear down snmp-min (spine1 + alloy)
 	bash $(ROOT)scripts/alloy-snmp-min.sh down
 
 .PHONY: alloy-snmptrap-up
-alloy-snmptrap-up: compose-host-env ## Enable loki.source.snmptrap + retarget SRL trap-group to Alloy :1620
+alloy-snmptrap-up: compose-host-env ## Enable otelcol.receiver.snmptrap + retarget SRL trap-group to Alloy :1620
 	@cd $(ROOT) && LAB_ALLOY_SNMPTRAP=1 bash scripts/render-alloy-snmp-trap.sh
 	@cd $(ROOT) && $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy
 	@cd $(ROOT) && LAB_ALLOY_SNMPTRAP=1 bash scripts/snmp-trap-config.sh
