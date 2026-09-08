@@ -42,9 +42,11 @@ Fleet Management can only push **config** for components in the running binary. 
 
 | Tier | Interval | Modules (typical) | Toggle |
 |--|--|--|--|
-| **hot** | 60s (`LAB_ALLOY_SNMP_HOT_INTERVAL`) | things you page on: `if_mib` **octets / oper / ifHighSpeed**, inlined `snmp_device_info` + `snmp_Uptime`, CPU/mem, chassis | always on when SNMP enabled |
-| **cold** | 5m lab / 30m fleet (`LAB_ALLOY_SNMP_COLD_INTERVAL`) | names/descriptions/MAC (`if_mib_meta`) + **packet counters** (ucast/mcast/bcast) + **errors** + **discards** + IP inventory (`ip_addr`) | always on when SNMP enabled |
-| **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | optional LLDP/CDP experiments — not BGP | `LAB_ALLOY_SNMP_TOPOLOGY=1` |
+| **hot** | 60s (`LAB_ALLOY_SNMP_HOT_INTERVAL`) | minimum useful: `if_mib` **octets / oper / ifHighSpeed**, inlined `snmp_device_info` + `snmp_Uptime`, CPU/mem | `LAB_ALLOY_SNMP_TIERS=hot` (or include `hot` in the list) |
+| **cold** | 5m lab / 30m fleet (`LAB_ALLOY_SNMP_COLD_INTERVAL`) | names/descriptions/MAC (`if_mib_meta`) + **packet counters** + **errors** + **discards** + IP inventory (`ip_addr`) | include `cold` (default with hot) |
+| **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | LLDP/CDP/BGP-class neighbor walks | include `topology`, or `LAB_ALLOY_SNMP_TOPOLOGY=1` when `TIERS` is unset |
+
+Default when `LAB_ALLOY_SNMP_TIERS` is unset: **hot+cold**. `LAB_ALLOY_SNMP_TIERS=hot` is the absolute minimum scrape. Alloy: `tiers = ["hot"]`. CLI: `--tiers=hot`. Each tier is independently optional.
 
 
 Discovery writes `snmp-targets.yml` (hot), `snmp-targets-cold.yml`, `snmp-targets-topology.yml`. Converter emits `snmp/module-tiers.yaml` + fingerprinter `modules_hot` / `modules_cold` / `modules_topology`.
@@ -273,7 +275,7 @@ Prefer editing `snmp/modules/<vendor>/` in the fork (that YAML is the library). 
 
 1. Drop the profile YAML in the fork or point `--profiles` at the cookbook tree.
 2. `python3 tools/snmp-profile-convert/convert.py --profiles … --clean-modules` once → split modules + `snmp-network.yml` + fingerprinters.
-3. Hand-trim if needed (Nokia hot/chassis split, drop BGP walks). Rebuild the overlay image. Unknown `sysObjectID` scrapes `device_base,if_mib`.
+3. Nokia is already split: `nokia_srlinux` (hot vitals), `nokia_srlinux_sensors` (cold), `nokia_srlinux_bgp` (topology). Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib`.
 4. Fingerprinters and `snmp-network.yml` are one catalog — do not add a `module=` name that convert did not write. Re-extract both from the image after rebuild.
 
 ## Converter (one-shot ingest)

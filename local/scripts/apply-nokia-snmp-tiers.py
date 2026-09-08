@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Apply Nokia SNMP tier split into snmp-network.yml + fingerprinters.yml.
 
-Policy:
-  hot      — alerting / troubleshooting that fits a 60s budget
-             (if_mib, inlined snmp_device_info on nokia_srlinux, CPU/mem GETs, chassis)
-  cold     — rarely changing interface metadata (if_mib_meta) + IP inventory (ip_addr)
-  topology — optional LLDP experiments
-  BGP      — not scraped. Neighbor drop/flap alerting is traps/syslog;
-             a 60s/5m poll is too slow to be useful.
+Policy (matches Mesverrum/snmp-sd):
+  hot      — if_mib + nokia_srlinux (identity + CPU/mem)
+  cold     — if_mib_meta + ip_addr + nokia_srlinux_sensors
+  topology — nokia_srlinux_bgp (opt-in via LAB_ALLOY_SNMP_TIERS / tiers=)
+  Prefer tools/snmp-profile-convert/split_nokia_tiers.py in snmp-sd.
 """
 from __future__ import annotations
 
@@ -22,12 +20,13 @@ except ImportError as exc:  # pragma: no cover
 
 NOKIA_HOT_BLOCK = """      modules_hot: &id253
       - if_mib
-      - nokia_srlinux_hot
       - nokia_srlinux
       modules_cold: &id254
       - if_mib_meta
       - ip_addr
-      modules_topology: &id255 []"""
+      - nokia_srlinux_sensors
+      modules_topology: &id255
+      - nokia_srlinux_bgp"""
 
 NOKIA_HOT_BLOCK_OLD_VARIANTS = (
     """      modules_hot: &id253
@@ -152,8 +151,9 @@ def main() -> int:
 
     if not args.skip_snmp_network:
         module_files = [
-            fixtures / "nokia_srlinux_hot.yml",
             fixtures / "nokia_srlinux.yml",
+            fixtures / "nokia_srlinux_sensors.yml",
+            fixtures / "nokia_srlinux_bgp.yml",
         ]
         for p in module_files:
             if not p.exists():

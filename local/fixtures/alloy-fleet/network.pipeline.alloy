@@ -11,6 +11,9 @@
 // Requires ALLOY_NETWORK_FROM_SOURCE=1 image (discovery.snmp + netflow + traps).
 // Matcher: lab="network-o11y-demo", role="network-snmp"
 
+// After the FROM_SOURCE image has discovery.snmp.tiers, pin the subset here
+// (["hot"] = minimum useful; ["hot","cold"] = default; add "topology" for
+// LLDP/BGP-class). Until then, omit a scrape block below to skip that walk.
 discovery.snmp "fabric" {
   refresh_interval = "5m"
   state_path       = "/var/lib/alloy/data/snmp-discovery.state.json"

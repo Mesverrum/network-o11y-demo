@@ -119,6 +119,36 @@ topo=0
 case "${LAB_ALLOY_SNMP_TOPOLOGY:-0}" in
   1|true|yes|on|TRUE|YES|ON) topo=1 ;;
 esac
+# Each scrape tier is optional. LAB_ALLOY_SNMP_TIERS=hot|hot,cold|hot,cold,topology
+# (or all). When unset: hot+cold, plus topology if LAB_ALLOY_SNMP_TOPOLOGY=1.
+want_hot=1
+want_cold=1
+want_topo="${topo}"
+if [[ -n "${LAB_ALLOY_SNMP_TIERS:-}" ]]; then
+  want_hot=0
+  want_cold=0
+  want_topo=0
+  _tiers="$(printf '%s' "${LAB_ALLOY_SNMP_TIERS}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+  IFS=',' read -ra _tier_list <<< "${_tiers}"
+  for t in "${_tier_list[@]}"; do
+    case "${t}" in
+      hot) want_hot=1 ;;
+      cold) want_cold=1 ;;
+      topology|topo) want_topo=1 ;;
+      all)
+        want_hot=1
+        want_cold=1
+        want_topo=1
+        ;;
+    esac
+  done
+fi
+TIERS_LABEL=""
+[[ "${want_hot}" -eq 1 ]] && TIERS_LABEL+="hot,"
+[[ "${want_cold}" -eq 1 ]] && TIERS_LABEL+="cold,"
+[[ "${want_topo}" -eq 1 ]] && TIERS_LABEL+="topology,"
+TIERS_LABEL="${TIERS_LABEL%,}"
+[[ -n "${TIERS_LABEL}" ]] || TIERS_LABEL="none"
 
 # Intervals (lab defaults; raise cold toward 30m for fleet).
 HOT_INTERVAL="${LAB_ALLOY_SNMP_HOT_INTERVAL:-60s}"
@@ -164,27 +194,28 @@ PY
     echo "// LAB_ALLOY_SNMP=0 — Alloy-native SNMP scrape disabled (ktranslate SNMP unchanged)."
   else
     cat <<EOF
-// LAB_ALLOY_SNMP=1 — staggered SNMP scrapes (hot / cold / optional topology).
+// LAB_ALLOY_SNMP=1 — staggered SNMP scrapes (tiers=${TIERS_LABEL}).
 //
 // hot  (${HOT_INTERVAL}): alerting/troubleshooting that fits 60s
-//      (if_mib counters + SNMPv2-MIB identity/uptime + CPU/mem + chassis)
+//      (if_mib counters + SNMPv2-MIB identity/uptime + CPU/mem)
 // cold (${COLD_INTERVAL}): names/descriptions/MAC (if_mib_meta) + IP inventory (ip_addr)
-// topology (LAB_ALLOY_SNMP_TOPOLOGY=1, ${TOPO_INTERVAL}): LLDP/CDP experiments only
-// BGP session alerting is traps/syslog — not a scrape interval.
+// topology (${TOPO_INTERVAL}): LLDP/CDP/BGP-class neighbor walks (opt-in)
+// Each tier is optional: LAB_ALLOY_SNMP_TIERS=hot is the minimum useful scrape.
 //
 // Admin-down interfaces: if_mib filters (ifAdminStatus=up). Not value-based relabel.
 // Secrets: SNMP_COMMUNITY / snmp-network.yml auths — never on SD labels.
-// Note: Prometheus scrapes are offset within the interval — first cold sample can
-// lag up to one full cold interval after Alloy start.
+
+otelcol.receiver.prometheus "alloy_snmp" {
+  output {
+    metrics = [otelcol.processor.transform.preprocessing.input]
+  }
+}
+EOF
+    if [[ "${want_hot}" -eq 1 ]]; then
+      cat <<EOF
 
 local.file "snmp_targets_hot" {
   filename       = "${SNMP_TARGETS_DIR}/snmp-targets.yml"
-  detector       = "poll"
-  poll_frequency = "15s"
-}
-
-local.file "snmp_targets_cold" {
-  filename       = "${SNMP_TARGETS_DIR}/snmp-targets-cold.yml"
   detector       = "poll"
   poll_frequency = "15s"
 }
@@ -193,12 +224,6 @@ prometheus.exporter.snmp "fabric_hot" {
   config_file           = "${SNMP_CONFIG_FILE}"
   config_merge_strategy = "replace"
   targets               = encoding.from_yaml(local.file.snmp_targets_hot.content)
-}
-
-prometheus.exporter.snmp "fabric_cold" {
-  config_file           = "${SNMP_CONFIG_FILE}"
-  config_merge_strategy = "replace"
-  targets               = encoding.from_yaml(local.file.snmp_targets_cold.content)
 }
 
 prometheus.relabel "alloy_snmp_hot" {
@@ -232,6 +257,31 @@ prometheus.relabel "alloy_snmp_hot" {
   }
 }
 
+prometheus.scrape "alloy_snmp_hot" {
+  targets         = prometheus.exporter.snmp.fabric_hot.targets
+  scrape_interval = "${HOT_INTERVAL}"
+  scrape_timeout  = "${HOT_TIMEOUT}"
+  forward_to      = [prometheus.relabel.alloy_snmp_hot.receiver]
+}
+EOF
+    else
+      echo "// LAB_ALLOY_SNMP_TIERS — hot scrape disabled."
+    fi
+    if [[ "${want_cold}" -eq 1 ]]; then
+      cat <<EOF
+
+local.file "snmp_targets_cold" {
+  filename       = "${SNMP_TARGETS_DIR}/snmp-targets-cold.yml"
+  detector       = "poll"
+  poll_frequency = "15s"
+}
+
+prometheus.exporter.snmp "fabric_cold" {
+  config_file           = "${SNMP_CONFIG_FILE}"
+  config_merge_strategy = "replace"
+  targets               = encoding.from_yaml(local.file.snmp_targets_cold.content)
+}
+
 prometheus.relabel "alloy_snmp_cold" {
   forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
 
@@ -251,27 +301,17 @@ prometheus.relabel "alloy_snmp_cold" {
   }
 }
 
-prometheus.scrape "alloy_snmp_hot" {
-  targets         = prometheus.exporter.snmp.fabric_hot.targets
-  scrape_interval = "${HOT_INTERVAL}"
-  scrape_timeout  = "${HOT_TIMEOUT}"
-  forward_to      = [prometheus.relabel.alloy_snmp_hot.receiver]
-}
-
 prometheus.scrape "alloy_snmp_cold" {
   targets         = prometheus.exporter.snmp.fabric_cold.targets
   scrape_interval = "${COLD_INTERVAL}"
   scrape_timeout  = "${COLD_TIMEOUT}"
   forward_to      = [prometheus.relabel.alloy_snmp_cold.receiver]
 }
-
-otelcol.receiver.prometheus "alloy_snmp" {
-  output {
-    metrics = [otelcol.processor.transform.preprocessing.input]
-  }
-}
 EOF
-    if [[ "${topo}" -eq 1 ]]; then
+    else
+      echo "// LAB_ALLOY_SNMP_TIERS — cold scrape disabled."
+    fi
+    if [[ "${want_topo}" -eq 1 ]]; then
       cat <<EOF
 
 local.file "snmp_targets_topology" {
@@ -313,9 +353,9 @@ prometheus.scrape "alloy_snmp_topology" {
 }
 EOF
     else
-      echo "// LAB_ALLOY_SNMP_TOPOLOGY=0 — LLDP/CDP topology scrape disabled."
+      echo "// topology scrape disabled (set LAB_ALLOY_SNMP_TIERS=…,topology or LAB_ALLOY_SNMP_TOPOLOGY=1)."
     fi
   fi
 } > "${OUT}"
 
-echo "==> wrote ${OUT} (LAB_ALLOY_SNMP=${LAB_ALLOY_SNMP:-0} FLEET_SNMP=${LAB_ALLOY_FLEET_SNMP:-0} TOPOLOGY=${LAB_ALLOY_SNMP_TOPOLOGY:-0} hot=${HOT_INTERVAL} cold=${COLD_INTERVAL})"
+echo "==> wrote ${OUT} (LAB_ALLOY_SNMP=${LAB_ALLOY_SNMP:-0} FLEET_SNMP=${LAB_ALLOY_FLEET_SNMP:-0} TIERS=${TIERS_LABEL} hot=${HOT_INTERVAL} cold=${COLD_INTERVAL})"
