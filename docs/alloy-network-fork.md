@@ -26,7 +26,7 @@ The exporter stays **stock**. Fingerprinters run at SD time (portable subset of 
 | Gap | Slice | Status |
 |-----|-------|--------|
 | Curated device-family OID library (CPU / mem / BGP / sensors, not only IF-MIB) | 1 | **done** — `nokia_srlinux` + `lenovo_rackswitch` in the image |
-| SNMP discovery + credential/MIB mapping | 2 | **`discovery.snmp`** in the fork (`internal/snmpdiscovery` + component). Overlay still ships `snmp-discovery` CLI for file/HTTP SD. Fleet needs `ALLOY_NETWORK_FROM_SOURCE=1` image. |
+| SNMP discovery + credential/MIB mapping | 2 | Portable CLI + library: **[Mesverrum/snmp-sd](https://github.com/Mesverrum/snmp-sd)** (private). Alloy `discovery.snmp` still lives in the fork. Overlay still ships `snmp-discovery` for file/HTTP SD. Fleet needs `ALLOY_NETWORK_FROM_SOURCE=1` image. Live `/24` sweep on the colocated Clos (2026-09-08): five SRL, `module=if_mib,nokia_srlinux`, `auth=public_v2` — run on `--network clab`; prepend `auths:` if the image concat lacks it. |
 | Trap receiver | 3 | **`otelcol.receiver.snmptrap`** (experimental) in the fork — [alloy#440](https://github.com/grafana/alloy/issues/440). OTel logs, not Loki. Docs: fork [`otelcol.receiver.snmptrap.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/sources/reference/components/otelcol/otelcol.receiver.snmptrap.md). Prior art: [`docs/snmp-trap-prior-art.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/snmp-trap-prior-art.md) |
 | Flow collector | 4 | **`otelcol.receiver.netflow`** (experimental wrap of contrib logs receiver) — [alloy#6304](https://github.com/grafana/alloy/issues/6304). Metrics via existing `otelcol.connector.signaltometrics`. Lab: `LAB_ALLOY_NETFLOW=1` + `make alloy-netflow-up` |
 
@@ -185,7 +185,7 @@ make -C local alloy-snmp-min        # spine1 + alloy + discover
 make -C local alloy-snmp-min-down   # tear down
 ```
 
-Expect `alloy/snmp-targets.yml` (hot: `if_mib,nokia_srlinux_hot,nokia_srlinux` with inlined `snmp_device_info`), `snmp-targets-cold.yml` (`if_mib_meta,ip_addr`), empty topology unless `LAB_ALLOY_SNMP_TOPOLOGY=1`. Full Clos: `make down && make up`.
+Expect `alloy/snmp-targets.yml` (hot: `if_mib,nokia_srlinux` with inlined `snmp_device_info`), `snmp-targets-cold.yml` (`if_mib_meta,ip_addr`), empty topology unless `LAB_ALLOY_SNMP_TOPOLOGY=1`. Discovery drops invented sidecars such as `nokia_srlinux_hot` when that file is not in the image `snmp.yml`. Full Clos: `make down && make up`.
 
 ## Lab bring-up (parallel to ktranslate)
 
