@@ -275,7 +275,7 @@ Prefer editing `snmp/modules/<vendor>/` in the fork (that YAML is the library). 
 
 1. Drop the profile YAML in the fork or point `--profiles` at the cookbook tree.
 2. `python3 tools/snmp-profile-convert/convert.py --profiles … --clean-modules` once → split modules + `snmp-network.yml` + fingerprinters.
-3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), `{name}_bgp` / `{name}_topo` (topology). Nokia keeps `nokia_srlinux` / `_sensors` / `_bgp`. Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib`.
+3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), `{name}_topo` (topology: BGP, LLDP/CDP, OSPF/ISIS leftovers). Nokia keeps `nokia_srlinux` / `_sensors` / `_topo`. Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib`.
 4. Fingerprinters and `snmp-network.yml` are one catalog — do not add a `module=` name that convert did not write. Re-extract both from the image after rebuild.
 
 ## Converter (one-shot ingest)

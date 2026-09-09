@@ -4,7 +4,7 @@
 Policy (matches Mesverrum/snmp-sd):
   hot      — if_mib + nokia_srlinux (identity + CPU/mem)
   cold     — if_mib_meta + ip_addr + nokia_srlinux_sensors
-  topology — nokia_srlinux_bgp (opt-in via LAB_ALLOY_SNMP_TIERS / tiers=)
+  topology — nokia_srlinux_topo (opt-in via LAB_ALLOY_SNMP_TIERS / tiers=)
   Prefer tools/snmp-profile-convert/split_nokia_tiers.py in snmp-sd.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ NOKIA_HOT_BLOCK = """      modules_hot: &id253
       - ip_addr
       - nokia_srlinux_sensors
       modules_topology: &id255
-      - nokia_srlinux_bgp"""
+      - nokia_srlinux_topo"""
 
 NOKIA_HOT_BLOCK_OLD_VARIANTS = (
     """      modules_hot: &id253
@@ -153,7 +153,7 @@ def main() -> int:
         module_files = [
             fixtures / "nokia_srlinux.yml",
             fixtures / "nokia_srlinux_sensors.yml",
-            fixtures / "nokia_srlinux_bgp.yml",
+            fixtures / "nokia_srlinux_topo.yml",
         ]
         for p in module_files:
             if not p.exists():
