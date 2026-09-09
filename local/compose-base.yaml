@@ -57,7 +57,7 @@ services:
       - "12346:12346"
       # otelcol.receiver.snmptrap (LAB_ALLOY_SNMPTRAP=1). Host map for trap-gen; SRL uses clab IP.
       - "1620:1620/udp"
-      # loki.source.syslog (LAB_ALLOY_SYSLOG=1). Host 15140 avoids ktranslate_syslog :1514.
+      # otelcol.receiver.syslog (LAB_ALLOY_SYSLOG=1). Host 15140 avoids ktranslate_syslog :1514.
       - "15140:1514/udp"
       # otelcol.receiver.netflow (LAB_ALLOY_NETFLOW=1). Avoids ktranslate 9995 / 6343.
       - "12055:2055/udp"

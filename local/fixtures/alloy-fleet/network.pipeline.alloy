@@ -155,47 +155,17 @@ otelcol.processor.transform "snmptrap_logs" {
   }
 }
 
-loki.relabel "syslog" {
-  forward_to = []
+otelcol.receiver.syslog "lab" {
+  protocol              = "none"
+  allow_skip_pri_header = true
+  on_error              = "send"
+  targets               = discovery.relabel.join_catalog.output
 
-  rule {
-    source_labels = ["__syslog_message_severity"]
-    target_label  = "severity"
+  udp {
+    listen_address = "0.0.0.0:1514"
+    add_attributes = true
   }
 
-  rule {
-    source_labels = ["__syslog_message_facility"]
-    target_label  = "facility"
-  }
-
-  rule {
-    source_labels = ["__syslog_message_hostname"]
-    target_label  = "hostname"
-  }
-
-  rule {
-    source_labels = ["__syslog_connection_ip_address"]
-    target_label  = "source"
-  }
-}
-
-loki.source.syslog "lab" {
-  targets       = discovery.relabel.join_catalog.output
-  relabel_rules = loki.relabel.syslog.rules
-  forward_to    = [otelcol.receiver.loki.syslog.receiver]
-
-  listener {
-    address       = "0.0.0.0:1514"
-    protocol      = "udp"
-    syslog_format = "rfc5424"
-    labels        = {
-      job       = "syslog",
-      collector = "alloy-syslog",
-    }
-  }
-}
-
-otelcol.receiver.loki "syslog" {
   output {
     logs = [otelcol.processor.transform.syslog_logs.input]
   }
@@ -203,6 +173,14 @@ otelcol.receiver.loki "syslog" {
 
 otelcol.processor.transform "syslog_logs" {
   error_mode = "ignore"
+
+  log_statements {
+    context = "log"
+    statements = [
+      `set(attributes["severity"], severity_text) where severity_text != ""`,
+      `set(attributes["job"], "syslog")`,
+    ]
+  }
 
   log_statements {
     context = "resource"

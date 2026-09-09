@@ -262,7 +262,7 @@ alloy-snmptrap-up: compose-host-env ## Enable otelcol.receiver.snmptrap + retarg
 	@cd $(ROOT) && LAB_ALLOY_SNMPTRAP=1 bash scripts/snmp-trap-config.sh
 
 .PHONY: alloy-syslog-up
-alloy-syslog-up: compose-host-env ## Enable loki.source.syslog + retarget SRL remote-server to Alloy :1514
+alloy-syslog-up: compose-host-env ## Enable otelcol.receiver.syslog + retarget SRL remote-server to Alloy :1514
 	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/render-alloy-snmp-trap.sh
 	@cd $(ROOT) && $(COMPOSE) --profile alloy-snmp up -d --no-deps --force-recreate alloy
 	@cd $(ROOT) && LAB_ALLOY_SYSLOG=1 bash scripts/syslog-config.sh

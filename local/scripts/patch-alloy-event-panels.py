@@ -193,7 +193,7 @@ def patch_a4(doc: dict) -> list[str]:
         ),
         "panel-336": (
             syslog,
-            "Recent device syslog from Alloy loki.source.syslog. Plain text; filter by device_name label.",
+            "Recent device syslog from Alloy otelcol.receiver.syslog. Plain text; filter by device_name label.",
         ),
         "panel-337": (
             f"sum(count_over_time({trap} [$__range]))",
@@ -246,7 +246,7 @@ def patch_a3(doc: dict) -> list[str]:
     mapping = {
         "panel-201": (
             syslog,
-            "Recent device syslog from Alloy loki.source.syslog (plain text, device_name label).",
+            "Recent device syslog from Alloy otelcol.receiver.syslog (plain text, device_name label).",
         ),
         "panel-177": (
             trap,

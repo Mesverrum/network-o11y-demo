@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Fast path: compile Alloy on /mnt/c (module cache warm), overlay onto grafana/alloy:latest.
+# Compile Alloy (discovery.snmp + otelcol receivers) with snmp-sd as a Go
+# module, then overlay the binary + library onto grafana/alloy:latest.
 set -euo pipefail
 ALLOY_SRC="${ALLOY_SRC:-/mnt/c/Users/mesve/projects/alloy}"
 TAG="${ALLOY_NETWORK_TAG:-srl-local/alloy:network-dev}"
@@ -12,40 +13,69 @@ echo "==> pwd=$(pwd)"
 [[ -f internal/build/build.go ]] || { echo "missing internal/build"; exit 1; }
 [[ -d internal/component/discovery/snmp ]] || { echo "missing discovery.snmp"; exit 1; }
 [[ -d internal/component/otelcol/receiver/snmptrap ]] || { echo "missing otelcol.receiver.snmptrap"; exit 1; }
-[[ -d internal/snmpdiscovery ]] || { echo "missing snmpdiscovery"; exit 1; }
+[[ -d internal/component/otelcol/receiver/syslog ]] || { echo "missing otelcol.receiver.syslog"; exit 1; }
+grep -q 'github.com/Mesverrum/snmp-sd' go.mod || { echo "go.mod missing github.com/Mesverrum/snmp-sd"; exit 1; }
 
 mkdir -p build
 export CGO_ENABLED=0
-echo "==> go build alloy (collector, tags=netgo)"
-( cd collector && go build -tags 'netgo' -o ../build/alloy . )
-echo "==> go build snmp-discovery"
-go build -o build/snmp-discovery ./cmd/snmp-discovery
+GO_BIN="$(command -v go || true)"
+GO_VER=""
+if [[ -n "${GO_BIN}" ]]; then
+  GO_VER="$("${GO_BIN}" env GOVERSION 2>/dev/null || true)"
+fi
 
-[[ -f snmp/snmp-network.yml ]]
-[[ -f snmp/fingerprinters.yml ]]
+build_in_docker() {
+  echo "==> go 1.26 docker build (host ${GO_VER:-none} is too old or missing)"
+  docker run --rm \
+    -v "${ALLOY_SRC}:/src" \
+    -v "${HOME}/.cache/alloy-gomod:/go/pkg/mod" \
+    -v "${HOME}/.cache/alloy-gobuild:/root/.cache/go-build" \
+    -w /src \
+    -e CGO_ENABLED=0 \
+    -e GOPROXY="${GOPROXY:-https://proxy.golang.org,direct}" \
+    golang:1.26.6 \
+    bash -c '
+      set -euo pipefail
+      ( cd collector && go build -tags netgo -o ../build/alloy . )
+      go build -o build/snmp-discovery github.com/Mesverrum/snmp-sd/cmd/snmp-discovery
+      SNMPSD="$(go list -m -f "{{.Dir}}" github.com/Mesverrum/snmp-sd)"
+      rm -rf build/snmp-lib
+      mkdir -p build/snmp-lib
+      cp -a "${SNMPSD}/snmp/." build/snmp-lib/
+    '
+}
+
+if [[ "${GO_VER}" == go1.26* ]]; then
+  echo "==> go build alloy (collector, tags=netgo) with ${GO_VER}"
+  ( cd collector && go build -tags 'netgo' -o ../build/alloy . )
+  echo "==> go build snmp-discovery from Mesverrum/snmp-sd"
+  go build -o build/snmp-discovery github.com/Mesverrum/snmp-sd/cmd/snmp-discovery
+  SNMPSD="$(go list -m -f '{{.Dir}}' github.com/Mesverrum/snmp-sd)"
+  rm -rf build/snmp-lib
+  mkdir -p build/snmp-lib
+  cp -a "${SNMPSD}/snmp/." build/snmp-lib/
+else
+  build_in_docker
+fi
+
+[[ -f build/alloy ]]
+[[ -f build/snmp-discovery ]]
+[[ -f build/snmp-lib/snmp-network.yml ]]
+[[ -f build/snmp-lib/fingerprinters.yml ]]
 
 cat >"$WORKDIR/Dockerfile" <<'EOF'
 FROM grafana/alloy:latest
 COPY alloy /bin/alloy
 COPY snmp-discovery /usr/bin/snmp-discovery
-COPY snmp-network.yml /etc/alloy/snmp-network.yml
-COPY fingerprinters.yml /etc/alloy/fingerprinters.yml
-COPY auths.yml /etc/alloy/auths.yml
-COPY auths.example.yml /etc/alloy/auths.example.yml
-COPY NOTICE /etc/alloy/NOTICE.snmp-profiles
-COPY LICENSE /etc/alloy/LICENSE.snmp-profiles
+COPY snmp-lib/ /etc/alloy/
 EOF
 
-cp -f build/alloy build/snmp-discovery snmp/snmp-network.yml snmp/fingerprinters.yml snmp/auths.yml snmp/auths.example.yml snmp/NOTICE "$WORKDIR/"
-cp -f snmp/NOTICE "$WORKDIR/NOTICE"
-if [[ -f snmp/LICENSE ]]; then
-  cp -f snmp/LICENSE "$WORKDIR/LICENSE"
-else
-  printf '%s\n' "Apache License 2.0 — see https://www.apache.org/licenses/LICENSE-2.0" >"$WORKDIR/LICENSE"
-fi
+cp -f build/alloy build/snmp-discovery "$WORKDIR/"
+cp -a build/snmp-lib "$WORKDIR/snmp-lib"
 
 echo "==> docker build $TAG"
 docker build -t "$TAG" "$WORKDIR"
 docker image inspect "$TAG" --format 'ok {{.Id}} {{.Created}}'
-echo "==> strings check discovery.snmp + otelcol.receiver.snmptrap"
-docker run --rm --entrypoint /bin/sh "$TAG" -c 'grep -a -E "discovery.snmp|otelcol.receiver.snmptrap" /bin/alloy | head -c 400; echo'
+echo "==> strings check discovery.snmp + otelcol.receiver.syslog + snmp-sd"
+docker run --rm --entrypoint /bin/sh "$TAG" -c \
+  'grep -a -E "discovery.snmp|otelcol.receiver.syslog|otelcol.receiver.snmptrap|Mesverrum/snmp-sd" /bin/alloy | head -c 500; echo; ls /etc/alloy/snmp-network.yml /usr/bin/snmp-discovery'

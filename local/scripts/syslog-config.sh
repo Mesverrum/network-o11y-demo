@@ -31,7 +31,7 @@ syslog_ip=""
 if [[ "${use_alloy}" == "1" ]]; then
   syslog_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
   [[ -n "$syslog_ip" && "$syslog_ip" != "<no value>" ]] || die "Alloy not on network ${CLAB_NET} — recreate alloy with LAB_ALLOY_SYSLOG=1"
-  info "Syslog sink: Alloy ${syslog_ip}:${PORT}/udp (loki.source.syslog)"
+  info "Syslog sink: Alloy ${syslog_ip}:${PORT}/udp (otelcol.receiver.syslog)"
 else
   syslog_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" syslog 2>/dev/null || true)"
   [[ -n "$syslog_ip" && "$syslog_ip" != "<no value>" ]] || die "syslog collector not reachable on ${CLAB_NET}"

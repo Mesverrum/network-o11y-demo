@@ -1,8 +1,10 @@
 # Alloy Cisco / non-RFC syslog lab
 
-**Date:** 2026-08-17  
+**Date:** 2026-08-17 (Loki experiment) · **Update:** 2026-09-08  
 **Harness:** `local/fixtures/alloy-cisco-syslog/` + `local/scripts/lab-alloy-cisco-syslog.sh`  
-**Image:** `grafana/alloy:latest` with `--stability.level=experimental`
+**Image (this experiment):** `grafana/alloy:latest` with `--stability.level=experimental`
+
+**Product path (2026-09-08):** lab and Fleet syslog is `otelcol.receiver.syslog` with `protocol = "none"` + `on_error = "send"`. That keeps non-RFC bodies (PRI still decoded when present) without Cisco-specific parsing. Use `loki.source.syslog` `rfc3164_cisco_components` only if those extra IOS fields must be *parsed*, not just ingested. The numbers below are the older Loki-listener experiment.
 
 ## Question
 

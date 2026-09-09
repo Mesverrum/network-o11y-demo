@@ -66,7 +66,9 @@ resolve_snmp_lib() {
 SRC="$(resolve_alloy_src)" || die "Alloy fork not found. Clone https://github.com/Mesverrum/alloy (branch network-snmp) as a sibling, or set ALLOY_SRC"
 
 [[ -f "${SRC}/Dockerfile.network" ]] || die "missing ${SRC}/Dockerfile.network — checkout branch network-snmp"
-[[ -f "${SRC}/tools/snmp-profile-convert/convert.py" ]] || die "missing converter in ${SRC}"
+if [[ "${ALLOY_NETWORK_FROM_SOURCE:-0}" != "1" ]]; then
+  [[ -f "${SRC}/tools/snmp-profile-convert/convert.py" ]] || die "missing converter in ${SRC}"
+fi
 
 info "Using Alloy fork: ${SRC}"
 LIB="$(resolve_snmp_lib || true)"

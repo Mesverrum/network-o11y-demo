@@ -26,13 +26,13 @@ The exporter stays **stock**. Fingerprinters run at SD time (portable subset of 
 | Gap | Slice | Status |
 |-----|-------|--------|
 | Curated device-family OID library (CPU / mem / BGP / sensors, not only IF-MIB) | 1 | **done** — `nokia_srlinux` + `lenovo_rackswitch` in the image |
-| SNMP discovery + credential/MIB mapping | 2 | Portable CLI + library: **[Mesverrum/snmp-sd](https://github.com/Mesverrum/snmp-sd)** (private). Alloy `discovery.snmp` still lives in the fork. Overlay still ships `snmp-discovery` for file/HTTP SD. Fleet needs `ALLOY_NETWORK_FROM_SOURCE=1` image. Live `/24` sweep on the colocated Clos (2026-09-08): five SRL, `module=if_mib,nokia_srlinux`, `auth=public_v2` — run on `--network clab`; prepend `auths:` if the image concat lacks it. |
+| SNMP discovery + credential/MIB mapping | 2 | Portable CLI + library: **[Mesverrum/snmp-sd](https://github.com/Mesverrum/snmp-sd)** (`v0.1.0`, public). Alloy `discovery.snmp` imports `github.com/Mesverrum/snmp-sd/snmpdiscovery`. Image library is copied from the module. Fleet needs `ALLOY_NETWORK_FROM_SOURCE=1` image. |
 | Trap receiver | 3 | **`otelcol.receiver.snmptrap`** (experimental) in the fork — [alloy#440](https://github.com/grafana/alloy/issues/440). OTel logs, not Loki. Docs: fork [`otelcol.receiver.snmptrap.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/sources/reference/components/otelcol/otelcol.receiver.snmptrap.md). Prior art: [`docs/snmp-trap-prior-art.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/snmp-trap-prior-art.md) |
 | Flow collector | 4 | **`otelcol.receiver.netflow`** (experimental wrap of contrib logs receiver) — [alloy#6304](https://github.com/grafana/alloy/issues/6304). Metrics via existing `otelcol.connector.signaltometrics`. Lab: `LAB_ALLOY_NETFLOW=1` + `make alloy-netflow-up` |
 
 `discovery.snmp` now has slog, health, metrics, Live Debugging, unmarshal tests, and Alloy-shaped reference docs. Remaining GA items (stability, integration tests, official image): fork [`docs/discovery-snmp-production-gaps.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/discovery-snmp-production-gaps.md).
 
-Syslog is **not** a fork gap: `loki.source.syslog` (Cisco path: [`docs/alloy-cisco-syslog-lab.md`](alloy-cisco-syslog-lab.md)).
+Syslog on the network path is `otelcol.receiver.syslog` (`protocol = "none"` keeps non-RFC bodies; `on_error = "send"` never drops). Optional `targets` join stamps `device_name`. Historical Loki / Cisco-components notes: [`docs/alloy-cisco-syslog-lab.md`](alloy-cisco-syslog-lab.md).
 
 Fleet Management can only push **config** for components in the running binary. Slice 1 bakes `/etc/alloy/snmp-network.yml` into `srl-local/alloy:network-dev`. Slice 2 is **`discovery.snmp`** (experimental) when the image is built from the fork (`Dockerfile.network-src` / `ALLOY_NETWORK_FROM_SOURCE=1`). The thin `Dockerfile.network` overlay keeps the sidecar CLI only.
 
@@ -240,7 +240,7 @@ Dashboard UID: `alloy-snmp-device-details` (folder `network-lab`).
 - Scrape 60s → `otelcol.receiver.prometheus` → existing OTLP preprocess/export
 - Relabel `job=alloy-snmp`
 
-ktranslate SNMP / flow / syslog are **not** disabled. Traps stay on ktranslate unless `LAB_ALLOY_SNMPTRAP=1` (`make alloy-snmptrap-up`) — then SRL trap-group points at Alloy `otelcol.receiver.snmptrap` `:1620` and Loki `{service_name="alloy-snmptrap"}` after OTLP export. Device syslog stays on ktranslate unless `LAB_ALLOY_SYSLOG=1` (`make alloy-syslog-up`) — then remote-server points at Alloy `loki.source.syslog` `:1514` and Loki `{service_name="alloy-syslog"}`. Both stamp `device_name` from `device-join.yml` (SNMP catalog plus fabric clients).
+ktranslate SNMP / flow / syslog are **not** disabled. Traps stay on ktranslate unless `LAB_ALLOY_SNMPTRAP=1` (`make alloy-snmptrap-up`) — then SRL trap-group points at Alloy `otelcol.receiver.snmptrap` `:1620` and Loki `{service_name="alloy-snmptrap"}` after OTLP export. Device syslog stays on ktranslate unless `LAB_ALLOY_SYSLOG=1` (`make alloy-syslog-up`) — then remote-server points at Alloy `otelcol.receiver.syslog` `:1514` (`protocol = "none"`) and Loki `{service_name="alloy-syslog"}` after OTLP export. Both stamp `device_name` from `device-join.yml` (SNMP catalog plus fabric clients).
 
 Alloy dashboard clones (A3 `ma8p7dn`, A4 `alloy-device-details`) query those streams directly — not ktranslate `eventType="KSnmpTrap"` / `instrumentation_name="ktranslate-syslog"`. Syslog lines are **plain text** (do not `| json`). Group traps by the `trap_oid` label (MIB names are not resolving on the lab image yet). Patch: `python local/scripts/patch-alloy-event-panels.py`. A2 Flow Summary has no event panels.
 

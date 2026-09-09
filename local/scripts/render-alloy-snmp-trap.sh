@@ -2,7 +2,7 @@
 # Render alloy/snmp-trap.generated.alloy
 #
 # LAB_ALLOY_SNMPTRAP=1 — otelcol.receiver.snmptrap on :1620
-# LAB_ALLOY_SYSLOG=1   — loki.source.syslog on :1514
+# LAB_ALLOY_SYSLOG=1   — otelcol.receiver.syslog on :1514 (protocol=none)
 # Both join device_name from snmp-targets.yml (file-SD catalog).
 set -euo pipefail
 
@@ -100,51 +100,22 @@ EOF
     fi
     if [[ "${enabled_syslog}" == "1" ]]; then
       cat <<'EOF'
-// LAB_ALLOY_SYSLOG=1 — device syslog as Loki logs.
+// LAB_ALLOY_SYSLOG=1 — device syslog as OTel logs.
 // Query: {service_name="alloy-syslog"}
-// SR Linux remote syslog is RFC5424-shaped on this lab.
+// protocol=none keeps vendor/non-RFC bodies; PRI still decodes when present.
+// on_error=send (default) never drops a failed parse.
 
-loki.relabel "syslog" {
-  forward_to = []
+otelcol.receiver.syslog "lab" {
+  protocol              = "none"
+  allow_skip_pri_header = true
+  on_error              = "send"
+  targets               = encoding.from_yaml(local.file.device_join_catalog.content)
 
-  rule {
-    source_labels = ["__syslog_message_severity"]
-    target_label  = "severity"
+  udp {
+    listen_address = "0.0.0.0:1514"
+    add_attributes = true
   }
 
-  rule {
-    source_labels = ["__syslog_message_facility"]
-    target_label  = "facility"
-  }
-
-  rule {
-    source_labels = ["__syslog_message_hostname"]
-    target_label  = "hostname"
-  }
-
-  rule {
-    source_labels = ["__syslog_connection_ip_address"]
-    target_label  = "source"
-  }
-}
-
-loki.source.syslog "lab" {
-  targets       = encoding.from_yaml(local.file.device_join_catalog.content)
-  relabel_rules = loki.relabel.syslog.rules
-  forward_to    = [otelcol.receiver.loki.syslog.receiver]
-
-  listener {
-    address       = "0.0.0.0:1514"
-    protocol      = "udp"
-    syslog_format = "rfc5424"
-    labels        = {
-      job       = "syslog",
-      collector = "alloy-syslog",
-    }
-  }
-}
-
-otelcol.receiver.loki "syslog" {
   output {
     logs = [otelcol.processor.transform.syslog_logs.input]
   }
@@ -152,6 +123,14 @@ otelcol.receiver.loki "syslog" {
 
 otelcol.processor.transform "syslog_logs" {
   error_mode = "ignore"
+
+  log_statements {
+    context = "log"
+    statements = [
+      `set(attributes["severity"], severity_text) where severity_text != ""`,
+      `set(attributes["job"], "syslog")`,
+    ]
+  }
 
   log_statements {
     context = "resource"
