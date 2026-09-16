@@ -28,7 +28,7 @@ Cursor on this machine runs tools in **PowerShell**. Lab work runs in **WSL**. N
 
 | Need | Use | Avoid |
 |------|-----|--------|
-| AWS CLI / SSO | **Windows** `aws --profile mvr …` | `aws.exe` from WSL (`Exec format error`); SSO refresh inside Docker often `InvalidGrantException` |
+| AWS CLI / SSO | **Windows** `aws --profile mvr …` | `aws.exe` from WSL (`Exec format error`); SSO refresh inside Docker often `InvalidGrantException`. **Never auto-open SSO** — prompt in chat first, then `aws sso login --profile mvr --use-device-code` (two browser sessions; personal profile cannot reach work AWS/Grafana). |
 | Docker engine | **WSL** `docker` | Windows `docker.exe` when Desktop/`localhost:2375` is down |
 | Terraform | WSL Docker → `hashicorp/terraform` with **exported session creds** (`aws configure export-credentials`) and `-var=aws_profile=` | Mounting `~/.aws` alone + profile `mvr` in provider |
 | Lab make/scripts | WSL bash on ext4 clone | Complex one-liners from PowerShell |

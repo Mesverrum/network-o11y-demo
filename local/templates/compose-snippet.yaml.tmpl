@@ -10,6 +10,11 @@
       # the same group on two hosts stays separable too.
       - OTEL_SERVICE_NAME=ktranslate-snmp-${GROUP}${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION}
+      # Optional: clone a snmp-profiles fork (PROFILE_GIT_URL in poller YAML).
+      # Private repo / non-main branch — kentik/ktranslate#869 / #877.
+      - KT_GIT_ACCESS_USERNAME=${KT_GIT_ACCESS_USERNAME:-}
+      - KT_GIT_ACCESS_TOKEN=${KT_GIT_ACCESS_TOKEN:-}
+      - KT_GIT_PULL_BRANCH=${KT_GIT_PULL_BRANCH:-}
     volumes:
       - type: bind
         source: ./config/poller-${GROUP}.yaml
@@ -52,6 +57,9 @@
     environment:
       - OTEL_SERVICE_NAME=ktranslate-discover-${GROUP}${KTRANS_HOST:+-}${KTRANS_HOST}
       - OTEL_EXPORTER_OTLP_COMPRESSION=${OTEL_EXPORTER_OTLP_COMPRESSION}
+      - KT_GIT_ACCESS_USERNAME=${KT_GIT_ACCESS_USERNAME:-}
+      - KT_GIT_ACCESS_TOKEN=${KT_GIT_ACCESS_TOKEN:-}
+      - KT_GIT_PULL_BRANCH=${KT_GIT_PULL_BRANCH:-}
       # NetBox creds for DISCOVERY_SOURCE=netbox groups; ktranslate reads them at
       # runtime. Harmless (blank, unused) for cidr groups.
       - NETBOX_API_URL=${NETBOX_API_URL:-}

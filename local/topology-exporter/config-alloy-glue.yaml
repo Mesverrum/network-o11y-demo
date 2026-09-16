@@ -33,8 +33,10 @@ modules:
   mpls_te:
     enabled: false
 
+# LD-13: durable last-known graph. Empty Alloy ingest after restart must
+# not overwrite this file (HoldLastKnown). systemd StateDirectory owns the dir.
 snapshot:
-  path: /tmp/network-topology-exporter-snapshot.json
+  path: /var/lib/topology-exporter/snapshot.json
 
 output:
   otlp:

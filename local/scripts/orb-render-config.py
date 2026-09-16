@@ -155,7 +155,9 @@ orb:
           retries: 1
           defaults:
             tags: ["orb", "snmp-discovery", "network-o11y-lab"]
-            site: "Network Lab"
+            # Do not set site here — Diode treats (name, site) as identity, so a
+            # hardcoded "Network Lab" site re-creates ghosts after populate
+            # moves devices to hq / branch1 / branch2.
             role: "network"
             device:
               description: "Discovered by Orb snmp_discovery (lab sidecar)"

@@ -1,0 +1,39 @@
+{
+  "when": "2026-09-09T23:32:00Z",
+  "image": "srl-local/alloy:network-dev",
+  "gomaxprocs": 1,
+  "harness": "local/scripts/alloy-scale-bench.py",
+  "snmp": {
+    "devices": 100,
+    "ports_per_device": 48,
+    "interfaces": 4800,
+    "cpu_core_fraction_avg": 0.021,
+    "cpu_core_fraction_peak": 0.123,
+    "devices_per_core": 813,
+    "interfaces_per_core": 39024,
+    "rss_bytes": 277184512,
+    "rss_mib_per_device": 2.64,
+    "devices_per_gib": 387,
+    "hot_scrapes_established": 311,
+    "cpu_pct_docker_max": 12.29,
+    "mem_docker": "100.6MiB",
+    "note": "localhost IF-MIB+device_base hot / if_mib_meta cold; no device timeout"
+  },
+  "events": [
+    {
+      "lane": "syslog",
+      "best_eps": 12800,
+      "note": "100% accept through 3200; 6400=99.6%; 12800=94.6% accept, 0 refuse"
+    },
+    {
+      "lane": "traps",
+      "best_eps": null,
+      "note": "receiver counters did not increment on replayed net-snmp linkDown; do not treat as a ceiling"
+    },
+    {
+      "lane": "flow",
+      "best_eps": null,
+      "note": "harness packet path not isolated this run"
+    }
+  ]
+}

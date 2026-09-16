@@ -80,7 +80,7 @@ Restore from Windows: `python local/scripts/ssm-alloy-topology-glue.py` (needs `
 
 Expect `count by (evidence, src_device, dst_device) (network_topology_edge_info)` — BGP sessions plus LLDP when both ports are named. Placeholder `INTERFACE_NAME` port-ids are dropped. gnmic `Eth-1/49` is the live port spelling; KG rewrites that to `ethernet-1/49`.
 
-## Knowledge Graph Interface ROUTES
+## Knowledge Graph Interface CONNECTS_TO
 
 KG does **not** read `network_topology_edge_info` labels directly. Recording rules in `local/scripts/provision-conversation-kg.py` emit:
 

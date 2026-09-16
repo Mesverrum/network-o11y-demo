@@ -4,7 +4,7 @@
 Policy (matches Mesverrum/snmp-sd):
   hot      — if_mib + nokia_srlinux (identity + CPU/mem)
   cold     — if_mib_meta + ip_addr + nokia_srlinux_sensors
-  topology — nokia_srlinux_topo (opt-in via LAB_ALLOY_SNMP_TIERS / tiers=)
+  topology — nokia_srlinux_topo + lldp_mib (opt-in via LAB_ALLOY_SNMP_TIERS / tiers=)
   Prefer tools/snmp-profile-convert/split_nokia_tiers.py in snmp-sd.
 """
 from __future__ import annotations
@@ -26,7 +26,8 @@ NOKIA_HOT_BLOCK = """      modules_hot: &id253
       - ip_addr
       - nokia_srlinux_sensors
       modules_topology: &id255
-      - nokia_srlinux_topo"""
+      - nokia_srlinux_topo
+      - lldp_mib"""
 
 NOKIA_HOT_BLOCK_OLD_VARIANTS = (
     """      modules_hot: &id253
@@ -106,7 +107,9 @@ def patch_snmp_network(snmp_path: Path, module_files: list[Path]) -> None:
 
 def patch_fingerprinters(fp_path: Path) -> None:
     text = fp_path.read_text(encoding="utf-8")
-    if NOKIA_HOT_BLOCK in text:
+    if NOKIA_HOT_BLOCK in text or (
+        "      - nokia_srlinux_topo\n      - lldp_mib" in text
+    ):
         print(f"==> fingerprinters.yml already at current Nokia split ({fp_path})")
         return
     # Converter emit uses different YAML anchors; cold already has ip_addr.

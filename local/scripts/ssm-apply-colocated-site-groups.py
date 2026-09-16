@@ -30,6 +30,8 @@ PATHS = [
     "local/scripts/verify-ktranslate-service-names.sh",
     "local/scripts/generate-k8s-telemetry.py",
     "local/templates/poller.yaml.tmpl",
+    "local/templates/discovery.yaml.tmpl",
+    "local/templates/compose-snippet.yaml.tmpl",
     "local/scripts/generate-groups.sh",
 ]
 

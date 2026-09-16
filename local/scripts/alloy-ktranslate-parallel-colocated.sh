@@ -2,7 +2,7 @@
 # Restore ktranslate on colocated k3s while keeping the Alloy network fork.
 #
 # ktranslate owns traps :1620 and syslog :1514 (classic dashboards / learners).
-# Alloy fork keeps SNMP scrape + NetFlow :2055 / sFlow :6344 (no port clash).
+# Alloy dual-writes the same signals on :11620 / :1515 plus SNMP + NetFlow :2055 / sFlow :6344.
 # remotecfg is turned off so Fleet cannot re-bind 1620/1514.
 set -euo pipefail
 
@@ -36,29 +36,35 @@ upsert_env() {
 upsert_env LAB_KTRANSLATE 1
 upsert_env LAB_ALLOY_SNMP 1
 upsert_env LAB_ALLOY_NETFLOW 1
-upsert_env LAB_ALLOY_SNMPTRAP 0
-upsert_env LAB_ALLOY_SYSLOG 0
+upsert_env LAB_ALLOY_SNMPTRAP 1
+upsert_env LAB_ALLOY_SYSLOG 1
 upsert_env LAB_ALLOY_FLEET 0
 upsert_env LAB_ALLOY_FLEET_SNMP 0
 upsert_env LAB_ALLOY_FLEET_EVENTS 0
 upsert_env LAB_ALLOY_FLEET_NETFLOW 0
 upsert_env LAB_ALLOY_FLEET_DISCOVERY 0
+upsert_env LAB_ALLOY_SNMP_TOPOLOGY 1
+upsert_env LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL 2m
 
 export LAB_KTRANSLATE=1
 export LAB_ALLOY_SNMP=1
 export LAB_ALLOY_NETFLOW=1
-export LAB_ALLOY_SNMPTRAP=0
-export LAB_ALLOY_SYSLOG=0
+export LAB_ALLOY_SNMPTRAP=1
+export LAB_ALLOY_SYSLOG=1
 export LAB_ALLOY_FLEET=0
 export LAB_ALLOY_FLEET_SNMP=0
 export LAB_ALLOY_FLEET_EVENTS=0
 export LAB_ALLOY_FLEET_NETFLOW=0
 export LAB_ALLOY_FLEET_DISCOVERY=0
+export LAB_ALLOY_SNMP_TOPOLOGY=1
+export LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL="${LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL:-2m}"
 
 mkdir -p "${ROOT}/alloy"
 [[ -f "${ROOT}/alloy/snmp-overrides.yml" ]] || echo 'overrides: []' > "${ROOT}/alloy/snmp-overrides.yml"
 [[ -f "${ROOT}/alloy/snmp-targets.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets.yml"
 [[ -f "${ROOT}/alloy/snmp-targets-cold.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets-cold.yml"
+[[ -f "${ROOT}/alloy/snmp-targets-topology.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets-topology.yml"
+bash "${ROOT}/scripts/render-snmp-topology-overrides.sh"
 
 info "regenerating Alloy ConfigMap (no trap/syslog listeners) + ktranslate replicas=1"
 cd "${ROOT}"
@@ -69,14 +75,14 @@ if [[ -z "${SNMP_AUTHS:-}" ]]; then
 fi
 python3 scripts/k8s-merge-secret-literal.py -n network-lab grafana-cloud-credentials SNMP_AUTHS
 
-info "applying Alloy first so it drops :1620/:1514"
+info "applying Alloy first so it binds :11620/:1515 (not :1620/:1514)"
 kubectl apply -f "${REPO}/k8s/ktranslate-golden/alloy-configmap.yaml"
 kubectl apply -f "${REPO}/k8s/ktranslate-golden/alloy.yaml"
 kubectl -n network-lab delete pod -l app=alloy --wait=true --timeout=90s || true
 kubectl -n network-lab rollout status deploy/alloy --timeout=180s
 
-info "listeners after Alloy recycle (expect 2055/6344, not 1620/1514)"
-ss -ulnp | grep -E ':1620|:1514|:2055|:6344|:9995|:6343|:4317' || true
+info "listeners after Alloy recycle (expect 11620/1515/2055/6344, not 1620/1514)"
+ss -ulnp | grep -E ':1620|:1621|:1622|:11620|:1514|:1515|:2055|:6344|:9995|:6343|:4317' || true
 if ss -ulnp | grep -q ':1620'; then
   echo "ERROR: UDP :1620 still bound — Alloy remotecfg or trap receiver still running" >&2
   ss -ulnp | grep ':1620' || true
@@ -111,7 +117,7 @@ export KTRANSLATE_CLAB_HOST
 KTRANSLATE_CLAB_HOST="$(
   docker network inspect "${CLAB_NETWORK:-clab}" -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo 172.20.20.1
 )"
-info "retarget traps/syslog/sFlow/softflowd → ktranslate (${KTRANSLATE_CLAB_HOST})"
+info "retarget traps/syslog/sFlow/softflowd → ktranslate + Alloy dual-write (${KTRANSLATE_CLAB_HOST})"
 export COLLECTOR_RUNTIME=k3s
 bash scripts/reload-ktranslate-devices.sh || true
 bash scripts/snmp-trap-config.sh
@@ -129,7 +135,7 @@ if [[ -f scripts/emit-events.sh ]]; then
 fi
 
 info "listeners"
-ss -ulnp | grep -E ':1620|:1514|:2055|:6344|:9995|:6343|:4317' || true
+ss -ulnp | grep -E ':1620|:1621|:1622|:11620|:1514|:1515|:2055|:6344|:9995|:6343|:4317' || true
 info "deployments"
 kubectl -n network-lab get deploy -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,DESIRED:.spec.replicas
-info "parallel restore done — ktranslate on 1620/1514/9995/6343; Alloy SNMP + netflow 2055/6344"
+info "parallel restore done — ktranslate 1620/1621/1622/1514/9995/6343; Alloy 11620/1515/2055/6344 + SNMP"

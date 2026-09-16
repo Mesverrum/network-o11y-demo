@@ -58,6 +58,7 @@ def build_commands() -> list[str]:
     for k in ("GC_OTLP_URL_2", "GC_OTLP_ACCOUNT_2", "GC_OTLP_KEY_2"):
         if not env.get(k):
             raise SystemExit(f"missing {k} in local/.env")
+    extra3 = all(env.get(k) for k in ("GC_OTLP_URL_3", "GC_OTLP_ACCOUNT_3", "GC_OTLP_KEY_3"))
 
     cmds = [
         "set -euo pipefail",
@@ -74,39 +75,51 @@ def build_commands() -> list[str]:
         if rel.endswith(".sh"):
             cmds.append(f"chmod +x \"{dest}\"")
 
+    kv_lines = [
+        f"  'GC_OTLP_URL_2': {env['GC_OTLP_URL_2']!r},",
+        f"  'GC_OTLP_ACCOUNT_2': {env['GC_OTLP_ACCOUNT_2']!r},",
+        f"  'GC_OTLP_KEY_2': {env['GC_OTLP_KEY_2']!r},",
+    ]
+    if extra3:
+        kv_lines += [
+            f"  'GC_OTLP_URL_3': {env['GC_OTLP_URL_3']!r},",
+            f"  'GC_OTLP_ACCOUNT_3': {env['GC_OTLP_ACCOUNT_3']!r},",
+            f"  'GC_OTLP_KEY_3': {env['GC_OTLP_KEY_3']!r},",
+        ]
+    kv_literal = "\n".join(kv_lines)
+    upsert = f"""python3 - <<'PY'
+from pathlib import Path
+p = Path('/opt/network-o11y-demo/local/.env')
+text = p.read_text(encoding='utf-8') if p.exists() else ''
+kv = {{
+{kv_literal}
+}}
+lines = text.splitlines(keepends=True)
+out, seen = [], set()
+for line in lines:
+    s = line.strip()
+    if s and not s.startswith('#') and '=' in s:
+        k = s.split('=', 1)[0].strip()
+        if k in kv:
+            out.append(f'{{k}}={{kv[k]}}\\n'); seen.add(k); continue
+    out.append(line if line.endswith('\\n') else line + '\\n')
+missing = [k for k in kv if k not in seen]
+if missing:
+    block = ['# Extra Grafana Cloud OTLP sinks\\n'] + [f'{{k}}={{kv[k]}}\\n' for k in missing]
+    insert_at = next((i + 1 for i, l in enumerate(out) if l.startswith('GC_OTLP_KEY=') and not l.startswith('GC_OTLP_KEY_2')), len(out))
+    out[insert_at:insert_at] = block
+p.write_text(''.join(out), encoding='utf-8')
+p.chmod(0o600)
+print('updated .env extra OTLP keys', sorted(kv))
+PY"""
+
     cmds += [
         "sed -i 's/\\r$//' $LAB/scripts/*.sh || true",
-        # Upsert GC_OTLP_*_2 in host .env without dumping secrets to stdout
-        f"python3 - <<'PY'\n"
-        f"from pathlib import Path\n"
-        f"p = Path('/opt/network-o11y-demo/local/.env')\n"
-        f"text = p.read_text(encoding='utf-8') if p.exists() else ''\n"
-        f"kv = {{\n"
-        f"  'GC_OTLP_URL_2': {env['GC_OTLP_URL_2']!r},\n"
-        f"  'GC_OTLP_ACCOUNT_2': {env['GC_OTLP_ACCOUNT_2']!r},\n"
-        f"  'GC_OTLP_KEY_2': {env['GC_OTLP_KEY_2']!r},\n"
-        f"}}\n"
-        f"lines = text.splitlines(keepends=True)\n"
-        f"out, seen = [], set()\n"
-        f"for line in lines:\n"
-        f"    s = line.strip()\n"
-        f"    if s and not s.startswith('#') and '=' in s:\n"
-        f"        k = s.split('=', 1)[0].strip()\n"
-        f"        if k in kv:\n"
-        f"            out.append(f'{{k}}={{kv[k]}}\\n'); seen.add(k); continue\n"
-        f"    out.append(line if line.endswith('\\n') else line + '\\n')\n"
-        f"missing = [k for k in kv if k not in seen]\n"
-        f"if missing:\n"
-        f"    block = ['# Dual-ship secondary Grafana Cloud OTLP\\n'] + [f'{{k}}={{kv[k]}}\\n' for k in missing]\n"
-        f"    insert_at = next((i + 1 for i, l in enumerate(out) if l.startswith('GC_OTLP_KEY=') and not l.startswith('GC_OTLP_KEY_2')), len(out))\n"
-        f"    out[insert_at:insert_at] = block\n"
-        f"p.write_text(''.join(out), encoding='utf-8')\n"
-        f"p.chmod(0o600)\n"
-        f"print('updated .env dual OTLP keys')\n"
-        f"PY",
+        upsert,
         "bash $LAB/scripts/render-alloy-otlp-export.sh",
         "grep -q grafana_cloud_2 $LAB/alloy/otlp-export.generated.alloy",
-        "echo RENDER_DUAL_OK",
+        "grep -q grafana_cloud_3 $LAB/alloy/otlp-export.generated.alloy || true",
+        "echo RENDER_OTLP_OK",
         # Refresh k8s manifests + secret + rollout
         "python3 $LAB/scripts/generate-k8s-telemetry.py",
         "bash $LAB/scripts/deploy-ktranslate-golden.sh",

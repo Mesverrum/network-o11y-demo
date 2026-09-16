@@ -20,7 +20,7 @@ Services: `alloy`, `gnmic`, `ktranslate_snmp_srl-hq`, `ktranslate_flow`, `ktrans
 
 - Groups: `groups/srl-hq.env` → `make generate` → poller/discovery configs under `config/` + `state/`
 - Discovery: `make snmp-discover` (CIDR sync + discover all groups) or `make discover GROUP=srl-hq` — not `--snmp_discovery_on_start`
-- SNMP profiles: bundled in the ktranslate image; discovery assigns `mib_profile` from `sysObjectID` — see [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles) for edge cases
+- SNMP profiles: bundled in the ktranslate image; discovery assigns `mib_profile` from `sysObjectID`. Optional fork: `PROFILE_GIT_URL` in `.env` (`make generate`). See [kentik/snmp-profiles](https://github.com/kentik/snmp-profiles)
 - Alloy: `local/alloy/config.alloy` — comments must be `//` only. Receives OTLP; scrapes Docker logs for Clos + sidecars (skips ktranslate — those use `--tee_logs` OTLP); remaps gnmic LLDP → `network_topology_edge_info`; stamps `deployment.host`
 - gnmic: `local/gnmic/gnmic.yaml` (OTLP → Alloy; includes `lldp_neighbors` subscribe)
 - topology-exporter (optional): `local/topology-exporter/config.yaml` — `make topology-up` after `topology-exporter-image`

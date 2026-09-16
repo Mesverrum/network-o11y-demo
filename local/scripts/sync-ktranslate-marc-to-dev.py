@@ -208,6 +208,11 @@ def main() -> int:
         action="store_true",
         help="also sync ktranslate-device-details (default: skip — marc-only experiments)",
     )
+    parser.add_argument(
+        "--only",
+        metavar="UID",
+        help="sync a single dashboard UID (implies --include-device-details when UID is device-details)",
+    )
     args = parser.parse_args()
 
     env = load_env()
@@ -222,6 +227,13 @@ def main() -> int:
     print(f"source: {src_url} (ns={SRC_NS})")
     print(f"target: {dst_url} (ns={DST_NS})")
     skip = set() if args.include_device_details else set(DEFAULT_SKIP)
+    uids = list(UIDS)
+    if args.only:
+        if args.only not in UIDS:
+            print(f"unknown UID {args.only!r}; choose from {', '.join(UIDS)}", file=sys.stderr)
+            return 1
+        uids = [args.only]
+        skip.discard(args.only)
     if skip:
         print(f"skipping (marc-only iterate): {', '.join(sorted(skip))}")
 
@@ -233,7 +245,7 @@ def main() -> int:
     )
 
     rows = []
-    for uid in UIDS:
+    for uid in uids:
         if uid in skip:
             print(f"\n{uid}\n  SKIP: marc-only (pass --include-device-details to sync)")
             continue

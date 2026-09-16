@@ -129,6 +129,30 @@ def _util_percent(direction: str) -> str:
 """.strip()
 
 
+def _octets_rate_with_alias(direction: str) -> str:
+    """Hot octet rate plus if_Alias from cold if_mib_meta (ifAdminStatus).
+
+    if_mib (hot) does not walk ifAlias. WAN panels filter if_Alias=~".*WAN.*".
+    Keep unlabeled ifaces so fleet totals do not drop.
+    """
+    octets = f"snmp_ifHC{direction}Octets{{{JOB}}}"
+    rate = f"rate({octets}[5m])"
+    admin = f'snmp_ifAdminStatus{{{JOB},if_Alias!=""}}'
+    return f"""
+(
+  {rate}
+  * on({IF_ON_CROSS}) group_left(if_Alias)
+    max by ({IF_ON_CROSS}, if_Alias) ({admin})
+)
+or
+(
+  {rate}
+  unless on({IF_ON_CROSS})
+    ({rate} * on({IF_ON_CROSS}) group_left() max by ({IF_ON_CROSS}) ({admin}))
+)
+""".strip()
+
+
 def rule_specs() -> list[dict[str, str]]:
     return [
         {
@@ -171,14 +195,14 @@ def rule_specs() -> list[dict[str, str]]:
             "title": "Alloy SNMP ifHCInOctets rate",
             "record": "if:snmp_ifHCInOctets:rate5m",
             "tier": "hot",
-            "expr": f"rate(snmp_ifHCInOctets{{{JOB}}}[5m])",
+            "expr": _octets_rate_with_alias("In"),
         },
         {
             "uid": "rr-alloy-snmp-ifout-octets-rate",
             "title": "Alloy SNMP ifHCOutOctets rate",
             "record": "if:snmp_ifHCOutOctets:rate5m",
             "tier": "hot",
-            "expr": f"rate(snmp_ifHCOutOctets{{{JOB}}}[5m])",
+            "expr": _octets_rate_with_alias("Out"),
         },
         {
             "uid": "rr-alloy-snmp-ifin-util",
@@ -310,9 +334,9 @@ def http_json(
         return exc.code, payload
 
 
-def group_path(name: str) -> str:
+def group_path(name: str, folder: str = FOLDER_UID) -> str:
     return (
-        f"/api/v1/provisioning/folder/{FOLDER_UID}/rule-groups/"
+        f"/api/v1/provisioning/folder/{folder}/rule-groups/"
         f"{urllib.parse.quote(name, safe='')}"
     )
 
@@ -336,7 +360,7 @@ def promql(env: dict[str, str], expr: str) -> list:
     return body.get("data", {}).get("result") or []
 
 
-def provision(env: dict[str, str], *, dry_run: bool = False) -> None:
+def provision(env: dict[str, str], *, dry_run: bool = False, folder: str = FOLDER_UID) -> None:
     specs = rule_specs()
     export_yaml(specs)
     groups = [
@@ -346,7 +370,7 @@ def provision(env: dict[str, str], *, dry_run: bool = False) -> None:
     if dry_run:
         for title, interval, group_specs in groups:
             print(
-                f"dry-run: would PUT {group_path(title)} "
+                f"dry-run: would PUT {group_path(title, folder)} "
                 f"interval={interval}s rules={len(group_specs)}"
             )
             for spec in group_specs:
@@ -354,26 +378,26 @@ def provision(env: dict[str, str], *, dry_run: bool = False) -> None:
         print(f"Wrote {YAML_OUT}")
         return
 
-    create_path = f"/api/v1/provisioning/folder/{FOLDER_UID}/rule-groups"
+    create_path = f"/api/v1/provisioning/folder/{folder}/rule-groups"
     for title, interval, group_specs in groups:
         body = {
             "title": title,
             "interval": interval,
             "rules": [grafana_rule(s) for s in group_specs],
         }
-        status, out = http_json(env, "PUT", group_path(title), body)
+        status, out = http_json(env, "PUT", group_path(title, folder), body)
         if status == 404:
             status, out = http_json(env, "POST", create_path, body)
         if not (200 <= int(status) < 300):
             raise RuntimeError(f"PUT/POST {title} -> {status}: {out}")
-        print(f"Provisioned {len(group_specs)} rules in {FOLDER_UID} / {title} ({interval}s)")
+        print(f"Provisioned {len(group_specs)} rules in {folder} / {title} ({interval}s)")
         for spec in group_specs:
             print(f"  - {spec['record']}")
 
 
-def delete_rules(env: dict[str, str]) -> None:
+def delete_rules(env: dict[str, str], *, folder: str = FOLDER_UID) -> None:
     for title in (RULE_GROUP_HOT, RULE_GROUP_COLD):
-        status, out = http_json(env, "DELETE", group_path(title))
+        status, out = http_json(env, "DELETE", group_path(title, folder))
         if status not in (200, 202, 204, 404):
             raise RuntimeError(f"DELETE {title} -> {status}: {out}")
         print(f"Deleted rule group {title} (status {status})")
@@ -401,6 +425,16 @@ def main() -> int:
         help="Query recorded series after provision (optional --wait)",
     )
     ap.add_argument("--wait", type=int, default=0, help="Seconds to wait before --verify")
+    ap.add_argument(
+        "--folder",
+        default=FOLDER_UID,
+        help="Grafana folder UID for the rule groups (default: network-lab)",
+    )
+    ap.add_argument(
+        "--stack2",
+        action="store_true",
+        help="Use GRAFANA_URL_2 / GRAFANA_TOKEN_2 (networko11ydev)",
+    )
     args = ap.parse_args()
 
     specs = rule_specs()
@@ -410,17 +444,21 @@ def main() -> int:
         return 0
 
     env = load_env()
+    if args.stack2:
+        env["GRAFANA_URL"] = env.get("GRAFANA_URL_2") or ""
+        env["GRAFANA_TOKEN"] = env.get("GRAFANA_TOKEN_2") or ""
     if not env.get("GRAFANA_URL") or not env.get("GRAFANA_TOKEN"):
         raise SystemExit("Set GRAFANA_URL and GRAFANA_TOKEN in local/.env")
 
+    folder = args.folder
     if args.delete:
         if args.dry_run:
             print(f"dry-run: would DELETE {RULE_GROUP_HOT} and {RULE_GROUP_COLD}")
             return 0
-        delete_rules(env)
+        delete_rules(env, folder=folder)
         return 0
 
-    provision(env, dry_run=args.dry_run)
+    provision(env, dry_run=args.dry_run, folder=folder)
     if args.verify and not args.dry_run:
         verify(env, wait_sec=args.wait)
     return 0

@@ -17,43 +17,61 @@ SFLOW_DEVICES="${SFLOW_DEVICES:-spine1}"
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-use_alloy_sflow=0
-case "${LAB_ALLOY_NETFLOW:-0}" in
-  1|true|TRUE|yes|YES|on|ON)
-    case "${LAB_KTRANSLATE:-1}" in
-      0|false|FALSE|no|NO|off|OFF) use_alloy_sflow=1 ;;
-    esac
-    ;;
+kt_sflow=1
+case "${LAB_KTRANSLATE:-1}" in
+  0|false|FALSE|no|NO|off|OFF) kt_sflow=0 ;;
 esac
-sflow_ip=""
-if [[ "${use_alloy_sflow}" == "1" ]]; then
-  SFLOW_PORT="${SFLOW_PORT:-6344}"
-  sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
-  info "sFlow sink: Alloy (LAB_KTRANSLATE=0)"
-else
+alloy_sflow=0
+case "${LAB_ALLOY_NETFLOW:-0}" in
+  1|true|TRUE|yes|YES|on|ON) alloy_sflow=1 ;;
+esac
+
+gw="$(docker network inspect "${CLAB_NET}" -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true)"
+gw="${KTRANSLATE_CLAB_HOST:-${gw:-172.20.20.1}}"
+
+kt_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" sflow 2>/dev/null || true)"
+[[ -n "$kt_ip" && "$kt_ip" != "<no value>" ]] || kt_ip="${gw}"
+alloy_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" alloy 2>/dev/null || true)"
+[[ -n "$alloy_ip" && "$alloy_ip" != "<no value>" ]] || alloy_ip="${gw}"
+
+if [[ "${kt_sflow}" == "1" ]]; then
+  sflow_ip="${kt_ip}"
   SFLOW_PORT="${SFLOW_PORT:-6343}"
-  sflow_ip="$(bash "${ROOT}/scripts/collector-clab-ip.sh" sflow 2>/dev/null || true)"
+  info "sFlow collector 1: ktranslate ${sflow_ip}:${SFLOW_PORT}/udp"
+elif [[ "${alloy_sflow}" == "1" ]]; then
+  sflow_ip="${alloy_ip}"
+  SFLOW_PORT="${SFLOW_PORT:-6344}"
+  info "sFlow collector 1: Alloy ${sflow_ip}:${SFLOW_PORT}/udp"
+else
+  sflow_ip="${gw}"
+  SFLOW_PORT="${SFLOW_PORT:-6343}"
+  info "sFlow collector 1: ${sflow_ip}:${SFLOW_PORT}/udp"
 fi
-if [[ -z "$sflow_ip" || "$sflow_ip" == "<no value>" ]]; then
-  sflow_ip="${KTRANSLATE_CLAB_HOST:-}"
-fi
-if [[ -z "$sflow_ip" ]]; then
-  sflow_ip="$(docker network inspect "${CLAB_NET}" -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true)"
-fi
-[[ -n "$sflow_ip" && "$sflow_ip" != "<no value>" ]] || sflow_ip="172.20.20.1"
 
-info "sFlow collector: ${sflow_ip}:${SFLOW_PORT}/udp (network-instance mgmt)"
+extra=""
+next=2
+if [[ "${kt_sflow}" == "1" && "${alloy_sflow}" == "1" ]]; then
+  info "sFlow collector ${next}: Alloy ${alloy_ip}:6344/udp"
+  extra+=$(cat <<PEOF
 
-pkt_extra=""
+set / system sflow collector ${next} collector-address ${alloy_ip}
+set / system sflow collector ${next} network-instance mgmt
+set / system sflow collector ${next} source-address __SRC__
+set / system sflow collector ${next} port 6344
+PEOF
+)
+  next=$((next + 1))
+fi
 pkt_on="${ORB_PKTVISOR:-0}"
 if [[ "$pkt_on" == "1" || "$pkt_on" == "true" || -n "${PKTVISOR_CLAB_HOST:-}" ]]; then
   pkt_ip="${PKTVISOR_CLAB_HOST:-$sflow_ip}"
-  info "pktvisor sFlow also: ${pkt_ip}:${PKT_SFLOW_PORT}/udp"
-  pkt_extra=$(cat <<PEOF
-set / system sflow collector 2 collector-address ${pkt_ip}
-set / system sflow collector 2 network-instance mgmt
-set / system sflow collector 2 source-address __SRC__
-set / system sflow collector 2 port ${PKT_SFLOW_PORT}
+  info "sFlow collector ${next}: pktvisor ${pkt_ip}:${PKT_SFLOW_PORT}/udp"
+  extra+=$(cat <<PEOF
+
+set / system sflow collector ${next} collector-address ${pkt_ip}
+set / system sflow collector ${next} network-instance mgmt
+set / system sflow collector ${next} source-address __SRC__
+set / system sflow collector ${next} port ${PKT_SFLOW_PORT}
 PEOF
 )
 fi
@@ -64,7 +82,7 @@ for d in ${SFLOW_DEVICES}; do
   [[ -n "$src_ip" && "$src_ip" != "<no value>" ]] || die "could not resolve mgmt IP for ${d} on ${CLAB_NET}"
 
   info "Configuring sFlow on ${d} (source ${src_ip})..."
-  extra="${pkt_extra//__SRC__/${src_ip}}"
+  rendered="${extra//__SRC__/${src_ip}}"
   docker exec -i "$d" bash -c "sr_cli -ed" <<EOF
 set / system sflow admin-state enable
 set / system sflow sample-rate 10000
@@ -72,7 +90,7 @@ set / system sflow collector 1 collector-address ${sflow_ip}
 set / system sflow collector 1 network-instance mgmt
 set / system sflow collector 1 source-address ${src_ip}
 set / system sflow collector 1 port ${SFLOW_PORT}
-${extra}
+${rendered}
 set / interface ethernet-1/1 sflow admin-state enable
 set / interface ethernet-1/2 sflow admin-state enable
 commit stay

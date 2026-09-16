@@ -230,8 +230,8 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make stabilize` | Recover without `clab --reconfigure`: start SRL, fabric, discover |
 | `make topology-targets` | Refresh topology-exporter SNMP hosts (when `LAB_TOPOLOGY_EXPORTER=1`) |
 | `make topology-up` | Start optional topology_exporter (compose profile `topology`) |
-| `make conversation-kg-test` | Unit-test KG Interface ROUTES rules + model (no Grafana token) |
-| `make conversation-kg` | Provision conversation recording rules + Host/NetworkDevice/Interface on the stack |
+| `make conversation-kg-test` | Unit-test KG Interface CONNECTS_TO rules + model (no Grafana token) |
+| `make conversation-kg` | Provision conversation recording rules + Endpoint/NetworkDevice/Interface on the stack |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make alloy-network-image` | Build `srl-local/alloy:network-dev` (fork overlay: snmp.yml + snmp-discovery) |
 | `make alloy-snmp-discover` | Probe fabric `/32`s → `snmp-targets.yml` (named auth + sysObjectID→module) |

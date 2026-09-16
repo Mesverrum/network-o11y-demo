@@ -91,33 +91,20 @@ def clone_manifest(doc: dict) -> dict:
     spec = out.setdefault("spec", {})
     spec["title"] = DST_TITLE
     spec["description"] = (
-        "Clone of 04. Network Device Details. Panels are being retargeted one at a "
-        "time from ktranslate (kentik_snmp_*, CHF, ktranslate Loki) to Alloy "
-        "collectors (snmp_* job=alloy-snmp, alloy-netflow, alloy-snmptrap, alloy-syslog)."
+        "Device-level Alloy SNMP, flow, traps, and syslog "
+        "(`snmp_*` job=alloy-snmp, alloy-netflow, alloy-snmptrap, alloy-syslog)."
     )
     tags = list(spec.get("tags") or [])
-    for t in ("alloy", "network-lab", "snmp", "in-progress"):
+    for t in ("alloy", "network-lab", "network-o11y", "snmp", "in-progress"):
         if t not in tags:
             tags.append(t)
     spec["tags"] = tags
 
-    links = list(spec.get("links") or [])
-    extra = {
-        "title": "Original 04 Device Details",
-        "url": "/d/ktranslate-device-details",
-        "type": "link",
-        "icon": "dashboard",
-        "tooltip": "Unmodified ktranslate Device Details",
-        "tags": [],
-        "asDropdown": False,
-        "targetBlank": False,
-        "includeVars": True,
-        "keepTime": True,
-    }
-    titles = {ln.get("title") for ln in links if isinstance(ln, dict)}
-    if extra["title"] not in titles:
-        links.insert(0, extra)
-    spec["links"] = links
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from alloy_dash_nav import apply_alloy_nav_links, scrub_spec_prose
+
+    apply_alloy_nav_links(spec, DST_UID)
+    scrub_spec_prose(spec)
 
     layout = spec.get("layout") or {}
     if layout.get("kind") != "TabsLayout":

@@ -200,6 +200,52 @@ def remote_down_script() -> str:
     ) + "\n"
 
 
+def remote_dry_diode_script() -> str:
+    """Stop Diode mutating NetBox; keep Orb/pktvisor/OTLP. Populate stays the SoT."""
+    lines = [
+        "set -euo pipefail",
+        f"LAB={REMOTE_ROOT}/local",
+        "mkdir -p $LAB/scripts $LAB/orb/out",
+    ]
+    lines.extend(b64_write("local/scripts/orb-render-config.py"))
+    lines += [
+        "sed -i 's/\\r$//' $LAB/scripts/orb-render-config.py || true",
+        "python3 - <<'PY'",
+        "from pathlib import Path",
+        "import re",
+        "p = Path('/opt/network-o11y-demo/local/.env')",
+        "text = p.read_text(encoding='utf-8') if p.exists() else ''",
+        "line = 'ORB_DRY_RUN=1'",
+        "if re.search(r'^ORB_DRY_RUN=.*$', text, flags=re.M):",
+        "    text = re.sub(r'^ORB_DRY_RUN=.*$', line, text, count=1, flags=re.M)",
+        "else:",
+        "    if text and not text.endswith('\\n'):",
+        "        text += '\\n'",
+        "    text += line + '\\n'",
+        "p.write_text(text, encoding='utf-8')",
+        "print('set ORB_DRY_RUN=1')",
+        "PY",
+        "set -a",
+        "source <(sed 's/\\r$//' $LAB/.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' || true)",
+        "set +a",
+        "export ORB_DRY_RUN=1",
+        "python3 $LAB/scripts/orb-render-config.py",
+        "ENV_GEN=$LAB/orb/.compose.env",
+        "{",
+        '  echo "ORB_AGENT_IMAGE=${ORB_AGENT_IMAGE:-netboxlabs/orb-agent:latest}"',
+        '  echo "ORB_SNMP_COMMUNITY=${ORB_SNMP_COMMUNITY:-${SNMP_V2_COMMUNITY:-public}}"',
+        '  echo "DIODE_CLIENT_ID=${DIODE_CLIENT_ID:-}"',
+        '  echo "DIODE_CLIENT_SECRET=${DIODE_CLIENT_SECRET:-}"',
+        "} >\"$ENV_GEN\"",
+        "( cd $LAB/orb && docker compose -f compose.yaml --env-file \"$ENV_GEN\" up -d --force-recreate )",
+        "sleep 3",
+        "docker ps --filter name=orb-agent --format 'table {{.Names}}\\t{{.Status}}'",
+        "grep -nE 'dry_run|site:' $LAB/orb/agent.generated.yaml | head -n 20 || true",
+        "docker logs orb-agent --tail 25 || true",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def send(iid: str, script: str, label: str) -> int:
     params = json.dumps({"commands": [script]})
     param_file = LOCAL / ".ssm-orb-deploy.json"
@@ -226,6 +272,7 @@ def send(iid: str, script: str, label: str) -> int:
 
 def main() -> int:
     down = "--down" in sys.argv
+    dry_diode = "--dry-diode" in sys.argv
     try:
         iid = instance_id()
     except RuntimeError as e:
@@ -234,6 +281,12 @@ def main() -> int:
 
     if down:
         return send(iid, remote_down_script(), "Stopping Orb on colocated host")
+    if dry_diode:
+        return send(
+            iid,
+            remote_dry_diode_script(),
+            "Orb Diode dry-run (stop NetBox mutations; keep pktvisor/OTLP)",
+        )
     return send(
         iid,
         remote_script(),

@@ -76,9 +76,37 @@ mv "${TMP}" "${DEVICES_OUT}"
 
 echo "published ${DEVICE_COUNT} ${GROUP} devices to ${DEVICES_OUT}"
 
+DEVICES_CHANGED=1
 if [[ -f "${DEVICES_PREV}" ]] && cmp -s "${DEVICES_PREV}" "${DEVICES_OUT}"; then
-  echo "device list unchanged for ${GROUP}; skipping ktranslate reload"
+  DEVICES_CHANGED=0
+fi
+
+# Poller global.mibs_enabled is the walk allowlist. Union discovered_mibs
+# even when the device list is unchanged (upgrade path: same devices, seed IF-MIB).
+MIBS_CHANGED=0
+shopt -s nullglob
+for env_file in "${REPO_ROOT}/groups"/*.env; do
+  _group="$(awk -F= '/^GROUP=/{print $2; exit}' "${env_file}")"
+  [[ -z "${_group}" ]] && continue
+  _poller="${REPO_ROOT}/config/poller-${_group}.yaml"
+  _devices="${REPO_ROOT}/state/devices-${_group}.yaml"
+  [[ -f "${_poller}" ]] || continue
+  _rc=0
+  bash "${REPO_ROOT}/scripts/apply-discovered-mibs.sh" "${_poller}" "${_devices}" || _rc=$?
+  case "${_rc}" in
+    0|2) ;;
+    3) MIBS_CHANGED=1 ;;
+    *) exit "${_rc}" ;;
+  esac
+done
+shopt -u nullglob
+
+if [[ "${DEVICES_CHANGED}" -eq 0 && "${MIBS_CHANGED}" -eq 0 ]]; then
+  echo "device list and mibs_enabled unchanged for ${GROUP}; skipping ktranslate reload"
   exit 2
+fi
+if [[ "${DEVICES_CHANGED}" -eq 0 ]]; then
+  echo "device list unchanged for ${GROUP}; reloading pollers so new mibs_enabled take effect"
 fi
 
 if [[ -n "${SKIP_RELOAD:-}" ]]; then

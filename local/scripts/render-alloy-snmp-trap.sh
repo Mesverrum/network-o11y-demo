@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Render alloy/snmp-trap.generated.alloy
 #
-# LAB_ALLOY_SNMPTRAP=1 — otelcol.receiver.snmptrap on :1620
-# LAB_ALLOY_SYSLOG=1   — otelcol.receiver.syslog on :1514 (protocol=none)
+# LAB_ALLOY_SNMPTRAP=1 — otelcol.receiver.snmptrap (:1620, or :11620 if ktranslate is up)
+# LAB_ALLOY_SYSLOG=1   — otelcol.receiver.syslog (:1514, or :1515 if ktranslate is up)
 # Both join device_name from snmp-targets.yml (file-SD catalog).
 set -euo pipefail
 
@@ -22,6 +22,11 @@ if [[ -f "${ROOT}/.env" ]]; then
   ')
   set +a
 fi
+
+# shellcheck source=alloy-events-ports.sh
+source "${ROOT}/scripts/alloy-events-ports.sh"
+TRAP_PORT="$(alloy_trap_listen_port)"
+SYSLOG_PORT="$(alloy_syslog_listen_port)"
 
 mkdir -p "${ROOT}/alloy" "${ROOT}/fixtures/alloy-snmp/mibs"
 bash "${ROOT}/scripts/stage-alloy-mibs.sh" || true
@@ -65,9 +70,10 @@ EOF
       cat <<'EOF'
 // LAB_ALLOY_SNMPTRAP=1 — SNMP traps/informs as OTel logs (experimental).
 // Query: {service_name="alloy-snmptrap"}
+// Listen __TRAP_LISTEN__ (ktranslate keeps :1620 when both are up).
 
 otelcol.receiver.snmptrap "lab" {
-  listen_address = "0.0.0.0:1620"
+  listen_address = "0.0.0.0:__TRAP_LISTEN__"
   mib_paths      = ["/etc/alloy/mibs"]
   targets        = encoding.from_yaml(local.file.device_join_catalog.content)
   attributes     = {
@@ -102,6 +108,7 @@ EOF
       cat <<'EOF'
 // LAB_ALLOY_SYSLOG=1 — device syslog as OTel logs.
 // Query: {service_name="alloy-syslog"}
+// Listen __SYSLOG_LISTEN__ (ktranslate keeps :1514 when both are up).
 // protocol=none keeps vendor/non-RFC bodies; PRI still decodes when present.
 // on_error=send (default) never drops a failed parse.
 
@@ -112,7 +119,7 @@ otelcol.receiver.syslog "lab" {
   targets               = encoding.from_yaml(local.file.device_join_catalog.content)
 
   udp {
-    listen_address = "0.0.0.0:1514"
+    listen_address = "0.0.0.0:__SYSLOG_LISTEN__"
     add_attributes = true
   }
 
@@ -149,5 +156,9 @@ EOF
     fi
   fi
 } > "${OUT}"
+sed -i \
+  -e "s/__TRAP_LISTEN__/${TRAP_PORT}/g" \
+  -e "s/__SYSLOG_LISTEN__/${SYSLOG_PORT}/g" \
+  "${OUT}"
 
-echo "==> wrote ${OUT} (LAB_ALLOY_SNMPTRAP=${LAB_ALLOY_SNMPTRAP:-0} LAB_ALLOY_SYSLOG=${LAB_ALLOY_SYSLOG:-0} FLEET_EVENTS=${LAB_ALLOY_FLEET_EVENTS:-0})"
+echo "==> wrote ${OUT} (LAB_ALLOY_SNMPTRAP=${LAB_ALLOY_SNMPTRAP:-0} LAB_ALLOY_SYSLOG=${LAB_ALLOY_SYSLOG:-0} FLEET_EVENTS=${LAB_ALLOY_FLEET_EVENTS:-0} trap=:${TRAP_PORT} syslog=:${SYSLOG_PORT})"

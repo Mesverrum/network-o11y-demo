@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import re
 import secrets
 import shutil
@@ -32,12 +33,22 @@ NB_PUBLIC = (
 
 def aws(*args: str) -> str:
     exe = shutil.which("aws") or shutil.which("aws.exe") or "aws"
-    return subprocess.check_output(
+    env = os.environ.copy()
+    env.setdefault("AWS_PAGER", "")
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env["AWS_CLI_FILE_ENCODING"] = "UTF-8"
+    proc = subprocess.run(
         [exe, "--profile", PROFILE, "--region", REGION, *args],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
+        capture_output=True,
+        env=env,
+        check=False,
     )
+    out = (proc.stdout or b"").decode("utf-8", "replace")
+    err = (proc.stderr or b"").decode("utf-8", "replace")
+    if proc.returncode != 0:
+        raise RuntimeError(err.strip() or out.strip() or f"aws exit {proc.returncode}")
+    return out
 
 
 def instance_id() -> str:

@@ -15,8 +15,6 @@ groups:
           asserts_site: colocated
         expr: |
           label_replace(label_replace(
-          max by (device_name) (kentik_snmp_CPU)
-          or
           max by (device_name) (snmp_CPU)
           , "asserts_env", "network-lab", "", "")
           , "asserts_site", "colocated", "", "")
@@ -27,8 +25,6 @@ groups:
           asserts_site: colocated
         expr: |
           label_replace(label_replace(
-          max by (device_name) (kentik_snmp_MemoryUtilization)
-          or
           max by (device_name) (device:snmp_MemoryUtilization:percent)
           , "asserts_env", "network-lab", "", "")
           , "asserts_site", "colocated", "", "")
@@ -41,13 +37,9 @@ groups:
           label_replace(label_replace(
           (
             count by (device_name) (
-              kentik_snmp_PollingHealth{PollingHealth!="GOOD"}
-              and on (device_name) kentik_snmp_CPU
+              max by (device_name) (up{job="alloy-snmp",snmp_tier="hot"}) == 0
+              and on (device_name) snmp_CPU
             )
-          )
-          or
-          (
-            count by (device_name) (kentik_snmp_CPU) * 0
           )
           or
           (
@@ -64,17 +56,15 @@ groups:
           label_replace(label_replace(
           (
             count by (device_name) (
-              kentik_snmp_if_OperStatus{
-                if_AdminStatus="up",
-                if_OperStatus="down",
-                if_interface_name="ethernet-1/1"
-              }
-              and on (device_name) kentik_snmp_CPU
+              (
+                max by (device_name) (snmp_ifAdminStatus{if_interface_name="ethernet-1/1"}) == 1
+              )
+              and
+              (
+                max by (device_name) (snmp_ifOperStatus{if_interface_name="ethernet-1/1"}) == 2
+              )
+              and on (device_name) snmp_CPU
             )
-          )
-          or
-          (
-            count by (device_name) (kentik_snmp_CPU) * 0
           )
           or
           (
@@ -92,7 +82,13 @@ groups:
           label_join(
             (
               count by (device_name, if_interface_name) (
-                kentik_snmp_if_OperStatus{if_AdminStatus="up", if_OperStatus="down"}
+                (
+                  max by (device_name, if_interface_name) (snmp_ifAdminStatus) == 1
+                )
+                and
+                (
+                  max by (device_name, if_interface_name) (snmp_ifOperStatus) == 2
+                )
                 and on (device_name, if_interface_name) network_lab:interface_info
               )
             )

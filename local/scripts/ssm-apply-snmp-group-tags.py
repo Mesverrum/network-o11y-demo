@@ -17,6 +17,7 @@ REGION = "us-east-1"
 
 PATHS = [
     "local/templates/poller.yaml.tmpl",
+    "local/templates/discovery.yaml.tmpl",
     "local/scripts/generate-groups.sh",
     "local/scripts/generate-k8s-telemetry.py",
     "local/scripts/deploy-ktranslate-golden.sh",

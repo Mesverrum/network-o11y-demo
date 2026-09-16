@@ -25,6 +25,8 @@ FILES = [
     "local/scripts/render-device-join.py",
     "local/scripts/alloy-snmp-discover.sh",
     "local/scripts/alloy-ktranslate-parallel-colocated.sh",
+    "local/scripts/alloy-events-ports.sh",
+    "local/scripts/collector-runtime-ready.sh",
     "local/scripts/softflowd.sh",
     "local/scripts/sflow-config.sh",
     "local/scripts/snmp-trap-config.sh",

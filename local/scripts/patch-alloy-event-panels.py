@@ -346,7 +346,7 @@ def patch_a3(doc: dict) -> list[str]:
             ),
             description=(
                 "Distinct Alloy event streams with data in the last 15m "
-                "(alloy-syslog, alloy-snmptrap). Not ktranslate CHF."
+                "(alloy-syslog, alloy-snmptrap)."
             ),
         )
         inner = query_inner(collectors, "A")

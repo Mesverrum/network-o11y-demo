@@ -77,6 +77,11 @@ if [[ -n "${GC_OTLP_URL_2:-}${GC_OTLP_ACCOUNT_2:-}${GC_OTLP_KEY_2:-}" ]]; then
   : "${GC_OTLP_ACCOUNT_2:?GC_OTLP_ACCOUNT_2 required when any GC_OTLP_*_2 is set}"
   : "${GC_OTLP_KEY_2:?GC_OTLP_KEY_2 required when any GC_OTLP_*_2 is set}"
 fi
+if [[ -n "${GC_OTLP_URL_3:-}${GC_OTLP_ACCOUNT_3:-}${GC_OTLP_KEY_3:-}" ]]; then
+  : "${GC_OTLP_URL_3:?GC_OTLP_URL_3 required when any GC_OTLP_*_3 is set}"
+  : "${GC_OTLP_ACCOUNT_3:?GC_OTLP_ACCOUNT_3 required when any GC_OTLP_*_3 is set}"
+  : "${GC_OTLP_KEY_3:?GC_OTLP_KEY_3 required when any GC_OTLP_*_3 is set}"
+fi
 
 install -d -m 0755 "${LAB_ROOT}/groups" "${LAB_ROOT}/config" "${LAB_ROOT}/state"
 
@@ -91,6 +96,13 @@ ENV
 GC_OTLP_URL_2=${GC_OTLP_URL_2}
 GC_OTLP_ACCOUNT_2=${GC_OTLP_ACCOUNT_2}
 GC_OTLP_KEY_2=${GC_OTLP_KEY_2}
+ENV
+  fi
+  if [[ -n "${GC_OTLP_URL_3:-}" ]]; then
+    cat <<ENV
+GC_OTLP_URL_3=${GC_OTLP_URL_3}
+GC_OTLP_ACCOUNT_3=${GC_OTLP_ACCOUNT_3}
+GC_OTLP_KEY_3=${GC_OTLP_KEY_3}
 ENV
   fi
   cat <<ENV

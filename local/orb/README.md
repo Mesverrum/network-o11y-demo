@@ -12,15 +12,24 @@ make -C local netbox-ui-tunnel   # browser → http://127.0.0.1:8000/
 Data path:
 
 ```
-Clos SNMP → Orb snmp_discovery → Diode → NetBox UI
+Clos SNMP → Orb snmp_discovery → dry-run JSON (/opt/.../orb/out)
                 ↘ OTLP → Alloy → Grafana Cloud
+Populate overlay → NetBox UI (intended Clos SoT)
 Grafana Cloud Infinity `netbox-api` → NetBox REST (live SoT on dashboards 20/22/24/25)
+```
+
+Live Diode (`ORB_DRY_RUN=0`) still works as a crawl demo, but it duplicates SRL boxes at site `network-lab` and fills unused IF-MIB ports. After populate, keep Orb on dry-run:
+
+```bash
+make -C local orb-dry-diode-colocated
+python3 local/scripts/netbox-populate.py --profile colocated --tidy-only
 ```
 
 ## Orb-only
 
 ```bash
 make -C local orb-colocated       # dry-run by default; live if DIODE_* in remote .env
+make -C local orb-dry-diode-colocated  # persist ORB_DRY_RUN=1 on the host
 make -C local orb-down-colocated
 make -C local orb-up-local        # laptop only (avoid if RAM-constrained)
 ```
@@ -73,7 +82,7 @@ Rebuild leadership board: `python3 local/scripts/build-orb-ktranslate-leadership
 
 ## Gap checklist
 
-1. NetBox UI shows devices/ifaces from Orb (Diode ingest).
+1. NetBox UI shows the populate Clos SoT (`python3 local/scripts/netbox-populate.py --profile colocated`). Orb discovery writes dry-run JSON unless you opt into live Diode (`ORB_DRY_RUN=0`). After live ingest, tidy: `--tidy-only` + `make -C local orb-dry-diode-colocated`.
 2. Open dashboards 20/22/24/25 — NetBox panels are Infinity REST. Orb discovery metrics: `service_name=~snmp-discovery`, `deployment_host=aws-colocated-lab`.
 3. Confirm **no** new `kentik_snmp_*` from Orb alone (ktranslate still owns health SNMP).
 4. pktvisor panels light up only after `ORB_PKTVISOR=1` and a NetFlow exporter aimed at host `:19995` (do not steal softflowd from ktranslate `:9995`).

@@ -7,8 +7,12 @@ import subprocess
 UPDATES = [
     ("leaf1", "ethernet-1/49", "WAN uplink to spine"),
     ("leaf2", "ethernet-1/49", "WAN uplink to spine"),
+    ("leaf-br1", "ethernet-1/49", "WAN uplink to HQ spine"),
+    ("leaf-br2", "ethernet-1/49", "WAN uplink to HQ spine"),
     ("spine1", "ethernet-1/1", "WAN downlink leaf1"),
     ("spine1", "ethernet-1/2", "WAN downlink leaf2"),
+    ("spine1", "ethernet-1/3", "WAN to branch1 (leaf-br1)"),
+    ("spine1", "ethernet-1/4", "WAN to branch2 (leaf-br2)"),
 ]
 
 

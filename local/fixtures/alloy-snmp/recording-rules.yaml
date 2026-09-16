@@ -32,12 +32,32 @@ groups:
       - record: if:snmp_ifHCInOctets:rate5m
         # Alloy SNMP ifHCInOctets rate
         expr: |
-          rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m])
+          (
+            rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m])
+            * on(device_name, job, snmp_group, ifIndex, if_interface_name) group_left(if_Alias)
+              max by (device_name, job, snmp_group, ifIndex, if_interface_name, if_Alias) (snmp_ifAdminStatus{job="alloy-snmp",if_Alias!=""})
+          )
+          or
+          (
+            rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m])
+            unless on(device_name, job, snmp_group, ifIndex, if_interface_name)
+              (rate(snmp_ifHCInOctets{job="alloy-snmp"}[5m]) * on(device_name, job, snmp_group, ifIndex, if_interface_name) group_left() max by (device_name, job, snmp_group, ifIndex, if_interface_name) (snmp_ifAdminStatus{job="alloy-snmp",if_Alias!=""}))
+          )
 
       - record: if:snmp_ifHCOutOctets:rate5m
         # Alloy SNMP ifHCOutOctets rate
         expr: |
-          rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m])
+          (
+            rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m])
+            * on(device_name, job, snmp_group, ifIndex, if_interface_name) group_left(if_Alias)
+              max by (device_name, job, snmp_group, ifIndex, if_interface_name, if_Alias) (snmp_ifAdminStatus{job="alloy-snmp",if_Alias!=""})
+          )
+          or
+          (
+            rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m])
+            unless on(device_name, job, snmp_group, ifIndex, if_interface_name)
+              (rate(snmp_ifHCOutOctets{job="alloy-snmp"}[5m]) * on(device_name, job, snmp_group, ifIndex, if_interface_name) group_left() max by (device_name, job, snmp_group, ifIndex, if_interface_name) (snmp_ifAdminStatus{job="alloy-snmp",if_Alias!=""}))
+          )
 
       - record: if:snmp_IfInUtilization:percent
         # Alloy SNMP IfInUtilization %

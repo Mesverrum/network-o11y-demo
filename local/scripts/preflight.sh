@@ -85,21 +85,25 @@ if [[ -f .env ]]; then
   else
     _ok ".env GC_OTLP_KEY has been customized"
   fi
-  # Dual OTLP: all-or-nothing for GC_OTLP_*_2
-  _u2="$(grep -E '^GC_OTLP_URL_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
-  _a2="$(grep -E '^GC_OTLP_ACCOUNT_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
-  _k2="$(grep -E '^GC_OTLP_KEY_2=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
-  if [[ -n "${_u2}${_a2}${_k2}" ]]; then
-    if [[ -n "${_u2}" && -n "${_a2}" && -n "${_k2}" ]]; then
-      _ok "dual OTLP sink configured (GC_OTLP_*_2)"
-    else
-      _fail "set all of GC_OTLP_URL_2, GC_OTLP_ACCOUNT_2, GC_OTLP_KEY_2 (or none)"
+  # Extra OTLP sinks: all-or-nothing per suffix
+  for _n in 2 3; do
+    _u="$(grep -E "^GC_OTLP_URL_${_n}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+    _a="$(grep -E "^GC_OTLP_ACCOUNT_${_n}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+    _k="$(grep -E "^GC_OTLP_KEY_${_n}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r' || true)"
+    if [[ -n "${_u}${_a}${_k}" ]]; then
+      if [[ -n "${_u}" && -n "${_a}" && -n "${_k}" ]]; then
+        _ok "OTLP sink configured (GC_OTLP_*_${_n})"
+      else
+        _fail "set all of GC_OTLP_URL_${_n}, GC_OTLP_ACCOUNT_${_n}, GC_OTLP_KEY_${_n} (or none)"
+      fi
     fi
-  fi
+  done
 fi
 
 if [[ -f alloy/otlp-export.generated.alloy ]]; then
-  if grep -q 'grafana_cloud_2' alloy/otlp-export.generated.alloy 2>/dev/null; then
+  if grep -q 'grafana_cloud_3' alloy/otlp-export.generated.alloy 2>/dev/null; then
+    _ok "alloy/otlp-export.generated.alloy (3 sinks)"
+  elif grep -q 'grafana_cloud_2' alloy/otlp-export.generated.alloy 2>/dev/null; then
     _ok "alloy/otlp-export.generated.alloy (dual sinks)"
   else
     _ok "alloy/otlp-export.generated.alloy (single sink)"

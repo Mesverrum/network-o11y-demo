@@ -37,9 +37,20 @@ if [[ -n "${GC_OTLP_URL_2:-}" && -n "${GC_OTLP_ACCOUNT_2:-}" && -n "${GC_OTLP_KE
     --from-literal=GC_OTLP_ACCOUNT_2="${GC_OTLP_ACCOUNT_2}"
     --from-literal=GC_OTLP_KEY_2="${GC_OTLP_KEY_2}"
   )
-  echo "dual OTLP: primary + GC_OTLP_*_2"
+  echo "OTLP fan-out: + GC_OTLP_*_2"
 elif [[ -n "${GC_OTLP_URL_2:-}${GC_OTLP_ACCOUNT_2:-}${GC_OTLP_KEY_2:-}" ]]; then
   echo "ERROR: set all of GC_OTLP_URL_2, GC_OTLP_ACCOUNT_2, GC_OTLP_KEY_2 (or none)" >&2
+  exit 1
+fi
+if [[ -n "${GC_OTLP_URL_3:-}" && -n "${GC_OTLP_ACCOUNT_3:-}" && -n "${GC_OTLP_KEY_3:-}" ]]; then
+  SECRET_ARGS+=(
+    --from-literal=GC_OTLP_URL_3="${GC_OTLP_URL_3}"
+    --from-literal=GC_OTLP_ACCOUNT_3="${GC_OTLP_ACCOUNT_3}"
+    --from-literal=GC_OTLP_KEY_3="${GC_OTLP_KEY_3}"
+  )
+  echo "OTLP fan-out: + GC_OTLP_*_3"
+elif [[ -n "${GC_OTLP_URL_3:-}${GC_OTLP_ACCOUNT_3:-}${GC_OTLP_KEY_3:-}" ]]; then
+  echo "ERROR: set all of GC_OTLP_URL_3, GC_OTLP_ACCOUNT_3, GC_OTLP_KEY_3 (or none)" >&2
   exit 1
 fi
 

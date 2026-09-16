@@ -1,0 +1,28 @@
+---
+description: Prompt in chat before any browser/SSO auth window
+alwaysApply: true
+---
+
+# Auth windows — ask here first
+
+The operator uses **two browser sessions**. The default/personal session has **no** access to work AWS or Grafana. A login that auto-opens a window lands in the wrong profile and fails.
+
+## Before any of these
+
+- `aws sso login` (profile `mvr` or otherwise)
+- Grafana / `gcx login` / Cloud OAuth
+- Any CLI that opens a browser for auth
+
+**Stop and prompt in this chat.** Do not run the command yet. Say what needs auth and wait for an explicit go-ahead.
+
+## After they say go
+
+Use **device-code** (or pasteable URL + code), never a silent default-browser launch:
+
+```text
+aws sso login --profile mvr --use-device-code
+```
+
+Put the verification URL and code in the chat so they can paste it into the **work** session.
+
+Do not retry the no-flag `aws sso login` that calls `oidc…/authorize` with `redirect_uri=127.0.0.1`.

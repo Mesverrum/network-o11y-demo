@@ -127,6 +127,34 @@ otelcol.receiver.prometheus "alloy_snmp" {
   }
 }
 
+prometheus.exporter.self "alloy" { }
+
+prometheus.relabel "alloy_self" {
+  forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
+
+  rule {
+    target_label = "job"
+    replacement  = "alloy"
+  }
+
+  rule {
+    target_label = "collector"
+    replacement  = "alloy-fleet-lab"
+  }
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "discovery_snmp_.*|alloy_build_info|up"
+    action        = "keep"
+  }
+}
+
+prometheus.scrape "alloy_self" {
+  targets         = prometheus.exporter.self.alloy.targets
+  scrape_interval = "30s"
+  forward_to      = [prometheus.relabel.alloy_self.receiver]
+}
+
 otelcol.receiver.snmptrap "lab" {
   targets = discovery.relabel.join_catalog.output
   attributes = {

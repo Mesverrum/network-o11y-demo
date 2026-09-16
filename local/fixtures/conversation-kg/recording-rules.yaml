@@ -18,9 +18,37 @@ groups:
           asserts_env: network-lab
           asserts_site: colocated
         expr: |
-          sum by (src_host, dst_host, network_peer_port, network_transport) (
-            max_over_time(
-              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+          (
+            sum by (src_host, dst_host, network_peer_port, network_transport) (
+            label_replace(
+            label_replace(
+            label_replace(
+            label_replace(
+            increase(alloy_network_io_by_flow_bytes{integration="alloy-netflow", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]),
+            "src_host", "client1", "src_host", "ip-172-17-0-1.*"
+          ),
+            "dst_host", "client1", "dst_host", "ip-172-17-0-1.*"
+          ),
+            "src_host", "client2", "src_host", "ip-172-17-0-2.*"
+          ),
+            "dst_host", "client2", "dst_host", "ip-172-17-0-2.*"
+          )
+          )
+          )
+          and on (src_host) (
+            count by (src_host) (
+            label_replace(vector(1), "src_host", "client1", "", "") or
+            label_replace(vector(1), "src_host", "client2", "", "") or
+            label_replace(vector(1), "src_host", "client-br1", "", "") or
+            label_replace(vector(1), "src_host", "client-br2", "", "")
+            )
+          )
+          and on (dst_host) (
+            count by (dst_host) (
+            label_replace(vector(1), "dst_host", "client1", "", "") or
+            label_replace(vector(1), "dst_host", "client2", "", "") or
+            label_replace(vector(1), "dst_host", "client-br1", "", "") or
+            label_replace(vector(1), "dst_host", "client-br2", "", "")
             )
           )
 
@@ -30,9 +58,37 @@ groups:
           asserts_env: network-lab
           asserts_site: colocated
         expr: |
-          sum by (src_host, dst_host) (
-            max_over_time(
-              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+          (
+            sum by (src_host, dst_host) (
+            label_replace(
+            label_replace(
+            label_replace(
+            label_replace(
+            increase(alloy_network_io_by_flow_bytes{integration="alloy-netflow", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]),
+            "src_host", "client1", "src_host", "ip-172-17-0-1.*"
+          ),
+            "dst_host", "client1", "dst_host", "ip-172-17-0-1.*"
+          ),
+            "src_host", "client2", "src_host", "ip-172-17-0-2.*"
+          ),
+            "dst_host", "client2", "dst_host", "ip-172-17-0-2.*"
+          )
+          )
+          )
+          and on (src_host) (
+            count by (src_host) (
+            label_replace(vector(1), "src_host", "client1", "", "") or
+            label_replace(vector(1), "src_host", "client2", "", "") or
+            label_replace(vector(1), "src_host", "client-br1", "", "") or
+            label_replace(vector(1), "src_host", "client-br2", "", "")
+            )
+          )
+          and on (dst_host) (
+            count by (dst_host) (
+            label_replace(vector(1), "dst_host", "client1", "", "") or
+            label_replace(vector(1), "dst_host", "client2", "", "") or
+            label_replace(vector(1), "dst_host", "client-br1", "", "") or
+            label_replace(vector(1), "dst_host", "client-br2", "", "")
             )
           )
 
@@ -43,14 +99,48 @@ groups:
           asserts_site: colocated
         expr: |
           count by (host) (
+            (
+              label_replace(
+                label_replace(
             label_replace(
-              network_io_by_flow_bytes{src_host=~"client.*"},
-              "host", "$1", "src_host", "(.+)"
+            label_replace(
+            label_replace(
+            increase(alloy_network_io_by_flow_bytes{integration="alloy-netflow", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]),
+            "src_host", "client1", "src_host", "ip-172-17-0-1.*"
+          ),
+            "dst_host", "client1", "dst_host", "ip-172-17-0-1.*"
+          ),
+            "src_host", "client2", "src_host", "ip-172-17-0-2.*"
+          ),
+            "dst_host", "client2", "dst_host", "ip-172-17-0-2.*"
+          ),
+                "host", "$1", "src_host", "(.+)"
+              )
+              or
+              label_replace(
+                label_replace(
+            label_replace(
+            label_replace(
+            label_replace(
+            increase(alloy_network_io_by_flow_bytes{integration="alloy-netflow", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]),
+            "src_host", "client1", "src_host", "ip-172-17-0-1.*"
+          ),
+            "dst_host", "client1", "dst_host", "ip-172-17-0-1.*"
+          ),
+            "src_host", "client2", "src_host", "ip-172-17-0-2.*"
+          ),
+            "dst_host", "client2", "dst_host", "ip-172-17-0-2.*"
+          ),
+                "host", "$1", "dst_host", "(.+)"
+              )
             )
-            or
-            label_replace(
-              network_io_by_flow_bytes{dst_host=~"client.*"},
-              "host", "$1", "dst_host", "(.+)"
+            and on (host) (
+              count by (host) (
+            label_replace(vector(1), "host", "client1", "", "") or
+            label_replace(vector(1), "host", "client2", "", "") or
+            label_replace(vector(1), "host", "client-br1", "", "") or
+            label_replace(vector(1), "host", "client-br2", "", "")
+              )
             )
           )
 
@@ -60,8 +150,6 @@ groups:
           asserts_env: network-lab
           asserts_site: colocated
         expr: |
-          count by (device_name) (kentik_snmp_CPU)
-          or
           count by (device_name) (snmp_CPU)
 
       - record: network_lab:host_attached:info
@@ -118,20 +206,22 @@ groups:
           or
           label_replace(
             count by (device_name, if_interface_name) (
-              kentik_snmp_if_OperStatus{if_Alias=~".*WAN.*", if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"}
-              and on (device_name) kentik_snmp_CPU
+              snmp_ifAdminStatus{if_Alias=~".*WAN.*", if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"}
+              and on (device_name) snmp_CPU
             ),
             "iface_role", "wan", "", ""
           )
           or
           label_replace(
             count by (device_name, if_interface_name) (
-              kentik_snmp_if_OperStatus{
-                if_AdminStatus="up",
-                if_OperStatus="down",
-                if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"
-              }
-              and on (device_name) kentik_snmp_CPU
+              (
+                max by (device_name, if_interface_name) (snmp_ifAdminStatus{if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"}) == 1
+              )
+              and
+              (
+                max by (device_name, if_interface_name) (snmp_ifOperStatus{if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"}) == 2
+              )
+              and on (device_name) snmp_CPU
             ),
             "iface_role", "fault", "", ""
           )
@@ -205,9 +295,37 @@ groups:
         expr: |
           label_replace(
             label_replace(
-              sum by (src_host, dst_host) (
-            max_over_time(
-              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+              (
+            sum by (src_host, dst_host) (
+            label_replace(
+            label_replace(
+            label_replace(
+            label_replace(
+            increase(alloy_network_io_by_flow_bytes{integration="alloy-netflow", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]),
+            "src_host", "client1", "src_host", "ip-172-17-0-1.*"
+          ),
+            "dst_host", "client1", "dst_host", "ip-172-17-0-1.*"
+          ),
+            "src_host", "client2", "src_host", "ip-172-17-0-2.*"
+          ),
+            "dst_host", "client2", "dst_host", "ip-172-17-0-2.*"
+          )
+          )
+          )
+          and on (src_host) (
+            count by (src_host) (
+            label_replace(vector(1), "src_host", "client1", "", "") or
+            label_replace(vector(1), "src_host", "client2", "", "") or
+            label_replace(vector(1), "src_host", "client-br1", "", "") or
+            label_replace(vector(1), "src_host", "client-br2", "", "")
+            )
+          )
+          and on (dst_host) (
+            count by (dst_host) (
+            label_replace(vector(1), "dst_host", "client1", "", "") or
+            label_replace(vector(1), "dst_host", "client2", "", "") or
+            label_replace(vector(1), "dst_host", "client-br1", "", "") or
+            label_replace(vector(1), "dst_host", "client-br2", "", "")
             )
           ),
               "job", "$1", "src_host", "(.*)"

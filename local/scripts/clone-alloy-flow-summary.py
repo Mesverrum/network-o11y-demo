@@ -95,7 +95,8 @@ def api(env: dict[str, str], method: str, path: str, body: Any | None = None) ->
 def rewrite_expr(expr: str) -> str:
     if "network_io_by_flow_bytes" not in expr and "alloy_network_io_by_flow_bytes" not in expr:
         return expr
-    out = expr.replace("network_io_by_flow_bytes", METRIC)
+    out = expr.replace("alloy_alloy_network_io_by_flow_bytes", METRIC)
+    out = re.sub(r"(?<!alloy_)network_io_by_flow_bytes", METRIC, out)
     out = re.sub(
         r"\b" + re.escape(METRIC) + r"\{(?![^}]*integration=)",
         f'{METRIC}{{integration="{INTEGRATION}",',
@@ -133,6 +134,57 @@ def rewrite_expr(expr: str) -> str:
     )
     out = re.sub(rf"\b{re.escape(METRIC)}\b\s*\*\s*8\s*/\s*60", f"rate({METRIC}[$__rate_interval]) * 8", out)
     return out
+
+
+COUNTRY_LABELS = ("network_peer_country", "network_local_country")
+COUNTRY_ROW_TITLES = {"geo maps", "country breakdown"}
+
+
+def _grid_element_keys(layout: Any) -> list[str]:
+    if not isinstance(layout, dict) or layout.get("kind") != "GridLayout":
+        return []
+    keys: list[str] = []
+    for item in (layout.get("spec") or {}).get("items") or []:
+        ref = (item.get("spec") or {}).get("element")
+        if isinstance(ref, str):
+            keys.append(ref)
+    return keys
+
+
+def _blob_has_country(obj: Any) -> bool:
+    blob = json.dumps(obj)
+    return any(label in blob for label in COUNTRY_LABELS)
+
+
+def strip_flow_country_geo(spec: dict) -> list[str]:
+    """Remove MaxMind geo/country rows and panels. Alloy-native flow has no country labels."""
+    layout = spec.get("layout") or {}
+    if layout.get("kind") != "RowsLayout":
+        return []
+    elements = spec.get("elements") or {}
+    rows = (layout.get("spec") or {}).get("rows") or []
+    keep: list[Any] = []
+    dropped: list[str] = []
+    for row in rows:
+        rspec = row.get("spec") or {}
+        title = (rspec.get("title") or "").strip().lower()
+        keys = _grid_element_keys(rspec.get("layout") or {})
+        drop_row = title in COUNTRY_ROW_TITLES or (
+            bool(keys) and all(_blob_has_country(elements.get(k) or {}) for k in keys)
+        )
+        if drop_row:
+            dropped.extend(keys)
+            continue
+        keep.append(row)
+    (layout.setdefault("spec", {}))["rows"] = keep
+    for key, el in list(elements.items()):
+        title = ((el.get("spec") or {}).get("title") or "").lower()
+        if key in dropped or _blob_has_country(el) or "country" in title:
+            elements.pop(key, None)
+            if key not in dropped:
+                dropped.append(key)
+    spec["elements"] = elements
+    return dropped
 
 
 def rewrite_source_to_otel(text: str) -> str:
@@ -213,41 +265,36 @@ def clone_manifest(doc: dict) -> dict:
     spec = out.setdefault("spec", {})
     spec["title"] = DST_TITLE
     spec["description"] = (
-        "Clone of 02. Network Flow Summary for Alloy-native flow "
-        "(otelcol.receiver.netflow → signaltometrics). "
+        "Alloy-native flow (otelcol.receiver.netflow → signaltometrics). "
         "Metric: alloy_network_io_by_flow_bytes{integration=\"alloy-netflow\"}. "
-        "Counters: rate() / increase(), not ktranslate max_over_time or * 8 / 60. "
-        "No MaxMind geo or ktranslate L7 app-id on this path yet. "
+        "Counters: rate() / increase(). No MaxMind geo or L7 app-id on this path yet. "
         "src_host/dst_host come from Alloy reverse-DNS (udp_host_cache_size) "
         "with catalog names as fallback."
     )
     tags = list(spec.get("tags") or [])
-    for t in ("alloy", "network-lab", "netflow", "in-progress"):
+    for t in ("alloy", "network-lab", "network-o11y", "netflow", "in-progress"):
         if t not in tags:
             tags.append(t)
     spec["tags"] = tags
 
-    links = list(spec.get("links") or [])
-    extra = {
-        "title": "Original 02 Flow Summary",
-        "url": "/d/ktranslate-flow-summary",
-        "type": "link",
-        "icon": "dashboard",
-        "tooltip": "Unmodified ktranslate Flow Summary",
-        "tags": [],
-        "asDropdown": False,
-        "targetBlank": False,
-        "includeVars": True,
-        "keepTime": True,
-    }
-    titles = {ln.get("title") for ln in links if isinstance(ln, dict)}
-    if extra["title"] not in titles:
-        links.insert(0, extra)
-    spec["links"] = links
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from alloy_dash_nav import (
+        apply_alloy_nav_links,
+        rewrite_alloy_flow_exporters,
+        scrub_spec_prose,
+    )
+
+    apply_alloy_nav_links(spec, DST_UID)
+    rewrite_alloy_flow_exporters(spec)
+    scrub_spec_prose(spec)
 
     layout = spec.get("layout") or {}
     if layout.get("kind") != "RowsLayout":
         raise RuntimeError(f"expected RowsLayout, got {layout.get('kind')}")
+
+    dropped = strip_flow_country_geo(spec)
+    if dropped:
+        print(f"dropped country/geo panels: {dropped}")
 
     changed = walk_rewrite(spec)
     print(f"rewrote {changed} query/legend fields")
@@ -395,10 +442,13 @@ def main() -> int:
                 collect(v)
 
     collect(clone.get("spec") or {})
-    leftover_q = [e for e in exprs if "network_io_by_flow_bytes" in e and not e.startswith("alloy_")]
     leftover_q = [e for e in exprs if re.search(r"(?<!alloy_)network_io_by_flow_bytes", e)]
+    leftover_kentik = [e for e in exprs if "kentik_snmp" in e]
     if leftover_q:
         print("leftover ktranslate flow exprs:", leftover_q[:5], file=sys.stderr)
+        return 1
+    if leftover_kentik:
+        print("leftover kentik SNMP exprs:", leftover_kentik[:5], file=sys.stderr)
         return 1
 
     if args.dry_run:

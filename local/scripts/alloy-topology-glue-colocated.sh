@@ -47,6 +47,10 @@ export COLLECTOR_RUNTIME=k3s
 export TOPOLOGY_EXPORTER_OTLP
 
 install -d /etc/topology-exporter
+install -d -m 0755 /var/lib/topology-exporter
+if [[ -f /tmp/network-topology-exporter-snapshot.json && ! -f /var/lib/topology-exporter/snapshot.json ]]; then
+  mv /tmp/network-topology-exporter-snapshot.json /var/lib/topology-exporter/snapshot.json
+fi
 install -m 0644 "${CFG}" /etc/topology-exporter/config.yaml
 # Catalog is a live file; bind via symlink so discovery updates are seen after restart.
 ln -sfn "${CATALOG}" /etc/topology-exporter/catalog.yml
@@ -64,6 +68,7 @@ After=network.target
 
 [Service]
 Type=simple
+StateDirectory=topology-exporter
 ExecStart=/usr/local/bin/topology-exporter --config.file=/etc/topology-exporter/config.yaml --web.listen-address=:9100 --log.level=info
 Restart=on-failure
 RestartSec=3

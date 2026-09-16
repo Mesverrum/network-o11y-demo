@@ -24,8 +24,17 @@ collector_snmp_ready() {
   [[ -n "$(snmp_poller_container_id)" ]]
 }
 
-collector_alloy_trap_ready() {
+collector_alloy_ready() {
+  if [[ "${COLLECTOR_RUNTIME:-}" == "k3s" ]]; then
+    export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+    kubectl -n network-lab get deployment alloy >/dev/null 2>&1
+    return $?
+  fi
   docker ps -qf name=^alloy$ | grep -q .
+}
+
+collector_alloy_trap_ready() {
+  collector_alloy_ready
 }
 
 # True when something is listening for device traps (ktranslate poller or Alloy).

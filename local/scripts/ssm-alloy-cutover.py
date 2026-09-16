@@ -15,9 +15,15 @@ FILES = [
     "local/scripts/deploy-ktranslate-golden.sh",
     "local/scripts/softflowd.sh",
     "local/scripts/sflow-config.sh",
+    "local/scripts/syslog-config.sh",
+    "local/scripts/snmp-trap-config.sh",
     "local/scripts/alloy-cutover-colocated.sh",
     "local/scripts/colocated-telemetry-sanity.sh",
+    "local/scripts/fleet-upsert-snmp-pipeline.py",
+    "local/scripts/render-alloy-snmp-trap.sh",
+    "local/scripts/k8s-merge-secret-literal.py",
     "local/templates/k8s/alloy.yaml.tmpl",
+    "local/fixtures/alloy-fleet/network.pipeline.alloy",
 ]
 
 

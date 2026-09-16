@@ -1,0 +1,3170 @@
+{
+  "uid": "meraki-api-infinity",
+  "title": "Meraki Dashboard API (Infinity)",
+  "tags": [
+    "meraki",
+    "infinity",
+    "network"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "5m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "graphTooltip": 1,
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "style": "dark",
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How this board works",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Infinity datasource** (pick `$infinity` above). Base URL must be `https://api.meraki.com/api/v1` (Canada `api.meraki.ca`, India `api.meraki.in`, China `api.meraki.cn`). Auth header **`X-Cisco-Meraki-API-Key`**. Add the API host to Infinity **allowedHosts**. GET only.\n\nThis board is a **live snapshot** of [Meraki Dashboard API v1](https://developer.cisco.com/meraki/api-v1/) monitor endpoints \u2014 same pattern as NetBox Infinity. It is **not** historical telemetry (use SNMP / the Meraki plugin / webhooks for that).\n\n| Row | Endpoints |\n|---|---|\n| Fleet | `GET /organizations/{id}/devices/statuses/overview`, `\u2026/appliance/uplinks/statuses/overview`, `\u2026/clients/overview`, `\u2026/licenses/overview`, `\u2026/assurance/alerts/overview` |\n| Devices | `GET /organizations/{id}/devices/availabilities` (replacement for deprecated `\u2026/devices/statuses`) |\n| Networks | `GET /organizations/{id}/summary/top/networks/byStatus` |\n| WAN | `GET /organizations/{id}/appliance/uplink/statuses`, `\u2026/devices/uplinksLossAndLatency` |\n| Top talkers | `\u2026/summary/top/{devices,clients,ssids,applications}/byUsage` |\n| Alerts | `GET /organizations/{id}/assurance/alerts?active=true` |\n| Network | `GET /networks/{id}/clients`, `\u2026/wireless/ssids`, `\u2026/wireless/connectionStats`, `\u2026/wireless/failedConnections` |\n| Switch | `GET /devices/{serial}/switch/ports/statuses` |\n\n**Limits:** first page only (`perPage=1000`). Meraki ~10 req/s/org \u2014 keep refresh at **5m**. Expand extra rows only when you need them. Usage values from clients/overview are **kilobytes**.\n"
+      }
+    },
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Fleet overview",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Devices by status",
+      "description": "GET /organizations/{id}/devices/statuses/overview",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/devices/statuses/overview",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "counts.online",
+              "text": "online",
+              "type": "number"
+            },
+            {
+              "selector": "counts.offline",
+              "text": "offline",
+              "type": "number"
+            },
+            {
+              "selector": "counts.alerting",
+              "text": "alerting",
+              "type": "number"
+            },
+            {
+              "selector": "counts.dormant",
+              "text": "dormant",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend",
+          "json_options": {
+            "root_is_not_array": true,
+            "columnar": false
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "MX / Z uplinks",
+      "description": "GET /organizations/{id}/appliance/uplinks/statuses/overview",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 9
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/appliance/uplinks/statuses/overview",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "counts.byStatus.active",
+              "text": "active",
+              "type": "number"
+            },
+            {
+              "selector": "counts.byStatus.failed",
+              "text": "failed",
+              "type": "number"
+            },
+            {
+              "selector": "counts.byStatus.connecting",
+              "text": "connecting",
+              "type": "number"
+            },
+            {
+              "selector": "counts.byStatus.notConnected",
+              "text": "not connected",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend",
+          "json_options": {
+            "root_is_not_array": true,
+            "columnar": false
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Clients (timespan)",
+      "description": "GET /organizations/{id}/clients/overview \u2014 usage is kilobytes",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 9
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/clients/overview?timespan=${timespan}",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "counts.total",
+              "text": "clients",
+              "type": "number"
+            },
+            {
+              "selector": "usage.overall.total",
+              "text": "usage_kb",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend",
+          "json_options": {
+            "root_is_not_array": true,
+            "columnar": false
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Assurance alerts",
+      "description": "GET /organizations/{id}/assurance/alerts/overview?active=true",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 9
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/assurance/alerts/overview?active=true",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "counts.total",
+              "text": "active",
+              "type": "number"
+            },
+            {
+              "selector": "counts.bySeverity.critical",
+              "text": "critical",
+              "type": "number"
+            },
+            {
+              "selector": "counts.bySeverity.warning",
+              "text": "warning",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend",
+          "json_options": {
+            "root_is_not_array": true,
+            "columnar": false
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Licenses",
+      "description": "GET /organizations/{id}/licenses/overview \u2014 co-term vs per-device shapes differ",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 9
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/licenses/overview",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "status",
+              "text": "status",
+              "type": "string"
+            },
+            {
+              "selector": "licenseCount",
+              "text": "licenses",
+              "type": "number"
+            },
+            {
+              "selector": "states.expired",
+              "text": "expired",
+              "type": "number"
+            },
+            {
+              "selector": "states.expiring",
+              "text": "expiring",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend",
+          "json_options": {
+            "root_is_not_array": true,
+            "columnar": false
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Devices",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Device availability",
+      "description": "GET /organizations/{id}/devices/availabilities \u2014 updates every 5 minutes. Use this instead of deprecated GET \u2026/devices/statuses.",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/devices/availabilities?perPage=1000",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "name",
+              "type": "string"
+            },
+            {
+              "selector": "serial",
+              "text": "serial",
+              "type": "string"
+            },
+            {
+              "selector": "status",
+              "text": "status",
+              "type": "string"
+            },
+            {
+              "selector": "productType",
+              "text": "productType",
+              "type": "string"
+            },
+            {
+              "selector": "network.name",
+              "text": "network",
+              "type": "string"
+            },
+            {
+              "selector": "network.id",
+              "text": "networkId",
+              "type": "string"
+            },
+            {
+              "selector": "mac",
+              "text": "mac",
+              "type": "string"
+            }
+          ],
+          "filters": [],
+          "parser": "backend"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "online": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "online"
+                      },
+                      "offline": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "offline"
+                      },
+                      "alerting": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "alerting"
+                      },
+                      "dormant": {
+                        "color": "blue",
+                        "index": 3,
+                        "text": "dormant"
+                      },
+                      "active": {
+                        "color": "green",
+                        "index": 4,
+                        "text": "active"
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5,
+                        "text": "failed"
+                      },
+                      "connecting": {
+                        "color": "yellow",
+                        "index": 6,
+                        "text": "connecting"
+                      },
+                      "ready": {
+                        "color": "blue",
+                        "index": 7,
+                        "text": "ready"
+                      },
+                      "not connected": {
+                        "color": "purple",
+                        "index": 8,
+                        "text": "not connected"
+                      },
+                      "Connected": {
+                        "color": "green",
+                        "index": 9,
+                        "text": "Connected"
+                      },
+                      "Disconnected": {
+                        "color": "red",
+                        "index": 10,
+                        "text": "Disconnected"
+                      },
+                      "critical": {
+                        "color": "red",
+                        "index": 11,
+                        "text": "critical"
+                      },
+                      "warning": {
+                        "color": "orange",
+                        "index": 12,
+                        "text": "warning"
+                      },
+                      "informational": {
+                        "color": "blue",
+                        "index": 13,
+                        "text": "informational"
+                      },
+                      "OK": {
+                        "color": "green",
+                        "index": 14,
+                        "text": "OK"
+                      },
+                      "License Expiring Soon": {
+                        "color": "orange",
+                        "index": 15,
+                        "text": "expiring soon"
+                      },
+                      "License Expired": {
+                        "color": "red",
+                        "index": 16,
+                        "text": "expired"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Networks",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "Networks by status",
+      "description": "GET /organizations/{id}/summary/top/networks/byStatus",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${infinity}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/summary/top/networks/byStatus?perPage=1000",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "network",
+              "type": "string"
+            },
+            {
+              "selector": "networkId",
+              "text": "networkId",
+              "type": "string"
+            },
+            {
+              "selector": "statuses.online",
+              "text": "online",
+              "type": "number"
+            },
+            {
+              "selector": "statuses.offline",
+              "text": "offline",
+              "type": "number"
+            },
+            {
+              "selector": "statuses.alerting",
+              "text": "alerting",
+              "type": "number"
+            },
+            {
+              "selector": "statuses.dormant",
+              "text": "dormant",
+              "type": "number"
+            },
+            {
+              "selector": "clients.counts.total",
+              "text": "clients",
+              "type": "number"
+            },
+            {
+              "selector": "usage.overall.total",
+              "text": "usage",
+              "type": "number"
+            }
+          ],
+          "filters": [],
+          "parser": "backend"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "inspect": false
+          }
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "time": true
+            },
+            "renameByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "WAN / appliance uplinks",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 31,
+          "type": "table",
+          "title": "MX / Z uplink status",
+          "description": "GET /organizations/{id}/appliance/uplink/statuses \u2014 one row per WAN interface",
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 39
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/appliance/uplink/statuses?perPage=1000",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [],
+              "filters": [],
+              "parser": "uql",
+              "uql": "parse-json\n| mv-expand \"uplinks\"\n| project \"serial\", \"model\", \"networkId\", \"lastReportedAt\", \"ha\"=\"highAvailability.role\", \"interface\"=\"uplinks.interface\", \"status\"=\"uplinks.status\", \"ip\"=\"uplinks.ip\", \"publicIp\"=\"uplinks.publicIp\", \"gateway\"=\"uplinks.gateway\""
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "online": {
+                            "color": "green",
+                            "index": 0,
+                            "text": "online"
+                          },
+                          "offline": {
+                            "color": "red",
+                            "index": 1,
+                            "text": "offline"
+                          },
+                          "alerting": {
+                            "color": "orange",
+                            "index": 2,
+                            "text": "alerting"
+                          },
+                          "dormant": {
+                            "color": "blue",
+                            "index": 3,
+                            "text": "dormant"
+                          },
+                          "active": {
+                            "color": "green",
+                            "index": 4,
+                            "text": "active"
+                          },
+                          "failed": {
+                            "color": "red",
+                            "index": 5,
+                            "text": "failed"
+                          },
+                          "connecting": {
+                            "color": "yellow",
+                            "index": 6,
+                            "text": "connecting"
+                          },
+                          "ready": {
+                            "color": "blue",
+                            "index": 7,
+                            "text": "ready"
+                          },
+                          "not connected": {
+                            "color": "purple",
+                            "index": 8,
+                            "text": "not connected"
+                          },
+                          "Connected": {
+                            "color": "green",
+                            "index": 9,
+                            "text": "Connected"
+                          },
+                          "Disconnected": {
+                            "color": "red",
+                            "index": 10,
+                            "text": "Disconnected"
+                          },
+                          "critical": {
+                            "color": "red",
+                            "index": 11,
+                            "text": "critical"
+                          },
+                          "warning": {
+                            "color": "orange",
+                            "index": 12,
+                            "text": "warning"
+                          },
+                          "informational": {
+                            "color": "blue",
+                            "index": 13,
+                            "text": "informational"
+                          },
+                          "OK": {
+                            "color": "green",
+                            "index": 14,
+                            "text": "OK"
+                          },
+                          "License Expiring Soon": {
+                            "color": "orange",
+                            "index": 15,
+                            "text": "expiring soon"
+                          },
+                          "License Expired": {
+                            "color": "red",
+                            "index": 16,
+                            "text": "expired"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "type": "table",
+          "title": "Uplink loss and latency (MX)",
+          "description": "GET /organizations/{id}/devices/uplinksLossAndLatency \u2014 latest sample; timeSeries is not graphed here",
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 49
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/devices/uplinksLossAndLatency?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "serial",
+                  "text": "serial",
+                  "type": "string"
+                },
+                {
+                  "selector": "networkId",
+                  "text": "networkId",
+                  "type": "string"
+                },
+                {
+                  "selector": "uplink",
+                  "text": "uplink",
+                  "type": "string"
+                },
+                {
+                  "selector": "ip",
+                  "text": "ip",
+                  "type": "string"
+                },
+                {
+                  "selector": "lossPercent",
+                  "text": "lossPercent",
+                  "type": "number"
+                },
+                {
+                  "selector": "latencyMs",
+                  "text": "latencyMs",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "type": "row",
+      "title": "Top talkers",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 41,
+          "type": "table",
+          "title": "Top devices by usage",
+          "description": "GET /organizations/{id}/summary/top/devices/byUsage (top 10)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 40
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/summary/top/devices/byUsage?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "name",
+                  "text": "name",
+                  "type": "string"
+                },
+                {
+                  "selector": "serial",
+                  "text": "serial",
+                  "type": "string"
+                },
+                {
+                  "selector": "model",
+                  "text": "model",
+                  "type": "string"
+                },
+                {
+                  "selector": "productType",
+                  "text": "productType",
+                  "type": "string"
+                },
+                {
+                  "selector": "network.name",
+                  "text": "network",
+                  "type": "string"
+                },
+                {
+                  "selector": "usage.total",
+                  "text": "usage",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.percentage",
+                  "text": "pct",
+                  "type": "number"
+                },
+                {
+                  "selector": "clients.counts.total",
+                  "text": "clients",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "type": "table",
+          "title": "Top clients by usage",
+          "description": "GET /organizations/{id}/summary/top/clients/byUsage \u2014 usage in MB",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 40
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/summary/top/clients/byUsage?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "name",
+                  "text": "name",
+                  "type": "string"
+                },
+                {
+                  "selector": "mac",
+                  "text": "mac",
+                  "type": "string"
+                },
+                {
+                  "selector": "network.name",
+                  "text": "network",
+                  "type": "string"
+                },
+                {
+                  "selector": "usage.total",
+                  "text": "usage_mb",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.upstream",
+                  "text": "up",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.downstream",
+                  "text": "down",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.percentage",
+                  "text": "pct",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "type": "table",
+          "title": "Top SSIDs by usage",
+          "description": "GET /organizations/{id}/summary/top/ssids/byUsage",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 48
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/summary/top/ssids/byUsage?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "name",
+                  "text": "ssid",
+                  "type": "string"
+                },
+                {
+                  "selector": "usage.total",
+                  "text": "usage",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.percentage",
+                  "text": "pct",
+                  "type": "number"
+                },
+                {
+                  "selector": "clients.counts.total",
+                  "text": "clients",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "type": "table",
+          "title": "Top applications by usage",
+          "description": "GET /organizations/{id}/summary/top/applications/byUsage",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 48
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/summary/top/applications/byUsage?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "application",
+                  "text": "application",
+                  "type": "string"
+                },
+                {
+                  "selector": "total",
+                  "text": "total",
+                  "type": "number"
+                },
+                {
+                  "selector": "downstream",
+                  "text": "down",
+                  "type": "number"
+                },
+                {
+                  "selector": "upstream",
+                  "text": "up",
+                  "type": "number"
+                },
+                {
+                  "selector": "percentage",
+                  "text": "pct",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "type": "row",
+      "title": "Assurance alerts",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 51,
+          "type": "table",
+          "title": "Active health alerts",
+          "description": "GET /organizations/{id}/assurance/alerts?active=true",
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 41
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/assurance/alerts?active=true&perPage=1000",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "severity",
+                  "text": "severity",
+                  "type": "string"
+                },
+                {
+                  "selector": "title",
+                  "text": "title",
+                  "type": "string"
+                },
+                {
+                  "selector": "categoryType",
+                  "text": "category",
+                  "type": "string"
+                },
+                {
+                  "selector": "type",
+                  "text": "type",
+                  "type": "string"
+                },
+                {
+                  "selector": "deviceType",
+                  "text": "deviceType",
+                  "type": "string"
+                },
+                {
+                  "selector": "serial",
+                  "text": "serial",
+                  "type": "string"
+                },
+                {
+                  "selector": "network.name",
+                  "text": "network",
+                  "type": "string"
+                },
+                {
+                  "selector": "startedAt",
+                  "text": "startedAt",
+                  "type": "string"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "severity"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "online": {
+                            "color": "green",
+                            "index": 0,
+                            "text": "online"
+                          },
+                          "offline": {
+                            "color": "red",
+                            "index": 1,
+                            "text": "offline"
+                          },
+                          "alerting": {
+                            "color": "orange",
+                            "index": 2,
+                            "text": "alerting"
+                          },
+                          "dormant": {
+                            "color": "blue",
+                            "index": 3,
+                            "text": "dormant"
+                          },
+                          "active": {
+                            "color": "green",
+                            "index": 4,
+                            "text": "active"
+                          },
+                          "failed": {
+                            "color": "red",
+                            "index": 5,
+                            "text": "failed"
+                          },
+                          "connecting": {
+                            "color": "yellow",
+                            "index": 6,
+                            "text": "connecting"
+                          },
+                          "ready": {
+                            "color": "blue",
+                            "index": 7,
+                            "text": "ready"
+                          },
+                          "not connected": {
+                            "color": "purple",
+                            "index": 8,
+                            "text": "not connected"
+                          },
+                          "Connected": {
+                            "color": "green",
+                            "index": 9,
+                            "text": "Connected"
+                          },
+                          "Disconnected": {
+                            "color": "red",
+                            "index": 10,
+                            "text": "Disconnected"
+                          },
+                          "critical": {
+                            "color": "red",
+                            "index": 11,
+                            "text": "critical"
+                          },
+                          "warning": {
+                            "color": "orange",
+                            "index": 12,
+                            "text": "warning"
+                          },
+                          "informational": {
+                            "color": "blue",
+                            "index": 13,
+                            "text": "informational"
+                          },
+                          "OK": {
+                            "color": "green",
+                            "index": 14,
+                            "text": "OK"
+                          },
+                          "License Expiring Soon": {
+                            "color": "orange",
+                            "index": 15,
+                            "text": "expiring soon"
+                          },
+                          "License Expired": {
+                            "color": "red",
+                            "index": 16,
+                            "text": "expired"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "type": "row",
+      "title": "Licenses",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 61,
+          "type": "table",
+          "title": "License inventory",
+          "description": "GET /organizations/{id}/licenses \u2014 empty on some co-term orgs; use the overview stat instead",
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 42
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "organizations/${orgId}/licenses?perPage=1000",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "licenseType",
+                  "text": "licenseType",
+                  "type": "string"
+                },
+                {
+                  "selector": "state",
+                  "text": "status",
+                  "type": "string"
+                },
+                {
+                  "selector": "deviceSerial",
+                  "text": "deviceSerial",
+                  "type": "string"
+                },
+                {
+                  "selector": "networkId",
+                  "text": "networkId",
+                  "type": "string"
+                },
+                {
+                  "selector": "expirationDate",
+                  "text": "expirationDate",
+                  "type": "string"
+                },
+                {
+                  "selector": "seatCount",
+                  "text": "seats",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "online": {
+                            "color": "green",
+                            "index": 0,
+                            "text": "online"
+                          },
+                          "offline": {
+                            "color": "red",
+                            "index": 1,
+                            "text": "offline"
+                          },
+                          "alerting": {
+                            "color": "orange",
+                            "index": 2,
+                            "text": "alerting"
+                          },
+                          "dormant": {
+                            "color": "blue",
+                            "index": 3,
+                            "text": "dormant"
+                          },
+                          "active": {
+                            "color": "green",
+                            "index": 4,
+                            "text": "active"
+                          },
+                          "failed": {
+                            "color": "red",
+                            "index": 5,
+                            "text": "failed"
+                          },
+                          "connecting": {
+                            "color": "yellow",
+                            "index": 6,
+                            "text": "connecting"
+                          },
+                          "ready": {
+                            "color": "blue",
+                            "index": 7,
+                            "text": "ready"
+                          },
+                          "not connected": {
+                            "color": "purple",
+                            "index": 8,
+                            "text": "not connected"
+                          },
+                          "Connected": {
+                            "color": "green",
+                            "index": 9,
+                            "text": "Connected"
+                          },
+                          "Disconnected": {
+                            "color": "red",
+                            "index": 10,
+                            "text": "Disconnected"
+                          },
+                          "critical": {
+                            "color": "red",
+                            "index": 11,
+                            "text": "critical"
+                          },
+                          "warning": {
+                            "color": "orange",
+                            "index": 12,
+                            "text": "warning"
+                          },
+                          "informational": {
+                            "color": "blue",
+                            "index": 13,
+                            "text": "informational"
+                          },
+                          "OK": {
+                            "color": "green",
+                            "index": 14,
+                            "text": "OK"
+                          },
+                          "License Expiring Soon": {
+                            "color": "orange",
+                            "index": 15,
+                            "text": "expiring soon"
+                          },
+                          "License Expired": {
+                            "color": "red",
+                            "index": 16,
+                            "text": "expired"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "type": "row",
+      "title": "Selected network \u2014 clients & wireless",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 71,
+          "type": "stat",
+          "title": "Network clients",
+          "description": "GET /networks/{id}/clients/overview",
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 43
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "networks/${networkId}/clients/overview?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "counts.total",
+                  "text": "clients",
+                  "type": "number"
+                },
+                {
+                  "selector": "counts.withHeavyUsage",
+                  "text": "heavy",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend",
+              "json_options": {
+                "root_is_not_array": true,
+                "columnar": false
+              }
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "type": "stat",
+          "title": "Wireless connection stats",
+          "description": "GET /networks/{id}/wireless/connectionStats \u2014 empty on non-wireless networks",
+          "gridPos": {
+            "h": 5,
+            "w": 18,
+            "x": 6,
+            "y": 43
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "networks/${networkId}/wireless/connectionStats?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "success",
+                  "text": "success",
+                  "type": "number"
+                },
+                {
+                  "selector": "assoc",
+                  "text": "assoc_fail",
+                  "type": "number"
+                },
+                {
+                  "selector": "auth",
+                  "text": "auth_fail",
+                  "type": "number"
+                },
+                {
+                  "selector": "dhcp",
+                  "text": "dhcp_fail",
+                  "type": "number"
+                },
+                {
+                  "selector": "dns",
+                  "text": "dns_fail",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend",
+              "json_options": {
+                "root_is_not_array": true,
+                "columnar": false
+              }
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "type": "table",
+          "title": "Network clients",
+          "description": "GET /networks/{id}/clients \u2014 Online/Offline in status; usage in KB",
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 48
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "networks/${networkId}/clients?timespan=${timespan}&perPage=1000",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "description",
+                  "text": "description",
+                  "type": "string"
+                },
+                {
+                  "selector": "mac",
+                  "text": "mac",
+                  "type": "string"
+                },
+                {
+                  "selector": "ip",
+                  "text": "ip",
+                  "type": "string"
+                },
+                {
+                  "selector": "status",
+                  "text": "status",
+                  "type": "string"
+                },
+                {
+                  "selector": "ssid",
+                  "text": "ssid",
+                  "type": "string"
+                },
+                {
+                  "selector": "vlan",
+                  "text": "vlan",
+                  "type": "number"
+                },
+                {
+                  "selector": "os",
+                  "text": "os",
+                  "type": "string"
+                },
+                {
+                  "selector": "manufacturer",
+                  "text": "manufacturer",
+                  "type": "string"
+                },
+                {
+                  "selector": "recentDeviceName",
+                  "text": "ap_or_switch",
+                  "type": "string"
+                },
+                {
+                  "selector": "usage.recv",
+                  "text": "recv_kb",
+                  "type": "number"
+                },
+                {
+                  "selector": "usage.sent",
+                  "text": "sent_kb",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "online": {
+                            "color": "green",
+                            "index": 0,
+                            "text": "online"
+                          },
+                          "offline": {
+                            "color": "red",
+                            "index": 1,
+                            "text": "offline"
+                          },
+                          "alerting": {
+                            "color": "orange",
+                            "index": 2,
+                            "text": "alerting"
+                          },
+                          "dormant": {
+                            "color": "blue",
+                            "index": 3,
+                            "text": "dormant"
+                          },
+                          "active": {
+                            "color": "green",
+                            "index": 4,
+                            "text": "active"
+                          },
+                          "failed": {
+                            "color": "red",
+                            "index": 5,
+                            "text": "failed"
+                          },
+                          "connecting": {
+                            "color": "yellow",
+                            "index": 6,
+                            "text": "connecting"
+                          },
+                          "ready": {
+                            "color": "blue",
+                            "index": 7,
+                            "text": "ready"
+                          },
+                          "not connected": {
+                            "color": "purple",
+                            "index": 8,
+                            "text": "not connected"
+                          },
+                          "Connected": {
+                            "color": "green",
+                            "index": 9,
+                            "text": "Connected"
+                          },
+                          "Disconnected": {
+                            "color": "red",
+                            "index": 10,
+                            "text": "Disconnected"
+                          },
+                          "critical": {
+                            "color": "red",
+                            "index": 11,
+                            "text": "critical"
+                          },
+                          "warning": {
+                            "color": "orange",
+                            "index": 12,
+                            "text": "warning"
+                          },
+                          "informational": {
+                            "color": "blue",
+                            "index": 13,
+                            "text": "informational"
+                          },
+                          "OK": {
+                            "color": "green",
+                            "index": 14,
+                            "text": "OK"
+                          },
+                          "License Expiring Soon": {
+                            "color": "orange",
+                            "index": 15,
+                            "text": "expiring soon"
+                          },
+                          "License Expired": {
+                            "color": "red",
+                            "index": 16,
+                            "text": "expired"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "type": "table",
+          "title": "SSIDs",
+          "description": "GET /networks/{id}/wireless/ssids",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 58
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "networks/${networkId}/wireless/ssids",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "number",
+                  "text": "number",
+                  "type": "number"
+                },
+                {
+                  "selector": "name",
+                  "text": "name",
+                  "type": "string"
+                },
+                {
+                  "selector": "enabled",
+                  "text": "enabled",
+                  "type": "string"
+                },
+                {
+                  "selector": "authMode",
+                  "text": "authMode",
+                  "type": "string"
+                },
+                {
+                  "selector": "bandSelection",
+                  "text": "band",
+                  "type": "string"
+                },
+                {
+                  "selector": "visible",
+                  "text": "visible",
+                  "type": "string"
+                },
+                {
+                  "selector": "ipAssignmentMode",
+                  "text": "ipAssignment",
+                  "type": "string"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "type": "table",
+          "title": "Failed wireless connections",
+          "description": "GET /networks/{id}/wireless/failedConnections",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 58
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "networks/${networkId}/wireless/failedConnections?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "ts",
+                  "text": "ts",
+                  "type": "string"
+                },
+                {
+                  "selector": "type",
+                  "text": "type",
+                  "type": "string"
+                },
+                {
+                  "selector": "failureStep",
+                  "text": "failureStep",
+                  "type": "string"
+                },
+                {
+                  "selector": "clientMac",
+                  "text": "clientMac",
+                  "type": "string"
+                },
+                {
+                  "selector": "serial",
+                  "text": "ap",
+                  "type": "string"
+                },
+                {
+                  "selector": "ssidNumber",
+                  "text": "ssid",
+                  "type": "number"
+                },
+                {
+                  "selector": "vlan",
+                  "text": "vlan",
+                  "type": "number"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": []
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "type": "row",
+      "title": "Selected switch \u2014 port status",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 81,
+          "type": "table",
+          "title": "Switch port statuses",
+          "description": "GET /devices/{serial}/switch/ports/statuses \u2014 pick an MS serial. Errors on MR/MX are expected.",
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 44
+          },
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "yesoreyeram-infinity-datasource",
+                "uid": "${infinity}"
+              },
+              "type": "json",
+              "source": "url",
+              "url": "devices/${serial}/switch/ports/statuses?timespan=${timespan}",
+              "url_options": {
+                "method": "GET",
+                "data": ""
+              },
+              "format": "table",
+              "root_selector": "",
+              "columns": [
+                {
+                  "selector": "portId",
+                  "text": "port",
+                  "type": "string"
+                },
+                {
+                  "selector": "status",
+                  "text": "status",
+                  "type": "string"
+                },
+                {
+                  "selector": "enabled",
+                  "text": "enabled",
+                  "type": "string"
+                },
+                {
+                  "selector": "isUplink",
+                  "text": "uplink",
+                  "type": "string"
+                },
+                {
+                  "selector": "speed",
+                  "text": "speed",
+                  "type": "string"
+                },
+                {
+                  "selector": "duplex",
+                  "text": "duplex",
+                  "type": "string"
+                },
+                {
+                  "selector": "clientCount",
+                  "text": "clients",
+                  "type": "number"
+                },
+                {
+                  "selector": "trafficInKbps.total",
+                  "text": "kbps",
+                  "type": "number"
+                },
+                {
+                  "selector": "poe.isAllocated",
+                  "text": "poe",
+                  "type": "string"
+                },
+                {
+                  "selector": "lldp.systemName",
+                  "text": "lldp_neighbor",
+                  "type": "string"
+                }
+              ],
+              "filters": [],
+              "parser": "backend"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "filterable": true,
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "status"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "online": {
+                            "color": "green",
+                            "index": 0,
+                            "text": "online"
+                          },
+                          "offline": {
+                            "color": "red",
+                            "index": 1,
+                            "text": "offline"
+                          },
+                          "alerting": {
+                            "color": "orange",
+                            "index": 2,
+                            "text": "alerting"
+                          },
+                          "dormant": {
+                            "color": "blue",
+                            "index": 3,
+                            "text": "dormant"
+                          },
+                          "active": {
+                            "color": "green",
+                            "index": 4,
+                            "text": "active"
+                          },
+                          "failed": {
+                            "color": "red",
+                            "index": 5,
+                            "text": "failed"
+                          },
+                          "connecting": {
+                            "color": "yellow",
+                            "index": 6,
+                            "text": "connecting"
+                          },
+                          "ready": {
+                            "color": "blue",
+                            "index": 7,
+                            "text": "ready"
+                          },
+                          "not connected": {
+                            "color": "purple",
+                            "index": 8,
+                            "text": "not connected"
+                          },
+                          "Connected": {
+                            "color": "green",
+                            "index": 9,
+                            "text": "Connected"
+                          },
+                          "Disconnected": {
+                            "color": "red",
+                            "index": 10,
+                            "text": "Disconnected"
+                          },
+                          "critical": {
+                            "color": "red",
+                            "index": 11,
+                            "text": "critical"
+                          },
+                          "warning": {
+                            "color": "orange",
+                            "index": 12,
+                            "text": "warning"
+                          },
+                          "informational": {
+                            "color": "blue",
+                            "index": 13,
+                            "text": "informational"
+                          },
+                          "OK": {
+                            "color": "green",
+                            "index": 14,
+                            "text": "OK"
+                          },
+                          "License Expiring Soon": {
+                            "color": "orange",
+                            "index": 15,
+                            "text": "expiring soon"
+                          },
+                          "License Expired": {
+                            "color": "red",
+                            "index": 16,
+                            "text": "expired"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "time": true
+                },
+                "renameByName": {}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "infinity",
+        "label": "Infinity (Meraki)",
+        "type": "datasource",
+        "query": "yesoreyeram-infinity-datasource",
+        "refresh": 1,
+        "hide": 0,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "orgId",
+        "label": "Organization",
+        "type": "query",
+        "datasource": {
+          "type": "yesoreyeram-infinity-datasource",
+          "uid": "${infinity}"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "query": {
+          "refId": "var-orgId",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "parser": "backend",
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "__text",
+              "type": "string"
+            },
+            {
+              "selector": "id",
+              "text": "__value",
+              "type": "string"
+            }
+          ],
+          "filters": []
+        }
+      },
+      {
+        "name": "networkId",
+        "label": "Network",
+        "type": "query",
+        "datasource": {
+          "type": "yesoreyeram-infinity-datasource",
+          "uid": "${infinity}"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "query": {
+          "refId": "var-networkId",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/networks?perPage=1000",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "parser": "backend",
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "__text",
+              "type": "string"
+            },
+            {
+              "selector": "id",
+              "text": "__value",
+              "type": "string"
+            }
+          ],
+          "filters": []
+        }
+      },
+      {
+        "name": "serial",
+        "label": "Switch serial",
+        "type": "query",
+        "datasource": {
+          "type": "yesoreyeram-infinity-datasource",
+          "uid": "${infinity}"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "query": {
+          "refId": "var-serial",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${infinity}"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "organizations/${orgId}/devices?perPage=1000&productTypes=switch",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "parser": "backend",
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "name",
+              "text": "__text",
+              "type": "string"
+            },
+            {
+              "selector": "serial",
+              "text": "__value",
+              "type": "string"
+            }
+          ],
+          "filters": []
+        }
+      },
+      {
+        "name": "timespan",
+        "label": "Timespan",
+        "type": "custom",
+        "query": "1h : 3600, 24h : 86400, 7d : 604800",
+        "current": {
+          "text": "24h",
+          "value": "86400",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "1h",
+            "value": "3600",
+            "selected": false
+          },
+          {
+            "text": "24h",
+            "value": "86400",
+            "selected": true
+          },
+          {
+            "text": "7d",
+            "value": "604800",
+            "selected": false
+          }
+        ],
+        "includeAll": false,
+        "multi": false,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Meraki API v1",
+      "url": "https://developer.cisco.com/meraki/api-v1/",
+      "type": "link",
+      "icon": "doc",
+      "targetBlank": true
+    }
+  ],
+  "description": "Live Meraki Dashboard API v1 via Grafana Infinity. Select the Infinity datasource provisioned with X-Cisco-Meraki-API-Key. Refresh 5m. First 1000 records per collection."
+}

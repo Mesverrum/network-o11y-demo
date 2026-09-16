@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Provision conversation recording rules + Knowledge Graph entities.
 
-Projects ktranslate (and named-client) flows into a 4-tuple conversation
-metric that drops ephemeral source ports and collector noise, then defines
-Host / NetworkDevice entities so lab clients relate to SRL gear.
+Projects Alloy-native flow into a 4-tuple conversation metric that drops
+ephemeral source ports and collector noise, then defines Endpoint /
+NetworkDevice entities so lab clients relate to SRL gear.
+Endpoint is a placeholder type (not Grafana Host Monitoring / node_exporter Host).
+SNMP identity is snmp_CPU / snmp_if* — not kentik_snmp_*.
 
 Usage:
   python3 local/scripts/provision-conversation-kg.py --dry-run
@@ -39,9 +41,13 @@ ASSERTS_SITE = "colocated"
 COLLECTOR_PORTS = (
     "161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344"
 )
-CLIENT = 'src_host=~"client.*", dst_host=~"client.*"'
-CLIENT_SRC = 'src_host=~"client.*"'
-CLIENT_DST = 'dst_host=~"client.*"'
+CLIENT_NAMES = ("client1", "client2", "client-br1", "client-br2")
+# Alloy reverse-DNS often wins with EC2 PTRs; map EVPN clients back to catalog names.
+FLOW_PTR = (
+    ("ip-172-17-0-1.*", "client1"),
+    ("ip-172-17-0-2.*", "client2"),
+)
+FLOW = 'integration="alloy-netflow"'
 NOISE = f'network_peer_port!~"^({COLLECTOR_PORTS})$"'
 
 # EVPN access attach: clients sit on leaf ethernet-1/1 (join-app overlay).
@@ -66,7 +72,7 @@ FABRIC = (
     ("leaf-br2", "spine1"),
 )
 # Interface-to-interface (NetBox cables + WAN circuits). Both directions so
-# expanding either port draws ROUTES. Access ports attach Hosts, not Interfaces.
+# expanding either port draws CONNECTS_TO. Access ports attach Endpoints, not Interfaces.
 IFACE_LINKS = (
     ("spine1", "ethernet-1/1", "leaf1", "ethernet-1/49"),
     ("spine1", "ethernet-1/2", "leaf2", "ethernet-1/49"),
@@ -101,38 +107,89 @@ def _static_or(pairs: list[tuple[str, str]], left: str, right: str) -> str:
     return "\nor\n".join(parts)
 
 
-def _conversation_bytes() -> str:
-    # ktranslate flow rollups are gauges (last interval bytes) — not counters.
+def _client_allowlist(label: str) -> str:
+    return " or\n".join(
+        f'  label_replace(vector(1), "{label}", "{name}", "", "")'
+        for name in CLIENT_NAMES
+    )
+
+
+def _canon_flow_hosts(inner: str) -> str:
+    out = inner
+    for pat, name in FLOW_PTR:
+        out = (
+            f'label_replace(\n  {out},\n  "src_host", "{name}", "src_host", "{pat}"\n)'
+        )
+        out = (
+            f'label_replace(\n  {out},\n  "dst_host", "{name}", "dst_host", "{pat}"\n)'
+        )
+    return out
+
+
+def _alloy_flow_increase() -> str:
+    # Alloy netflow is a cumulative Sum — increase(), not ktranslate * 8 / 60.
+    return _canon_flow_hosts(
+        f"increase(alloy_network_io_by_flow_bytes{{{FLOW}, {NOISE}}}[5m])"
+    )
+
+
+def _only_client_pair(inner: str) -> str:
     return f"""
-sum by (src_host, dst_host, network_peer_port, network_transport) (
-  max_over_time(
-    network_io_by_flow_bytes{{{CLIENT}, {NOISE}}}[5m]
+(
+  {inner}
+)
+and on (src_host) (
+  count by (src_host) (
+{_client_allowlist("src_host")}
+  )
+)
+and on (dst_host) (
+  count by (dst_host) (
+{_client_allowlist("dst_host")}
   )
 )
 """.strip()
+
+
+def _conversation_bytes() -> str:
+    return _only_client_pair(
+        f"""
+sum by (src_host, dst_host, network_peer_port, network_transport) (
+  {_alloy_flow_increase()}
+)
+""".strip()
+    )
 
 
 def _host_pair() -> str:
-    return f"""
+    return _only_client_pair(
+        f"""
 sum by (src_host, dst_host) (
-  max_over_time(
-    network_io_by_flow_bytes{{{CLIENT}, {NOISE}}}[5m]
-  )
+  {_alloy_flow_increase()}
 )
 """.strip()
+    )
 
 
 def _host_info() -> str:
+    flow = _alloy_flow_increase()
     return f"""
 count by (host) (
-  label_replace(
-    network_io_by_flow_bytes{{{CLIENT_SRC}}},
-    "host", "$1", "src_host", "(.+)"
+  (
+    label_replace(
+      {flow},
+      "host", "$1", "src_host", "(.+)"
+    )
+    or
+    label_replace(
+      {flow},
+      "host", "$1", "dst_host", "(.+)"
+    )
   )
-  or
-  label_replace(
-    network_io_by_flow_bytes{{{CLIENT_DST}}},
-    "host", "$1", "dst_host", "(.+)"
+  and on (host) (
+    count by (host) (
+{_client_allowlist("host")}
+    )
   )
 )
 """.strip()
@@ -140,8 +197,6 @@ count by (host) (
 
 def _device_info() -> str:
     return """
-count by (device_name) (kentik_snmp_CPU)
-or
 count by (device_name) (snmp_CPU)
 """.strip()
 
@@ -172,11 +227,12 @@ def _iface_access() -> str:
 
 
 def _iface_wan() -> str:
+    # if_Alias lives on the cold walk (snmp_ifAdminStatus / packet counters).
     return f"""
 label_replace(
   count by (device_name, if_interface_name) (
-    kentik_snmp_if_OperStatus{{if_Alias=~".*WAN.*", {PHYS_ETH}}}
-    and on (device_name) kentik_snmp_CPU
+    snmp_ifAdminStatus{{if_Alias=~".*WAN.*", {PHYS_ETH}}}
+    and on (device_name) snmp_CPU
   ),
   "iface_role", "wan", "", ""
 )
@@ -184,16 +240,18 @@ label_replace(
 
 
 def _iface_fault() -> str:
-    # Lazy: unused ports stay off the graph until they are admin-up/oper-down.
+    # IF-MIB enums: 1=up, 2=down. Unused ports stay off the graph until they flap.
     return f"""
 label_replace(
   count by (device_name, if_interface_name) (
-    kentik_snmp_if_OperStatus{{
-      if_AdminStatus="up",
-      if_OperStatus="down",
-      {PHYS_ETH}
-    }}
-    and on (device_name) kentik_snmp_CPU
+    (
+      max by (device_name, if_interface_name) (snmp_ifAdminStatus{{{PHYS_ETH}}}) == 1
+    )
+    and
+    (
+      max by (device_name, if_interface_name) (snmp_ifOperStatus{{{PHYS_ETH}}}) == 2
+    )
+    and on (device_name) snmp_CPU
   ),
   "iface_role", "fault", "", ""
 )
@@ -202,7 +260,7 @@ label_replace(
 
 def _iface_catalog() -> str:
     # Same ports as IFACE_LINKS, with peer_interface so KG can PROPERTY_MATCH
-    # Interface ROUTES Interface (METRICS alone needs lookup aliases).
+    # Interface CONNECTS_TO Interface (METRICS alone needs lookup aliases).
     parts = []
     for a_dev, a_if, b_dev, b_if in IFACE_LINKS:
         for device, iface, peer_dev, peer_if in (
@@ -289,7 +347,7 @@ def _connected() -> str:
 
 
 def _routes() -> str:
-    # Built-in service-graph feed (any positive value). Custom Host/NetworkDevice
+    # Built-in service-graph feed (any positive value). Custom Endpoint/NetworkDevice
     # relations use the conversation/attach/fabric metrics directly.
     host_pair = f"""
 label_replace(
@@ -390,14 +448,15 @@ def _scope_match(name_label: str) -> dict[str, str]:
 
 
 def model_rules() -> dict[str, Any]:
-    # HOSTS / ROUTES are the edge types the entity graph actually draws.
-    # Custom FLOWS_TO / ATTACHED_TO / CONNECTED_TO harvest entities but often
-    # never show as lines. Direction: device HOSTS client (leaf hosts client).
+    # HOSTS / ROUTES are the well-known drawn types (device HOSTS client;
+    # Endpoint ROUTES Endpoint conversations). Interface cables are CONNECTS_TO —
+    # a port pair is not a route. Type is Endpoint, not Host, so Grafana Host
+    # Monitoring (node_uname_info) can own Host later.
     return {
         "name": MODEL_NAME,
         "entities": [
             {
-                "type": "Host",
+                "type": "Endpoint",
                 "name": "host",
                 "scope": {"env": "asserts_env", "site": "asserts_site"},
                 "lookup": {"host": "host | src_host | dst_host"},
@@ -479,8 +538,8 @@ def model_rules() -> dict[str, Any]:
         "relations": [
             {
                 "type": "ROUTES",
-                "startEntityType": "Host",
-                "endEntityType": "Host",
+                "startEntityType": "Endpoint",
+                "endEntityType": "Endpoint",
                 "definedBy": {
                     "source": "METRICS",
                     "pattern": (
@@ -495,7 +554,7 @@ def model_rules() -> dict[str, Any]:
             {
                 "type": "HOSTS",
                 "startEntityType": "NetworkDevice",
-                "endEntityType": "Host",
+                "endEntityType": "Endpoint",
                 "definedBy": {
                     "source": "PROPERTY_MATCH",
                     "startEntityProperties": ["name", "env", "site"],
@@ -505,7 +564,7 @@ def model_rules() -> dict[str, Any]:
             {
                 "type": "HOSTS",
                 "startEntityType": "NetworkDevice",
-                "endEntityType": "Host",
+                "endEntityType": "Endpoint",
                 "definedBy": {
                     "source": "METRICS",
                     "pattern": (
@@ -558,7 +617,7 @@ def model_rules() -> dict[str, Any]:
                 },
             },
             {
-                "type": "ROUTES",
+                "type": "CONNECTS_TO",
                 "startEntityType": "Interface",
                 "endEntityType": "Interface",
                 "definedBy": {
@@ -568,7 +627,7 @@ def model_rules() -> dict[str, Any]:
                 },
             },
             {
-                "type": "ROUTES",
+                "type": "CONNECTS_TO",
                 "startEntityType": "Interface",
                 "endEntityType": "Interface",
                 "definedBy": {
@@ -664,15 +723,16 @@ def export_model() -> None:
 # Source of truth is provision-conversation-kg.py (this file is exported).
 # Paste into Grafana: Observability → Rules → Entity & Relation → New rule file.
 #
-# Use HOSTS / ROUTES (types the entity graph draws). Custom FLOWS_TO lines
-# often never appear. Device HOSTS client; Host ROUTES Host; leaf ROUTES spine.
-# Device HOSTS Interface; Interface ROUTES Interface (catalog + live LLDP).
-# Interface lookup aliases src_interface|dst_interface (same pattern as Host).
+# Device HOSTS client / Interface. Endpoint ROUTES Endpoint (conversations).
+# Device ROUTES Device (fabric adjacency). Interface CONNECTS_TO Interface
+# (catalog + live LLDP cables — not a route).
+# Type is Endpoint (not Host) so Grafana Host Monitoring can own Host later.
+# Interface lookup aliases src_interface|dst_interface (same pattern as Endpoint).
 # Matchers include env/site because those entities are scoped.
 
 name: {MODEL_NAME}
 entities:
-  - type: Host
+  - type: Endpoint
     name: host
     scope:
       env: asserts_env
@@ -723,8 +783,8 @@ entities:
           peer_interface: peer_interface
 relations:
   - type: ROUTES
-    startEntityType: Host
-    endEntityType: Host
+    startEntityType: Endpoint
+    endEntityType: Endpoint
     definedBy:
       source: METRICS
       pattern: |-
@@ -741,14 +801,14 @@ relations:
         site: asserts_site
   - type: HOSTS
     startEntityType: NetworkDevice
-    endEntityType: Host
+    endEntityType: Endpoint
     definedBy:
       source: PROPERTY_MATCH
       startEntityProperties: [name, env, site]
       endEntityProperties: [device_name, env, site]
   - type: HOSTS
     startEntityType: NetworkDevice
-    endEntityType: Host
+    endEntityType: Endpoint
     definedBy:
       source: METRICS
       pattern: |-
@@ -804,14 +864,14 @@ relations:
         name: interface
         env: asserts_env
         site: asserts_site
-  - type: ROUTES
+  - type: CONNECTS_TO
     startEntityType: Interface
     endEntityType: Interface
     definedBy:
       source: PROPERTY_MATCH
       startEntityProperties: [peer_interface, env, site]
       endEntityProperties: [name, env, site]
-  - type: ROUTES
+  - type: CONNECTS_TO
     startEntityType: Interface
     endEntityType: Interface
     definedBy:

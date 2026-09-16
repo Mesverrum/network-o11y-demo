@@ -3,10 +3,11 @@
 # module, then overlay the binary + library onto grafana/alloy:latest.
 set -euo pipefail
 ALLOY_SRC="${ALLOY_SRC:-/mnt/c/Users/mesve/projects/alloy}"
+SNMPSD_SRC="${SNMPSD_SRC:-$(cd "${ALLOY_SRC}/../snmp-sd" 2>/dev/null && pwd || echo /mnt/c/Users/mesve/projects/snmp-sd)}"
 TAG="${ALLOY_NETWORK_TAG:-srl-local/alloy:network-dev}"
 WORKDIR="/tmp/alloy-network-bin-$$"
 mkdir -p "$WORKDIR"
-trap 'rm -rf "$WORKDIR"' EXIT
+trap 'chmod -R u+w "$WORKDIR" 2>/dev/null || true; rm -rf "$WORKDIR" || true' EXIT
 
 cd "$ALLOY_SRC"
 echo "==> pwd=$(pwd)"
@@ -26,8 +27,11 @@ fi
 
 build_in_docker() {
   echo "==> go 1.26 docker build (host ${GO_VER:-none} is too old or missing)"
+  echo "==> snmp-sd=${SNMPSD_SRC}"
+  [[ -f "${SNMPSD_SRC}/go.mod" ]] || { echo "missing snmp-sd at ${SNMPSD_SRC}"; exit 1; }
   docker run --rm \
     -v "${ALLOY_SRC}:/src" \
+    -v "${SNMPSD_SRC}:/snmp-sd" \
     -v "${HOME}/.cache/alloy-gomod:/go/pkg/mod" \
     -v "${HOME}/.cache/alloy-gobuild:/root/.cache/go-build" \
     -w /src \
@@ -77,5 +81,11 @@ echo "==> docker build $TAG"
 docker build -t "$TAG" "$WORKDIR"
 docker image inspect "$TAG" --format 'ok {{.Id}} {{.Created}}'
 echo "==> strings check discovery.snmp + otelcol.receiver.syslog + snmp-sd"
-docker run --rm --entrypoint /bin/sh "$TAG" -c \
-  'grep -a -E "discovery.snmp|otelcol.receiver.syslog|otelcol.receiver.snmptrap|Mesverrum/snmp-sd" /bin/alloy | head -c 500; echo; ls /etc/alloy/snmp-network.yml /usr/bin/snmp-discovery'
+docker run --rm --entrypoint /bin/sh "$TAG" -c '
+  for s in discovery.snmp otelcol.receiver.syslog otelcol.receiver.snmptrap Mesverrum/snmp-sd; do
+    n=$(grep -a -o -F "$s" /bin/alloy | wc -l)
+    echo "$s $n"
+    test "$n" -gt 0
+  done
+  ls /etc/alloy/snmp-network.yml /etc/alloy/fingerprinters.yml /usr/bin/snmp-discovery
+'

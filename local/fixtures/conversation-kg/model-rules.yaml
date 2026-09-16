@@ -2,15 +2,16 @@
 # Source of truth is provision-conversation-kg.py (this file is exported).
 # Paste into Grafana: Observability → Rules → Entity & Relation → New rule file.
 #
-# Use HOSTS / ROUTES (types the entity graph draws). Custom FLOWS_TO lines
-# often never appear. Device HOSTS client; Host ROUTES Host; leaf ROUTES spine.
-# Device HOSTS Interface; Interface ROUTES Interface (catalog + live LLDP).
-# Interface lookup aliases src_interface|dst_interface (same pattern as Host).
+# Device HOSTS client / Interface. Endpoint ROUTES Endpoint (conversations).
+# Device ROUTES Device (fabric adjacency). Interface CONNECTS_TO Interface
+# (catalog + live LLDP cables — not a route).
+# Type is Endpoint (not Host) so Grafana Host Monitoring can own Host later.
+# Interface lookup aliases src_interface|dst_interface (same pattern as Endpoint).
 # Matchers include env/site because those entities are scoped.
 
 name: network-lab-conversation
 entities:
-  - type: Host
+  - type: Endpoint
     name: host
     scope:
       env: asserts_env
@@ -61,8 +62,8 @@ entities:
           peer_interface: peer_interface
 relations:
   - type: ROUTES
-    startEntityType: Host
-    endEntityType: Host
+    startEntityType: Endpoint
+    endEntityType: Endpoint
     definedBy:
       source: METRICS
       pattern: |-
@@ -79,14 +80,14 @@ relations:
         site: asserts_site
   - type: HOSTS
     startEntityType: NetworkDevice
-    endEntityType: Host
+    endEntityType: Endpoint
     definedBy:
       source: PROPERTY_MATCH
       startEntityProperties: [name, env, site]
       endEntityProperties: [device_name, env, site]
   - type: HOSTS
     startEntityType: NetworkDevice
-    endEntityType: Host
+    endEntityType: Endpoint
     definedBy:
       source: METRICS
       pattern: |-
@@ -142,14 +143,14 @@ relations:
         name: interface
         env: asserts_env
         site: asserts_site
-  - type: ROUTES
+  - type: CONNECTS_TO
     startEntityType: Interface
     endEntityType: Interface
     definedBy:
       source: PROPERTY_MATCH
       startEntityProperties: [peer_interface, env, site]
       endEntityProperties: [name, env, site]
-  - type: ROUTES
+  - type: CONNECTS_TO
     startEntityType: Interface
     endEntityType: Interface
     definedBy:
