@@ -1,4 +1,7 @@
 // Optional topology scrape — appended when LAB_ALLOY_SNMP_TOPOLOGY=1.
+//
+// Do not send this scrape to Grafana / Mimir. Alloy enriches, then OTLP JSON
+// to topology-exporter :9100/v1/metrics (skip_native_snmp on the exporter).
 
 local.file "snmp_targets_topology" {
   filename       = "/etc/alloy/snmp-targets-topology.yml"
@@ -10,28 +13,40 @@ prometheus.exporter.snmp "fabric_topology" {
   targets = encoding.from_yaml(local.file.snmp_targets_topology.content)
 }
 
-prometheus.relabel "alloy_snmp_topology" {
-  forward_to = [otelcol.receiver.prometheus.alloy_snmp.receiver]
-
-  rule {
-    target_label = "job"
-    replacement  = "alloy-snmp"
-  }
-
-  rule {
-    target_label = "collector"
-    replacement  = "alloy-fleet-lab"
-  }
-
-  rule {
-    target_label = "snmp_tier"
-    replacement  = "topology"
-  }
-}
-
 prometheus.scrape "alloy_snmp_topology" {
   targets         = prometheus.exporter.snmp.fabric_topology.targets
   scrape_interval = "15m"
   scrape_timeout  = "2m"
-  forward_to      = [prometheus.relabel.alloy_snmp_topology.receiver]
+  forward_to      = [otelcol.receiver.prometheus.topology.receiver]
+}
+
+otelcol.receiver.prometheus "topology" {
+  output {
+    metrics = [otelcol.processor.transform.topology.input]
+  }
+}
+
+otelcol.processor.transform "topology" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context    = "datapoint"
+    statements = [
+      `set(attributes["device_name"], ConvertCase(attributes["device_name"], "lower")) where attributes["device_name"] != nil`,
+      `delete_key(attributes, "lldpRemSysName") where IsMatch(attributes["lldpRemSysName"], "(?i)(phone|ap-|wap-|sep)")`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.topology.input]
+  }
+}
+
+otelcol.exporter.otlphttp "topology" {
+  client {
+    endpoint = "http://topology_exporter:9100"
+    tls {
+      insecure = true
+    }
+  }
 }

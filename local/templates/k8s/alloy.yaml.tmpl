@@ -64,6 +64,24 @@ spec:
                   name: grafana-cloud-credentials
                   key: GC_OTLP_KEY_2
                   optional: true
+            - name: GC_OTLP_URL_3
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_URL_3
+                  optional: true
+            - name: GC_OTLP_ACCOUNT_3
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_ACCOUNT_3
+                  optional: true
+            - name: GC_OTLP_KEY_3
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-cloud-credentials
+                  key: GC_OTLP_KEY_3
+                  optional: true
             - name: OTEL_METRIC_EXPORT_INTERVAL
               value: "1000"
             - name: OTEL_RESOURCE_ATTRIBUTES
@@ -99,12 +117,9 @@ spec:
             - name: sflow
               containerPort: 6344
               protocol: UDP
-            - name: snmptrap
-              containerPort: 1620
-              protocol: UDP
-            - name: syslog
-              containerPort: 1514
-              protocol: UDP
+          # Do not declare 1620/1514 here: hostNetwork port claims block
+          # ktranslate SNMP/syslog when those collectors are scaled up.
+          # Alloy still binds them from River when LAB_ALLOY_SNMPTRAP/SYSLOG=1.
           volumeMounts:
             - name: config
               mountPath: /etc/alloy/config.alloy

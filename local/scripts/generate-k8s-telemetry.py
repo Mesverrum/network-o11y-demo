@@ -123,12 +123,29 @@ def otel_service_name(base: str, host: str) -> str:
     return f"{base}-{host}" if host else base
 
 
+def _k8s_env_value(raw: str) -> str:
+    return raw.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def ktranslate_git_env() -> str:
+    """Pass ktranslate git-auth env when cloning PROFILE_GIT_URL (ktranslate#869)."""
+    lines: list[str] = []
+    for name in ("KT_GIT_ACCESS_USERNAME", "KT_GIT_ACCESS_TOKEN", "KT_GIT_PULL_BRANCH"):
+        val = os.environ.get(name, "").strip()
+        if not val:
+            continue
+        lines.append(f'            - name: {name}\n              value: "{_k8s_env_value(val)}"')
+    if not lines:
+        return ""
+    return "\n" + "\n".join(lines)
+
+
 def ktranslate_env(base: str, host: str) -> str:
     return f"""          env:
             - name: OTEL_SERVICE_NAME
               value: {otel_service_name(base, host)}
             - name: OTEL_EXPORTER_OTLP_COMPRESSION
-              value: gzip"""
+              value: gzip{ktranslate_git_env()}"""
 
 
 def patch_gnmic_config(raw: str) -> str:

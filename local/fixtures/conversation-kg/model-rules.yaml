@@ -1,0 +1,168 @@
+# Knowledge Graph custom model for the colocated Clos lab.
+# Source of truth is provision-conversation-kg.py (this file is exported).
+# Paste into Grafana: Observability → Rules → Entity & Relation → New rule file.
+#
+# Use HOSTS / ROUTES (types the entity graph draws). Custom FLOWS_TO lines
+# often never appear. Device HOSTS client; Host ROUTES Host; leaf ROUTES spine.
+# Device HOSTS Interface; Interface ROUTES Interface (catalog + live LLDP).
+# Interface lookup aliases src_interface|dst_interface (same pattern as Host).
+# Matchers include env/site because those entities are scoped.
+
+name: network-lab-conversation
+entities:
+  - type: Host
+    name: host
+    scope:
+      env: asserts_env
+      site: asserts_site
+    lookup:
+      host: host | src_host | dst_host
+    definedBy:
+      - query: group by (host, asserts_env, asserts_site) (network_lab:host_info{asserts_env!=""})
+        literals:
+          role: lab-client
+          layer: compute
+    enrichedBy:
+      - query: group by (host, device_name, asserts_env, asserts_site) (network_lab:host_attached:info{asserts_env!=""})
+        labelValues:
+          device_name: device_name
+  - type: NetworkDevice
+    name: device_name
+    scope:
+      env: asserts_env
+      site: asserts_site
+    lookup:
+      device_name: device_name | src_device | dst_device
+    definedBy:
+      - query: group by (device_name, asserts_env, asserts_site) (network_lab:device_info{asserts_env!=""})
+        literals:
+          role: srl
+          layer: network
+  - type: Interface
+    name: interface
+    scope:
+      env: asserts_env
+      site: asserts_site
+    lookup:
+      interface: interface | src_interface | dst_interface
+    definedBy:
+      - query: group by (interface, device_name, if_interface_name, asserts_env, asserts_site) (network_lab:interface_info{asserts_env!=""})
+        literals:
+          layer: l1-l3
+        labelValues:
+          device_name: device_name
+          if_interface_name: if_interface_name
+    enrichedBy:
+      - query: group by (interface, iface_role, asserts_env, asserts_site) (network_lab:interface_info{asserts_env!=""})
+        labelValues:
+          iface_role: iface_role
+      - query: group by (interface, peer_interface, asserts_env, asserts_site) (network_lab:interface_info{peer_interface!=""})
+        labelValues:
+          peer_interface: peer_interface
+relations:
+  - type: ROUTES
+    startEntityType: Host
+    endEntityType: Host
+    definedBy:
+      source: METRICS
+      pattern: |-
+        group by (src_host, dst_host, asserts_env, asserts_site) (
+          conversation:host_pair:bytes5m{asserts_env!=""}
+        )
+      startEntityMatchers:
+        name: src_host
+        env: asserts_env
+        site: asserts_site
+      endEntityMatchers:
+        name: dst_host
+        env: asserts_env
+        site: asserts_site
+  - type: HOSTS
+    startEntityType: NetworkDevice
+    endEntityType: Host
+    definedBy:
+      source: PROPERTY_MATCH
+      startEntityProperties: [name, env, site]
+      endEntityProperties: [device_name, env, site]
+  - type: HOSTS
+    startEntityType: NetworkDevice
+    endEntityType: Host
+    definedBy:
+      source: METRICS
+      pattern: |-
+        group by (host, device_name, asserts_env, asserts_site) (
+          network_lab:host_attached:info{asserts_env!=""}
+        )
+      startEntityMatchers:
+        name: device_name
+        env: asserts_env
+        site: asserts_site
+      endEntityMatchers:
+        name: host
+        env: asserts_env
+        site: asserts_site
+  - type: ROUTES
+    startEntityType: NetworkDevice
+    endEntityType: NetworkDevice
+    definedBy:
+      source: METRICS
+      pattern: |-
+        group by (src_device, dst_device, asserts_env, asserts_site) (
+          network_lab:device_connected:info{asserts_env!=""}
+        )
+      startEntityMatchers:
+        name: src_device
+        env: asserts_env
+        site: asserts_site
+      endEntityMatchers:
+        name: dst_device
+        env: asserts_env
+        site: asserts_site
+  - type: HOSTS
+    startEntityType: NetworkDevice
+    endEntityType: Interface
+    definedBy:
+      source: PROPERTY_MATCH
+      startEntityProperties: [name, env, site]
+      endEntityProperties: [device_name, env, site]
+  - type: HOSTS
+    startEntityType: NetworkDevice
+    endEntityType: Interface
+    definedBy:
+      source: METRICS
+      pattern: |-
+        group by (interface, device_name, asserts_env, asserts_site) (
+          network_lab:interface_info{asserts_env!=""}
+        )
+      startEntityMatchers:
+        name: device_name
+        env: asserts_env
+        site: asserts_site
+      endEntityMatchers:
+        name: interface
+        env: asserts_env
+        site: asserts_site
+  - type: ROUTES
+    startEntityType: Interface
+    endEntityType: Interface
+    definedBy:
+      source: PROPERTY_MATCH
+      startEntityProperties: [peer_interface, env, site]
+      endEntityProperties: [name, env, site]
+  - type: ROUTES
+    startEntityType: Interface
+    endEntityType: Interface
+    definedBy:
+      source: METRICS
+      pattern: |-
+        group by (src_interface, dst_interface, asserts_env, asserts_site) (
+          network_lab:interface_connected:info{asserts_env!=""}
+        )
+      startEntityMatchers:
+        name: src_interface
+        env: asserts_env
+        site: asserts_site
+      endEntityMatchers:
+        name: dst_interface
+        env: asserts_env
+        site: asserts_site

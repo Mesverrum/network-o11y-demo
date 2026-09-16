@@ -30,7 +30,7 @@ The exporter stays **stock**. Fingerprinters run at SD time (portable subset of 
 | Trap receiver | 3 | **`otelcol.receiver.snmptrap`** (experimental) in the fork — [alloy#440](https://github.com/grafana/alloy/issues/440). OTel logs, not Loki. Docs: fork [`otelcol.receiver.snmptrap.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/sources/reference/components/otelcol/otelcol.receiver.snmptrap.md). Prior art: [`docs/snmp-trap-prior-art.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/snmp-trap-prior-art.md) |
 | Flow collector | 4 | **`otelcol.receiver.netflow`** (experimental wrap of contrib logs receiver) — [alloy#6304](https://github.com/grafana/alloy/issues/6304). Metrics via existing `otelcol.connector.signaltometrics`. Lab: `LAB_ALLOY_NETFLOW=1` + `make alloy-netflow-up` |
 
-`discovery.snmp` now has slog, health, metrics, Live Debugging, unmarshal tests, and Alloy-shaped reference docs. Remaining GA items (stability, integration tests, official image): fork [`docs/discovery-snmp-production-gaps.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/discovery-snmp-production-gaps.md).
+`discovery.snmp` now has slog, health, metrics, Live Debugging, unmarshal tests, and Alloy-shaped reference docs. Colocated `LAB_ALLOY_SNMP=1` runs the component in the k3s ConfigMap (not only Fleet) and self-scrapes `discovery_snmp_*` as `job="alloy"`. Remaining GA items: fork [`docs/discovery-snmp-production-gaps.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/discovery-snmp-production-gaps.md).
 
 Syslog on the network path is `otelcol.receiver.syslog` (`protocol = "none"` keeps non-RFC bodies; `on_error = "send"` never drops). Optional `targets` join stamps `device_name`. Historical Loki / Cisco-components notes: [`docs/alloy-cisco-syslog-lab.md`](alloy-cisco-syslog-lab.md).
 
@@ -44,7 +44,7 @@ Fleet Management can only push **config** for components in the running binary. 
 |--|--|--|--|
 | **hot** | 60s (`LAB_ALLOY_SNMP_HOT_INTERVAL`) | minimum useful: `if_mib` **octets / oper / ifHighSpeed**, inlined `snmp_device_info` + `snmp_Uptime`, CPU/mem | `LAB_ALLOY_SNMP_TIERS=hot` (or include `hot` in the list) |
 | **cold** | 5m lab / 30m fleet (`LAB_ALLOY_SNMP_COLD_INTERVAL`) | names/descriptions/MAC (`if_mib_meta`) + **packet counters** + **errors** + **discards** + IP inventory (`ip_addr`) | include `cold` (default with hot) |
-| **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | LLDP/CDP/BGP-class neighbor walks | include `topology`, or `LAB_ALLOY_SNMP_TOPOLOGY=1` when `TIERS` is unset |
+| **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | LLDP/CDP/BGP-class neighbor walks — **Alloy enrich → topology-exporter `/v1/metrics`**, not Mimir | include `topology`, or `LAB_ALLOY_SNMP_TOPOLOGY=1` when `TIERS` is unset. Colocated glue test: `python3 local/scripts/ssm-alloy-topology-glue.py` (exporter on host `:9100`, Alloy `hostNetwork` → `http://127.0.0.1:9100`). |
 
 Default when `LAB_ALLOY_SNMP_TIERS` is unset: **hot+cold**. `LAB_ALLOY_SNMP_TIERS=hot` is the absolute minimum scrape. Alloy: `tiers = ["hot"]`. CLI: `--tiers=hot`. Each tier is independently optional.
 
@@ -148,7 +148,7 @@ ktranslate computes several series in-process (`MemoryUtilization`, `ifInErrorPe
 | `if:snmp_ifOutErrors:rate5m` | `(kentik_snmp_ifOutErrors) / 60` | `rate(snmp_ifOutErrors[15m])` | Same, outbound. |
 | `if:snmp_ifInErrorPercent:percent` | `kentik_snmp_ifInErrorPercent` | `100 * rate(errors[15m]) / rate(ucast pkts[15m])` when ucast > 0 | **Cold group (5m).** Same-tier join on `device_name, ifIndex, if_interface_name` (**not** `instance` — still drop it so lingering hot series cannot pair). |
 | `if:snmp_ifOutErrorPercent:percent` | `kentik_snmp_ifOutErrorPercent` | Same, outbound | Idle ifaces (0 unicast) stay empty — no fake 100%. |
-| `if:snmp_ifHCInOctets:rate5m` | `(kentik_snmp_ifHCInOctets) / 60` | `rate(snmp_ifHCInOctets[5m])` | Octets/s. Dashboards: `* 8` for bps. |
+| `if:snmp_ifHCInOctets:rate5m` | `(kentik_snmp_ifHCInOctets) / 60` | `rate(snmp_ifHCInOctets[5m])` plus `if_Alias` from cold `snmp_ifAdminStatus` when present | Octets/s. Dashboards: `* 8` for bps. WAN: `if_Alias=~".*WAN.*"`. |
 | `if:snmp_ifHCOutOctets:rate5m` | `(kentik_snmp_ifHCOutOctets) / 60` | `rate(snmp_ifHCOutOctets[5m])` | Same, outbound. |
 | `if:snmp_IfInUtilization:percent` | NR `kentik.snmp.IfInUtilization` | `100 * rate(octets[5m])*8 / ((ifHighSpeed > 0) * 1e6)` | ifHighSpeed is Mbps (RFC 2863). `== 0` (mgmt / unnumbered) is dropped to avoid `+Inf`. |
 | `if:snmp_IfOutUtilization:percent` | NR `kentik.snmp.IfOutUtilization` | Same, outbound | Same-tier join (octets + speed are both hot) — `instance` is safe here. |
@@ -163,6 +163,10 @@ ktranslate computes several series in-process (`MemoryUtilization`, `ifInErrorPe
 | Discard rates (`ifInDiscards` / `ifOutDiscards`) | Same cold walk as errors. Not recorded. |
 
 **Join gotcha:** Fleet hot/cold use different Alloy `instance` labels (`prometheus.exporter.snmp.fabric_hot` vs `fabric_cold`). Cross-tier ratios (e.g. lingering hot error series vs cold packets) must not match on `instance`. Error % drops `instance` on purpose.
+
+**Conversation / Knowledge Graph (marcnetterfield1):** `make -C local conversation-kg` records a 4-tuple (`src_host`, `dst_host`, `network_peer_port`, `network_transport`) as `conversation:network_io:bytes5m` from ktranslate gauges (`max_over_time`, no ephemeral src port, collector ports dropped). Custom KG types **Host** (lab `client*`) and **NetworkDevice** (SRL from `kentik_snmp_CPU` / `snmp_CPU`) plus `FLOWS_TO` / `ATTACHED_TO` / `CONNECTED_TO`. Flow `device_name` is the NetFlow exporter, not the switch in path — attach is the lab catalog (`client1→leaf1`, `client2→leaf2`, `client-br*→leaf-br*`). **Interface** entities are the sparse L1–L3 set: leaf access `ethernet-1/1`, WAN `if_Alias=~".*WAN.*"`, fabric catalog ports (with `peer_interface`), and currently admin-up/oper-down physical ethernet — not the full IF-MIB table. Name is `device:ifName`. Device HOSTS Interface. Interface ROUTES Interface uses the fabric/WAN catalog **and** live `network_topology_edge_info` when both ports are named (gnmic `Eth-*` rewritten to `ethernet-*`). KG lookup aliases `src_interface`/`dst_interface` so the cable series can resolve Interface entities.
+
+**NetworkDevice Insights (first batch):** `make -C local network-device-insights` records `network_lab:device_cpu:percent`, `network_lab:device_memory:percent`, `network_lab:device_snmp_unhealthy`, `network_lab:device_access_if_down` (stamped `asserts_env=network-lab`, `asserts_site=colocated`) and Grafana-managed alerts with `asserts_entity_type=NetworkDevice` / `asserts_alert_category` (`failure` = SNMP unhealthy + `ethernet-1/1` admin-up/oper-down; `saturation` = CPU>85 / mem>90). These attach to the KG entity; they do not replace `Network Lab / ktranslate` ops alerts. Workshop fault (`ssm-workshop-inject-fault.py start` on leaf1 `ethernet-1/1`) is the demo that should fire. Script: `local/scripts/provision-network-device-insights.py`.
 
 **Alerts:** parallel Grafana group `Network Lab / alloy` (`make -C local alloy-network-alerts`) mirrors the ktranslate network rules onto `snmp_*` / recording rules / Loki `{service_name="alloy-snmptrap"}`. Does not replace `Network Lab / ktranslate`. Enums are numeric on this path (BGP established = 6).
 
@@ -275,7 +279,7 @@ Prefer editing `snmp/modules/<vendor>/` in the fork (that YAML is the library). 
 
 1. Drop the profile YAML in the fork or point `--profiles` at the cookbook tree.
 2. `python3 tools/snmp-profile-convert/convert.py --profiles … --clean-modules` once → split modules + `snmp-network.yml` + fingerprinters.
-3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), `{name}_topo` (topology: BGP, LLDP/CDP, OSPF/ISIS leftovers). Nokia keeps `nokia_srlinux` / `_sensors` / `_topo`. Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib`.
+3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), `{name}_topo` (topology: BGP, OSPF/ISIS leftovers). Every `modules_topology` chain also walks `lldp_mib`; Cisco / Meraki add `cdp_mib`. Nokia keeps `nokia_srlinux` / `_sensors` / `_topo` plus that LLDP coverage walk. Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib` (hot) and `lldp_mib` (topology).
 4. Fingerprinters and `snmp-network.yml` are one catalog — do not add a `module=` name that convert did not write. Re-extract both from the image after rebuild.
 
 ## Converter (one-shot ingest)

@@ -14,8 +14,42 @@ livedebugging {
 }
 
 logging {
-  level  = "info"
-  format = "logfmt"
+  level    = "info"
+  format   = "logfmt"
+  write_to = [loki.process.alloy_self.receiver]
+}
+
+loki.process "alloy_self" {
+  stage.static_labels {
+    values = {
+      job       = "alloy",
+      collector = "alloy",
+    }
+  }
+
+  forward_to = [otelcol.receiver.loki.alloy_self.receiver]
+}
+
+otelcol.receiver.loki "alloy_self" {
+  output {
+    logs = [otelcol.processor.transform.alloy_logs.input]
+  }
+}
+
+otelcol.processor.transform "alloy_logs" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "resource"
+    statements = [
+      `set(attributes["service.name"], "alloy")`,
+      `set(attributes["collector"], "alloy")`,
+    ]
+  }
+
+  output {
+    logs = [otelcol.processor.resourcedetection.default.input]
+  }
 }
 
 otelcol.receiver.otlp "default" {
@@ -25,7 +59,10 @@ otelcol.receiver.otlp "default" {
   http { }
 
   output {
-    metrics = [otelcol.processor.transform.preprocessing.input]
+    metrics = [
+      otelcol.processor.filter.drop_gnmic_topology.input,
+      otelcol.processor.filter.keep_gnmic_topology.input,
+    ]
     logs    = [otelcol.processor.resourcedetection.default.input]
     traces  = [otelcol.processor.resourcedetection.default.input]
   }
@@ -55,7 +92,7 @@ discovery.relabel "lab_logs" {
   // Keep Clos nodes + telemetry sidecars (compose names / clab short names).
   rule {
     source_labels = ["container"]
-    regex         = "^(alloy|gnmic|topology_exporter|spine1|leaf1|leaf2|client1|client2)$" // topology_exporter when LAB_TOPOLOGY_EXPORTER=1
+    regex         = "(alloy|gnmic|topology_exporter|spine1|leaf1|leaf2|leaf-br1|leaf-br2|client1|client2|client-br1|client-br2)"
     action        = "keep"
   }
 
@@ -112,7 +149,52 @@ otelcol.processor.transform "docker_logs" {
   }
 }
 
-// LLDP edges come from gnmic YANG subscribe (see transform below). No Prometheus scrape.
+// gnmic neighbor tables stay out of Grafana. Alloy only forks them to
+// topology-exporter (graph.Reconcile). Ops metrics (interfaces/BGP/CPU)
+// still go through preprocessing.
+
+otelcol.processor.filter "drop_gnmic_topology" {
+  error_mode = "ignore"
+
+  metrics {
+    metric = [
+      `IsMatch(name, ".*lldp_interface_neighbor.*")`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.preprocessing.input]
+  }
+}
+
+otelcol.processor.filter "keep_gnmic_topology" {
+  error_mode = "ignore"
+
+  metrics {
+    metric = [
+      `not IsMatch(name, ".*lldp_interface_neighbor.*")`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.gnmic_topology.input]
+  }
+}
+
+otelcol.processor.transform "gnmic_topology" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context    = "datapoint"
+    statements = [
+      `set(attributes["device_name"], ConvertCase(attributes["source"], "lower")) where attributes["source"] != nil`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.topology.input]
+  }
+}
 
 // Official Grafana Cloud ktranslate-netflow integration shape:
 // rename kentik.rollup.bytes_by_flow → network.io.by_flow and remap attributes.
@@ -127,37 +209,13 @@ otelcol.processor.transform "preprocessing" {
     statements = [
       `set(metric.name, "network.io.by_flow") where metric.name == "kentik.rollup.bytes_by_flow"`,
       `set(metric.unit, "By") where metric.name == "network.io.by_flow"`,
-      // Dashboards filter on tester_id (default network-lab; override via LAB_TESTER_ID)
       `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, "network_topology_.*")`,
-      `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(resource.attributes["service.name"], "network-topology-exporter") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
     ]
   }
 
   metric_statements {
     context = "datapoint"
     statements = [
-      // gnmic LLDP neighbor system-name → network_topology_edge_info (replaces lldp_bridge)
-      `set(datapoint.attributes["src_device"], datapoint.attributes["source"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["dst_device"], datapoint.attributes["value"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["src_port"], datapoint.attributes["interface_name"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      // Preserve chassis MAC for identity-demo (mac: subtype) — was dropped before
-      `set(datapoint.attributes["dst_chassis_id"], datapoint.attributes["neighbor_id"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["link_kind"], "ethernet") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["direction"], "forward") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-      `set(metric.name, "network_topology_edge_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_system_name.*")`,
-
-      // Neighbor port-id as parallel edge metric (iface-level connected_to talk track)
-      `set(datapoint.attributes["src_device"], datapoint.attributes["source"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["src_port"], datapoint.attributes["interface_name"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["dst_port"], datapoint.attributes["value"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["dst_chassis_id"], datapoint.attributes["neighbor_id"]) where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["discovery_proto"], "lldp") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-      `set(metric.name, "network_topology_edge_port_info") where IsMatch(metric.name, ".*lldp_interface_neighbor_port_id.*")`,
-
       `set(datapoint.attributes["tester_id"], "network-lab") where IsMatch(metric.name, "network_topology_.*")`,
       // Inventory labels on ktranslate SNMP (site/role aligned with colocated 3-site demo)
       `set(datapoint.attributes["device_role"], "spine") where IsMatch(metric.name, "kentik_snmp_.*") and IsMatch(datapoint.attributes["device_name"], "spine.*")`,

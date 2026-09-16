@@ -1,0 +1,159 @@
+# NetworkDevice measurements + KG insight alerts.
+# Source: provision-network-device-insights.py
+#
+# Insights need real series (not vector(1) catalogs) plus alert labels
+# asserts_entity_type / asserts_alert_category / asserts_severity and
+# scope labels asserts_env / asserts_site on the firing series.
+
+groups:
+  - name: Network Lab / device insights
+    interval: 1m
+    rules:
+      - record: network_lab:device_cpu:percent
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(label_replace(
+          max by (device_name) (kentik_snmp_CPU)
+          or
+          max by (device_name) (snmp_CPU)
+          , "asserts_env", "network-lab", "", "")
+          , "asserts_site", "colocated", "", "")
+
+      - record: network_lab:device_memory:percent
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(label_replace(
+          max by (device_name) (kentik_snmp_MemoryUtilization)
+          or
+          max by (device_name) (device:snmp_MemoryUtilization:percent)
+          , "asserts_env", "network-lab", "", "")
+          , "asserts_site", "colocated", "", "")
+
+      - record: network_lab:device_snmp_unhealthy
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(label_replace(
+          (
+            count by (device_name) (
+              kentik_snmp_PollingHealth{PollingHealth!="GOOD"}
+              and on (device_name) kentik_snmp_CPU
+            )
+          )
+          or
+          (
+            count by (device_name) (kentik_snmp_CPU) * 0
+          )
+          or
+          (
+            count by (device_name) (snmp_CPU) * 0
+          )
+          , "asserts_env", "network-lab", "", "")
+          , "asserts_site", "colocated", "", "")
+
+      - record: network_lab:device_access_if_down
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(label_replace(
+          (
+            count by (device_name) (
+              kentik_snmp_if_OperStatus{
+                if_AdminStatus="up",
+                if_OperStatus="down",
+                if_interface_name="ethernet-1/1"
+              }
+              and on (device_name) kentik_snmp_CPU
+            )
+          )
+          or
+          (
+            count by (device_name) (kentik_snmp_CPU) * 0
+          )
+          or
+          (
+            count by (device_name) (snmp_CPU) * 0
+          )
+          , "asserts_env", "network-lab", "", "")
+          , "asserts_site", "colocated", "", "")
+
+      - record: network_lab:interface_down
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(label_replace(
+          label_join(
+            (
+              count by (device_name, if_interface_name) (
+                kentik_snmp_if_OperStatus{if_AdminStatus="up", if_OperStatus="down"}
+                and on (device_name, if_interface_name) network_lab:interface_info
+              )
+            )
+            or
+            (
+              count by (device_name, if_interface_name) (network_lab:interface_info) * 0
+            ),
+            "interface", ":", "device_name", "if_interface_name"
+          )
+          , "asserts_env", "network-lab", "", "")
+          , "asserts_site", "colocated", "", "")
+
+  - name: Network Lab / device insights alerts
+    interval: 1m
+    rules:
+      - alert: nlabdi-alert-snmp
+        expr: network_lab:device_snmp_unhealthy > 0 and on (device_name) network_lab:device_cpu:percent
+        for: 5m
+        labels:
+          asserts_entity_type: NetworkDevice
+          asserts_alert_category: failure
+          asserts_severity: critical
+        annotations:
+          summary: SNMP polling unhealthy on {{ $labels.device_name }}
+
+      - alert: nlabdi-alert-access
+        expr: network_lab:device_access_if_down > 0 and on (device_name) network_lab:device_cpu:percent
+        for: 2m
+        labels:
+          asserts_entity_type: NetworkDevice
+          asserts_alert_category: failure
+          asserts_severity: warning
+        annotations:
+          summary: ethernet-1/1 admin-up/oper-down on {{ $labels.device_name }}
+
+      - alert: nlabdi-alert-iface
+        expr: network_lab:interface_down > 0
+        for: 2m
+        labels:
+          asserts_entity_type: Interface
+          asserts_alert_category: failure
+          asserts_severity: warning
+        annotations:
+          summary: {{ $labels.interface }} admin-up/oper-down
+
+      - alert: nlabdi-alert-cpu
+        expr: network_lab:device_cpu:percent > 85
+        for: 10m
+        labels:
+          asserts_entity_type: NetworkDevice
+          asserts_alert_category: saturation
+          asserts_severity: warning
+        annotations:
+          summary: CPU above 85% on {{ $labels.device_name }}
+
+      - alert: nlabdi-alert-mem
+        expr: network_lab:device_memory:percent > 90
+        for: 10m
+        labels:
+          asserts_entity_type: NetworkDevice
+          asserts_alert_category: saturation
+          asserts_severity: warning
+        annotations:
+          summary: Memory above 90% on {{ $labels.device_name }}

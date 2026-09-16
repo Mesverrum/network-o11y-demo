@@ -1,0 +1,21 @@
+# Colocated Clos system0 / router-ids and WAN /31s (BGP peer addresses).
+# Discovery catalog only has mgmt 172.20.20.x; this sidecar joins underlay IPs.
+leaf1:
+  - 10.0.1.1
+  - 192.168.11.0
+leaf2:
+  - 10.0.1.2
+  - 192.168.21.0
+spine1:
+  - 10.0.2.1
+  - 192.168.11.1
+  - 192.168.21.1
+  - 192.168.31.1
+  - 192.168.41.1
+leaf-br1:
+  - 10.0.3.1
+  - 192.168.31.0
+leaf-br2:
+  - 10.0.4.1
+  - 192.168.41.0
+

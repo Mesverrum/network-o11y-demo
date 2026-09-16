@@ -49,8 +49,42 @@ Three credential groups → three SNMP pollers (KtransToGrafana pattern):
 
 Install: `LAB_FABRIC_PROFILE=colocated bash scripts/colocated-snmp-groups.sh` (runs automatically on colocated telemetry bring-up).
 
+## NetBox intended topology (SoT overlay)
+
+Orb/Diode still owns **observed** device + interface inventory. Seed **intent** with:
+
+```bash
+python3 local/scripts/netbox-populate.py --profile colocated
+```
+
+That overlay creates HQ / Branch 1 / Branch 2 sites, spine/leaf/branch-edge/client roles, four EVPN clients, IPAM prefixes, HQ fabric cables (`lab-fabric`), access attach (`lab-access`), and WAN circuits `WAN-HQ-BR1` / `WAN-HQ-BR2` (`lab-wan` SMF to circuit terminations). Re-run is idempotent and prunes same-name Orb ghosts at site `network-lab` (Diode identity is name+site until Orb is redeployed without a default site).
+
 ## Talk track
 
 1. **HQ** — dual-homed leaves, EVPN MAC-VRF, client1↔client2 traffic (same as laptop demo).
 2. **Branches** — single-homed edge leaves over “WAN” links; independent `/24` per site.
 3. **Hub** — spine1 is BGP RR + WAN aggregation; syslog/traps/flows from all sites hit the same k3s collectors on the EC2 host.
+
+## Alloy topology glue (observed graph)
+
+Neighbor tables stay off Mimir. Alloy scrapes the SNMP topology tier and forks gnmic `*lldp_interface_neighbor*` to topology-exporter `POST /v1/metrics` (OTLP protobuf). The exporter maps samples through `families.yaml` and Reconciles `network_topology_edge_info` (`inference=alloy_otlp`, `evidence=gnmi_lldp` or `nokia_bgp_peer`). It does not re-hunt UDP/161 for catalogued devices (`skip_native_snmp: true`).
+
+| File | Purpose |
+|------|---------|
+| `topology-exporter/config-alloy-glue.yaml` | Glue-mode exporter (no native SNMP modules) |
+| `topology-exporter/aliases-colocated.yml` | system0 / WAN `/31` IP → device_name |
+| `scripts/alloy-topology-glue-colocated.sh` | On-host apply (Alloy prefix + systemd exporter) |
+| `scripts/ssm-alloy-topology-glue.py` | Sync files + linux amd64 binary, then apply |
+
+Restore from Windows: `python local/scripts/ssm-alloy-topology-glue.py` (needs `local/topology-exporter/topology-exporter-linux-amd64`).
+
+Expect `count by (evidence, src_device, dst_device) (network_topology_edge_info)` — BGP sessions plus LLDP when both ports are named. Placeholder `INTERFACE_NAME` port-ids are dropped. gnmic `Eth-1/49` is the live port spelling; KG rewrites that to `ethernet-1/49`.
+
+## Knowledge Graph Interface ROUTES
+
+KG does **not** read `network_topology_edge_info` labels directly. Recording rules in `local/scripts/provision-conversation-kg.py` emit:
+
+- `network_lab:interface_info` — access / WAN / fabric catalog / currently faulted ports (`interface=device:ifName`, optional `peer_interface`)
+- `network_lab:interface_connected:info` — catalog Clos cables **or** live topology edges with both ports (`Eth-*` → `ethernet-*`)
+
+The model (`local/fixtures/conversation-kg/model-rules.yaml`) aliases Interface lookup `interface | src_interface | dst_interface` and PROPERTY_MATCHes `peer_interface` → peer name. Unit test: `make -C local conversation-kg-test`. Provision: `make -C local conversation-kg`.

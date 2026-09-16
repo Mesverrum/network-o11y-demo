@@ -350,6 +350,10 @@ orb-down: ## Stop laptop Orb container if present
 orb-down-colocated: ## Stop Orb on colocated EC2 via SSM
 	python3 $(ROOT)scripts/orb-deploy-colocated.py --down
 
+.PHONY: orb-dry-diode-colocated
+orb-dry-diode-colocated: ## Keep Orb/pktvisor; stop Diode writing devices/ifaces into NetBox
+	python3 $(ROOT)scripts/orb-deploy-colocated.py --dry-diode
+
 .PHONY: orb-logs
 orb-logs: ## Follow laptop orb-agent logs (local only)
 	docker logs -f orb-agent
@@ -367,7 +371,7 @@ netbox-sync-mgmt: ## Refresh NetBox primary_ip4 from live clab mgmt IPs
 	@set -a && . $(ROOT).env && set +a && python3 $(ROOT)scripts/update-netbox-mgmt-ips.py
 
 .PHONY: netbox-populate
-netbox-populate: ## Seed NetBox with local lab topology (idempotent)
+netbox-populate: ## Seed NetBox Clos SoT (LAB_FABRIC_PROFILE=laptop|colocated; idempotent)
 	@set -a && . $(ROOT).env && set +a && python3 $(ROOT)scripts/netbox-populate.py
 
 .PHONY: topology-targets
@@ -417,6 +421,17 @@ alloy-network-alerts: ## Provision parallel Alloy SNMP/flow alert rules (does no
 .PHONY: alloy-snmp-recording-rules
 alloy-snmp-recording-rules: ## Provision Alloy SNMP composite recording rules (colon names, Grafana-managed)
 	python3 $(ROOT)scripts/provision-alloy-snmp-recording-rules.py
+
+.PHONY: conversation-kg conversation-kg-test
+conversation-kg: ## Provision conversation recording rules + KG Host/NetworkDevice/Interface
+	python3 $(ROOT)scripts/provision-conversation-kg.py
+
+conversation-kg-test: ## Unit-test conversation KG rules + model (no Grafana token)
+	python3 $(ROOT)scripts/test-conversation-kg.py
+
+.PHONY: network-device-insights
+network-device-insights: ## Provision NetworkDevice KG measurements + insight alerts (marcnetterfield1)
+	python3 $(ROOT)scripts/provision-network-device-insights.py
 
 .PHONY: snmp-traps-config
 snmp-traps-config: ## (Re)apply SNMP trap-group → ktranslate or Alloy (LAB_ALLOY_SNMPTRAP=1)

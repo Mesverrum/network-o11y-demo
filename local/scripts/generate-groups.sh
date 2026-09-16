@@ -38,6 +38,34 @@ fi
 
 mkdir -p "${CONFIG_DIR}" "${STATE_DIR}"
 
+# After envsubst, merge each device's discovered_mibs into poller
+# global.mibs_enabled (ktranslate only polls that list). Pin with
+# MIBS_ENABLED=IF-MIB,BGP4-MIB or disable with ADD_DISCOVERED_MIBS=0.
+apply_poller_mibs() {
+  local poller="$1" devices="$2" rc=0
+  if [[ -n "${MIBS_ENABLED:-}" ]]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "ERROR: MIBS_ENABLED= requires python3" >&2
+      exit 1
+    fi
+    rc=0
+    python3 "${REPO_ROOT}/scripts/apply-discovered-mibs.py" --pin "${MIBS_ENABLED}" "${poller}" || rc=$?
+    case "${rc}" in
+      0|3) echo "  pinned mibs_enabled from MIBS_ENABLED=${MIBS_ENABLED}"; return 0 ;;
+      *) return "${rc}" ;;
+    esac
+  fi
+  if [[ "${ADD_DISCOVERED_MIBS:-1}" == "0" ]]; then
+    echo "  ADD_DISCOVERED_MIBS=0 — seed mibs_enabled only"
+    return 0
+  fi
+  bash "${REPO_ROOT}/scripts/apply-discovered-mibs.sh" "${poller}" "${devices}" || rc=$?
+  case "${rc}" in
+    0|2|3) return 0 ;;
+    *) return "${rc}" ;;
+  esac
+}
+
 # NetBox API URL is baked into discovery YAML (ktranslate only expands ${...} on
 # token fields, not the netbox url). Token stays as ${NETBOX_TOKEN} for runtime.
 if [[ -f "${REPO_ROOT}/.env" ]]; then
@@ -49,10 +77,15 @@ fi
 # Only used when a group has DISCOVERY_SOURCE=netbox; set NETBOX_API_URL in .env.
 export NETBOX_API_URL="${NETBOX_API_URL:-}"
 
+# Optional ktranslate snmp-profiles fork (kentik/ktranslate#803). Stack-wide
+# from .env; a group file may override. Empty → omit keys (image library).
+export PROFILE_GIT_URL="${PROFILE_GIT_URL:-}"
+export PROFILE_GIT_COMMIT="${PROFILE_GIT_COMMIT:-}"
+
 # Only the placeholders listed here get substituted. Everything else
-# (notably docker compose's own ${OTEL_SERVICE_NAME}, ${NF_SOURCE}, ${GC_*})
-# stays literal so docker compose can resolve it from .env at runtime.
-SUBST_VARS='$GROUP $METALISTEN_PORT $TRAP_PORT $TRAP_COMMUNITY $DISCOVERY_THREADS $POLL_INTERVAL_SEC $CIDRS_YAML $NETBOX_BLOCK_YAML $DEFAULT_COMMUNITIES_YAML $DEFAULT_V3_YAML $OTHER_V3S_YAML $REPO_PATH'
+# (notably docker compose's own ${OTEL_SERVICE_NAME}, ${NF_SOURCE}, ${GC_*},
+# ${KT_GIT_*}) stays literal so docker compose can resolve it from .env at runtime.
+SUBST_VARS='$GROUP $METALISTEN_PORT $TRAP_PORT $TRAP_COMMUNITY $DISCOVERY_THREADS $POLL_INTERVAL_SEC $CIDRS_YAML $NETBOX_BLOCK_YAML $DEFAULT_COMMUNITIES_YAML $DEFAULT_V3_YAML $OTHER_V3S_YAML $REPO_PATH $PROFILE_GIT_YAML'
 
 shopt -s nullglob
 GROUP_FILES=("${GROUPS_DIR}"/*.env)
@@ -301,10 +334,22 @@ for env_file in "${GROUP_FILES[@]}"; do
     fi
     export DEFAULT_COMMUNITIES_YAML DEFAULT_V3_YAML OTHER_V3S_YAML
 
+    # ktranslate global.profile_git_url / profile_git_commit (omit when unset).
+    PROFILE_GIT_YAML=""
+    if [[ -n "${PROFILE_GIT_URL:-}" ]]; then
+      PROFILE_GIT_YAML+=$'\n    profile_git_url: '"${PROFILE_GIT_URL}"
+      if [[ -n "${PROFILE_GIT_COMMIT:-}" ]]; then
+        PROFILE_GIT_YAML+=$'\n    profile_git_commit: '"${PROFILE_GIT_COMMIT}"
+      fi
+    fi
+    export PROFILE_GIT_YAML
+
     envsubst "${SUBST_VARS}" < "${TEMPLATES_DIR}/discovery.yaml.tmpl" \
       > "${CONFIG_DIR}/discovery-${GROUP}.yaml"
     envsubst "${SUBST_VARS}" < "${TEMPLATES_DIR}/poller.yaml.tmpl" \
       > "${CONFIG_DIR}/poller-${GROUP}.yaml"
+    apply_poller_mibs "${CONFIG_DIR}/poller-${GROUP}.yaml" \
+      "${STATE_DIR}/devices-${GROUP}.yaml"
     envsubst "${SUBST_VARS}" < "${TEMPLATES_DIR}/compose-snippet.yaml.tmpl" \
       >> "${COMPOSE_OUT}"
 

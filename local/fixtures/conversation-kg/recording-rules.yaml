@@ -1,0 +1,253 @@
+# Conversation / KG recording rules for the colocated lab.
+# Source of truth is provision-conversation-kg.py (this file is exported).
+#
+# 4-tuple is src_host, dst_host, network_peer_port, network_transport.
+# Ephemeral source ports are never recorded. Collector ports are dropped.
+# Flow device_name is the exporter (client), not the SRL hop — attach is
+# a lab catalog (client→leaf), fabric is catalog ∪ live LLDP.
+#
+# Load: python3 local/scripts/provision-conversation-kg.py
+
+groups:
+  - name: conversation.kg
+    interval: 1m
+    rules:
+      - record: conversation:network_io:bytes5m
+        # conversation 4-tuple bytes (no src port)
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          sum by (src_host, dst_host, network_peer_port, network_transport) (
+            max_over_time(
+              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+            )
+          )
+
+      - record: conversation:host_pair:bytes5m
+        # conversation host pair bytes
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          sum by (src_host, dst_host) (
+            max_over_time(
+              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+            )
+          )
+
+      - record: network_lab:host_info
+        # lab client hosts
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          count by (host) (
+            label_replace(
+              network_io_by_flow_bytes{src_host=~"client.*"},
+              "host", "$1", "src_host", "(.+)"
+            )
+            or
+            label_replace(
+              network_io_by_flow_bytes{dst_host=~"client.*"},
+              "host", "$1", "dst_host", "(.+)"
+            )
+          )
+
+      - record: network_lab:device_info
+        # SRL network devices
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          count by (device_name) (kentik_snmp_CPU)
+          or
+          count by (device_name) (snmp_CPU)
+
+      - record: network_lab:host_attached:info
+        # client attached to leaf
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+            label_replace(label_replace(vector(1), "host", "client1", "", ""), "device_name", "leaf1", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client2", "", ""), "device_name", "leaf2", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client-br1", "", ""), "device_name", "leaf-br1", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client-br2", "", ""), "device_name", "leaf-br2", "", "")
+
+      - record: network_lab:device_connected:info
+        # SRL fabric edges
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+            label_replace(label_replace(vector(1), "src_device", "leaf1", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf2", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf-br1", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf-br2", "", ""), "dst_device", "spine1", "", "")
+          or
+          (
+            count by (src_device, dst_device) (network_topology_edge_info)
+            unless on (src_device, dst_device)
+              label_replace(
+                count by (src_device) (network_topology_edge_info),
+                "dst_device", "$1", "src_device", "(.*)"
+              )
+          )
+
+      - record: network_lab:interface_info
+        # role-bearing / faulted interfaces
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_join(
+              label_replace(label_replace(label_replace(vector(1), "device_name", "leaf1", "", ""), "if_interface_name", "ethernet-1/1", "", ""), "iface_role", "access", "", "")
+          or
+            label_replace(label_replace(label_replace(vector(1), "device_name", "leaf2", "", ""), "if_interface_name", "ethernet-1/1", "", ""), "iface_role", "access", "", "")
+          or
+            label_replace(label_replace(label_replace(vector(1), "device_name", "leaf-br1", "", ""), "if_interface_name", "ethernet-1/1", "", ""), "iface_role", "access", "", "")
+          or
+            label_replace(label_replace(label_replace(vector(1), "device_name", "leaf-br2", "", ""), "if_interface_name", "ethernet-1/1", "", ""), "iface_role", "access", "", "")
+          or
+          label_replace(
+            count by (device_name, if_interface_name) (
+              kentik_snmp_if_OperStatus{if_Alias=~".*WAN.*", if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"}
+              and on (device_name) kentik_snmp_CPU
+            ),
+            "iface_role", "wan", "", ""
+          )
+          or
+          label_replace(
+            count by (device_name, if_interface_name) (
+              kentik_snmp_if_OperStatus{
+                if_AdminStatus="up",
+                if_OperStatus="down",
+                if_interface_name=~"^ethernet-[0-9]+/[0-9]+$"
+              }
+              and on (device_name) kentik_snmp_CPU
+            ),
+            "iface_role", "fault", "", ""
+          )
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "spine1", "", ""), "if_interface_name", "ethernet-1/1", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "leaf1:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "leaf1", "", ""), "if_interface_name", "ethernet-1/49", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "spine1:ethernet-1/1", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "spine1", "", ""), "if_interface_name", "ethernet-1/2", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "leaf2:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "leaf2", "", ""), "if_interface_name", "ethernet-1/49", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "spine1:ethernet-1/2", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "spine1", "", ""), "if_interface_name", "ethernet-1/3", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "leaf-br1:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "leaf-br1", "", ""), "if_interface_name", "ethernet-1/49", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "spine1:ethernet-1/3", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "spine1", "", ""), "if_interface_name", "ethernet-1/4", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "leaf-br2:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(label_replace(label_replace(vector(1), "device_name", "leaf-br2", "", ""), "if_interface_name", "ethernet-1/49", "", ""), "iface_role", "fabric", "", ""), "peer_interface", "spine1:ethernet-1/4", "", ""),
+            "interface", ":", "device_name", "if_interface_name"
+          )
+
+      - record: network_lab:interface_connected:info
+        # interface to interface fabric/WAN
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+            label_replace(label_replace(vector(1), "src_interface", "spine1:ethernet-1/1", "", ""), "dst_interface", "leaf1:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "leaf1:ethernet-1/49", "", ""), "dst_interface", "spine1:ethernet-1/1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "spine1:ethernet-1/2", "", ""), "dst_interface", "leaf2:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "leaf2:ethernet-1/49", "", ""), "dst_interface", "spine1:ethernet-1/2", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "spine1:ethernet-1/3", "", ""), "dst_interface", "leaf-br1:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "leaf-br1:ethernet-1/49", "", ""), "dst_interface", "spine1:ethernet-1/3", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "spine1:ethernet-1/4", "", ""), "dst_interface", "leaf-br2:ethernet-1/49", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_interface", "leaf-br2:ethernet-1/49", "", ""), "dst_interface", "spine1:ethernet-1/4", "", "")
+          or
+          label_replace(
+            label_replace(
+              label_join(
+                label_join(
+                  count by (src_device, src_port, dst_device, dst_port) (
+                    network_topology_edge_info{
+                      src_port!="",
+                      src_port!="INTERFACE_NAME",
+                      dst_port!="",
+                      dst_port!="INTERFACE_NAME"
+                    }
+                  ),
+                  "src_interface", ":", "src_device", "src_port"
+                ),
+                "dst_interface", ":", "dst_device", "dst_port"
+              ),
+              "src_interface", "${1}:ethernet-${2}", "src_interface", "([^:]+):Eth-(.+)"
+            ),
+            "dst_interface", "${1}:ethernet-${2}", "dst_interface", "([^:]+):Eth-(.+)"
+          )
+
+      - record: asserts:relation:routes
+        # KG service-graph routes
+        labels:
+          asserts_env: network-lab
+          asserts_site: colocated
+        expr: |
+          label_replace(
+            label_replace(
+              sum by (src_host, dst_host) (
+            max_over_time(
+              network_io_by_flow_bytes{src_host=~"client.*", dst_host=~"client.*", network_peer_port!~"^(161|162|1620|11620|1514|1515|9995|19995|2055|6343|6344)$"}[5m]
+            )
+          ),
+              "job", "$1", "src_host", "(.*)"
+            ),
+            "dst_job", "$1", "dst_host", "(.*)"
+          )
+          or
+          label_replace(
+            label_replace(
+                label_replace(label_replace(vector(1), "host", "client1", "", ""), "device_name", "leaf1", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client2", "", ""), "device_name", "leaf2", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client-br1", "", ""), "device_name", "leaf-br1", "", "")
+          or
+            label_replace(label_replace(vector(1), "host", "client-br2", "", ""), "device_name", "leaf-br2", "", ""),
+              "job", "$1", "host", "(.*)"
+            ),
+            "dst_job", "$1", "device_name", "(.*)"
+          )
+          or
+          label_replace(
+            label_replace(
+                label_replace(label_replace(vector(1), "src_device", "leaf1", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf2", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf-br1", "", ""), "dst_device", "spine1", "", "")
+          or
+            label_replace(label_replace(vector(1), "src_device", "leaf-br2", "", ""), "dst_device", "spine1", "", "")
+          or
+          (
+            count by (src_device, dst_device) (network_topology_edge_info)
+            unless on (src_device, dst_device)
+              label_replace(
+                count by (src_device) (network_topology_edge_info),
+                "dst_device", "$1", "src_device", "(.*)"
+              )
+          ),
+              "job", "$1", "src_device", "(.*)"
+            ),
+            "dst_job", "$1", "dst_device", "(.*)"
+          )

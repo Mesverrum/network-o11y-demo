@@ -1,0 +1,4 @@
+# Glue-test binary — do not commit.
+topology-exporter-linux-amd64
+build/*
+!build/.gitignore

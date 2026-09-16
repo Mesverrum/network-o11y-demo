@@ -39,7 +39,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 
 NetBox Cloud is **optional** for inventory-driven discovery (`groups/srl-hq.env.netbox.sample`). Default bring-up uses **CIDR** targets from ContainerLab mgmt IPs (`groups/srl-hq.env.sample`). See [`local/netbox/README.md`](local/netbox/README.md).
 
-**Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Edges come from **gnmic** (`lldp_neighbors` subscribe), not SNMP topology-exporter.
+**Note:** Stock SR Linux SNMP does not export the IEEE LLDP rem-table (LLDP protocol is still enabled). Alloy forks gnmic `*lldp_interface_neighbor*` to topology-exporter `POST /v1/metrics`; the exporter Reconciles `network_topology_edge_info` (`evidence=gnmi_lldp`). See [`docs/colocated-topology.md`](docs/colocated-topology.md).
 
 ## Prerequisites
 
@@ -222,7 +222,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make snmp-recover` | After clab IP drift: enable SNMP + `snmp-discover` (`finish-bringup.sh`) |
 | `make finish-flows` | EVPN + softflowd + traffic + verify flows in Grafana |
 | `make lab-log-status` | Tail `state/lab-actions.log` + `docker-events.log` (container stop audit) |
-| `make netbox-populate` | Seed NetBox Cloud with local lab topology |
+| `make netbox-populate` | Seed NetBox Clos SoT (sites, roles, cables, IPAM, WAN circuits). Colocated: `python3 local/scripts/netbox-populate.py --profile colocated` (tidies Orb ghosts / unused ports). Keep Diode dry-run: `python3 local/scripts/orb-deploy-colocated.py --dry-diode` |
 | `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
 | `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
 | `make fabric-up` | Deploy SRL fabric only (no collectors) |
@@ -230,6 +230,8 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make stabilize` | Recover without `clab --reconfigure`: start SRL, fabric, discover |
 | `make topology-targets` | Refresh topology-exporter SNMP hosts (when `LAB_TOPOLOGY_EXPORTER=1`) |
 | `make topology-up` | Start optional topology_exporter (compose profile `topology`) |
+| `make conversation-kg-test` | Unit-test KG Interface ROUTES rules + model (no Grafana token) |
+| `make conversation-kg` | Provision conversation recording rules + Host/NetworkDevice/Interface on the stack |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make alloy-network-image` | Build `srl-local/alloy:network-dev` (fork overlay: snmp.yml + snmp-discovery) |
 | `make alloy-snmp-discover` | Probe fabric `/32`s → `snmp-targets.yml` (named auth + sysObjectID→module) |

@@ -1,0 +1,56 @@
+# Alloy-in-the-middle topology path (colocated glue test).
+# Identity from snmp-sd catalog. Walks come from Alloy POST /v1/metrics.
+# No UDP/161 from this process.
+
+listen:
+  addr: ":9100"
+
+discovery:
+  interval: 30s
+  timeout_per_device: 5s
+  parallelism: 1
+  cycle_budget_fraction: 0.8
+  liveness_max_stale_cycles: 3
+  unconfirmed_link_ttl_cycles: 3
+
+modules:
+  snmp:
+    enabled: false
+  lldp:
+    enabled: false
+  cdp:
+    enabled: false
+  bgp:
+    enabled: false
+  ospf:
+    enabled: false
+  fdb:
+    enabled: false
+  arp:
+    enabled: false
+  isis:
+    enabled: false
+  mpls_te:
+    enabled: false
+
+snapshot:
+  path: /tmp/network-topology-exporter-snapshot.json
+
+output:
+  otlp:
+    enabled: false
+
+inventory:
+  snmp_sd:
+    path: /etc/topology-exporter/catalog.yml
+    aliases_path: /etc/topology-exporter/aliases.yml
+
+source:
+  alloy_otlp:
+    enabled: true
+    path: /v1/metrics
+    skip_native_snmp: true
+    stale_after: 30m
+
+# Empty on purpose: catalog + Alloy edges drive the graph (no native targets).
+targets: []
