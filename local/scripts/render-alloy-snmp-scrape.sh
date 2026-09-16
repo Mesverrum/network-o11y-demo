@@ -166,6 +166,8 @@ if [[ -z "${TOPOLOGY_EXPORTER_OTLP:-}" ]]; then
     TOPOLOGY_EXPORTER_OTLP="http://topology_exporter:9100"
   fi
 fi
+TOPO_SCRAPE_ADDR="${TOPOLOGY_EXPORTER_OTLP#http://}"
+TOPO_SCRAPE_ADDR="${TOPO_SCRAPE_ADDR#https://}"
 # prometheus.scrape rejects timeout >= interval (lab often shortens cold to 60s).
 eval "$(python3 - "${HOT_INTERVAL}" "${HOT_TIMEOUT}" "${COLD_INTERVAL}" "${COLD_TIMEOUT}" "${TOPO_INTERVAL}" "${TOPO_TIMEOUT}" <<'PY'
 import sys
@@ -205,6 +207,20 @@ otelcol.exporter.otlphttp "topology" {
     tls {
       insecure = true
     }
+  }
+}
+
+// Reconciled graph (and exporter health) back into the Grafana OTLP path.
+// Neighbor walks stay on otlphttp.topology only; this scrape is /metrics.
+prometheus.scrape "topology_exporter_graph" {
+  targets         = [{ __address__ = "${TOPO_SCRAPE_ADDR}", "job" = "network-topology-exporter" }]
+  scrape_interval = "30s"
+  forward_to      = [otelcol.receiver.prometheus.topology_graph.receiver]
+}
+
+otelcol.receiver.prometheus "topology_graph" {
+  output {
+    metrics = [otelcol.processor.transform.preprocessing.input]
   }
 }
 EOF

@@ -118,6 +118,8 @@ if 'otelcol.exporter.otlphttp "topology"' not in merged:
     raise SystemExit("topology exporter block missing")
 if "keep_gnmic_topology" not in merged:
     raise SystemExit("gnmic topology fork missing")
+if 'prometheus.scrape "topology_exporter_graph"' not in merged:
+    raise SystemExit("topology exporter /metrics scrape missing")
 print(f"patched river prefix+scrape -> {len(merged)} bytes")
 PY
 kubectl -n network-lab create configmap alloy-config --from-file=config.alloy=/tmp/alloy-config.alloy -o yaml --dry-run=client | kubectl apply -f -

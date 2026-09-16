@@ -67,7 +67,7 @@ That overlay creates HQ / Branch 1 / Branch 2 sites, spine/leaf/branch-edge/clie
 
 ## Alloy topology glue (observed graph)
 
-Neighbor tables stay off Mimir. Alloy scrapes the SNMP topology tier and forks gnmic `*lldp_interface_neighbor*` to topology-exporter `POST /v1/metrics` (OTLP protobuf). The exporter maps samples through `families.yaml` and Reconciles `network_topology_edge_info` (`inference=alloy_otlp`, `evidence=gnmi_lldp` or `nokia_bgp_peer`). It does not re-hunt UDP/161 for catalogued devices (`skip_native_snmp: true`).
+Neighbor tables stay off Mimir. Alloy scrapes the SNMP topology tier and forks gnmic `*lldp_interface_neighbor*` to topology-exporter `POST /v1/metrics` (OTLP protobuf). The exporter maps samples through `families.yaml` and Reconciles `network_topology_edge_info` (`inference=alloy_otlp`, `evidence=gnmi_lldp` or `nokia_bgp_peer`). Alloy then scrapes exporter `:9100` so the reconciled graph (not the raw neighbor walks) reaches Grafana Cloud. It does not re-hunt UDP/161 for catalogued devices (`skip_native_snmp: true`).
 
 | File | Purpose |
 |------|---------|

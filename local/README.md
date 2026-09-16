@@ -33,7 +33,7 @@ The AWS/EKS path under `../k8s/` and `../terraform/` is unchanged.
 | Syslog | SR Linux → `ktranslate_syslog` → Alloy → GC |
 | gNMI | SR Linux → `gnmic` (OTLP) → Alloy → GC (`gnmi_*`, `job="gnmic"`) |
 | Topology devices | Optional: `topology_exporter` (OTLP) → `network_topology_device_info` — off by default |
-| Topology edges | SR Linux LLDP via **gnmic** YANG → Alloy remap → GC (`network_topology_edge_info`) |
+| Topology edges | gnmic / SNMP topology → Alloy fork → exporter Reconcile → Alloy scrape `:9100` → GC (`network_topology_edge_info`) |
 | Mgmt API catalog | `fixtures/srl-mgmt-api-catalog.json` + mock payloads → `mgmt-api-mock` (OTLP) → GC (`srl_mgmt_api_capability_info`; NETCONF/JSON-RPC/gNOI/gRIBI shown even when not enabled on devices) |
 | Flex-style gap-fill (optional) | `make telegraf-poc` — Telegraf `inputs.exec` + SSH/`jq` parse → OTLP (`srl_flex_poc_ssh_up`, `srl_flex_poc_bgp_peers_up`; see `local/telegraf-flex-poc/`) |
 
