@@ -26,7 +26,7 @@ Make sure Device Summary is showing devices and recent data. If a dashboard is e
 
 ## How to open
 
-Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate. This demo is about putting device health, interface traffic, routing, syslog, and traffic conversations into the same Grafana Cloud stack they already use for traces and logs.
+Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate. This demo is about putting device health, interface traffic, routing, syslog, and traffic conversations into the same Grafana Cloud stack they already use for traces and logs. Once the network data is there, Grafana Assistant can use it in investigations the same way it uses app metrics and logs. That is not something SolarWinds can do today.
 
 ---
 
@@ -69,7 +69,11 @@ SNMP provides metrics about the network hardware. Flow tells you about which dev
 
 ### Close
 
-Alerts, Explore, and Grafana Assistant are the same tools they already use for applications. A switch can page the same way a service does.
+This is also where Grafana pulls ahead of SolarWinds in a way that is hard to copy. Because the network data lives in the same stack as the apps, Grafana Assistant can include a switch, a port, or a flow conversation when someone is doing RCA. They can ask what changed, whether the network looks involved, and get a starting point instead of opening a second product.
+
+The same thing applies to alerting. Assistant can help draft a rule from a panel they are looking at, or tighten a noisy one, using the actual queries on these dashboards. SolarWinds is years behind on that kind of investigation and alert-tuning workflow.
+
+A switch can page the same way a service does. Alerts and Explore are the same tools they already use.
 
 ---
 
@@ -96,7 +100,7 @@ Alerts, Explore, and Grafana Assistant are the same tools they already use for a
 | **NTA** | Flow Summary | Traffic conversations in the same UI. They do not need a second product licence. |
 | **Log Analyzer / Kiwi / traps** | **Events** tab | Device logs sit next to the metrics, with the same time range. |
 | **NetPath / IP SLA ping** | [This traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294) | Hops from Ohio and North Virginia to `grafana.com`. |
-| **Advanced Alerts** | Grafana Alerting | Rules run on the same queries as the dashboards. IRM if they also want on-call. |
+| **Advanced Alerts** | Grafana Alerting | Rules run on the same queries as the dashboards. Assistant can help write or tune them. IRM if they also want on-call. |
 | **PerfStack** | Explore or dashboard variables | They can overlay the series they care about. |
 | **IPAM / NCM / SAM / wireless** | Skip it | Different project. Bring Marc and Colin. |
 
@@ -158,8 +162,11 @@ Those become labels on the metrics. NetBox is the usual source of truth later, s
 **“We cannot turn NPM off.”**  
 They should not, at first. Run this next to SolarWinds. Start with a small set of devices they know well, compare the numbers, then widen. Move flows and logs first if they want a low-risk cutover. The easier internal story is “we are adding observability,” not “we are ripping out NPM this quarter.”
 
+**“Can Grafana Assistant actually use this?”**  
+Yes. That is a big part of why you put the network in Grafana Cloud instead of leaving it in SolarWinds. Assistant already knows how to work with metrics, logs, and dashboards in this stack. Once SNMP, flow, and syslog are here, a network device can show up in an investigation the same way a service does. People use it to ask whether the path looks healthy, to explain a spike on a port, and to draft or adjust alerts from the panel in front of them. SolarWinds does not have an equivalent. If they want to see it live, open Assistant on Device Details or Flow Summary and ask something concrete, like what is using bandwidth or whether any interfaces on this device look unhealthy. You do not need a scripted demo for that.
+
 **“Our dashboards are already green. Why switch?”**  
-They get the network in the same place as the apps, so they stop copying timestamps between consoles. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
+They get the network in the same place as the apps, so they stop copying timestamps between consoles. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
 
 ---
 
