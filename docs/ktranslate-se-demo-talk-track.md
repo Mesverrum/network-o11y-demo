@@ -111,14 +111,14 @@ ktranslate is open. Grafana Cloud is the backend. You are not selling a Kentik l
 On the roadmap. Use this until then. You are not installing a dead-end collector.
 
 **“Why not just Alloy `snmp_exporter`?”**  
-That is a poller. You hand it a target list and module names. You already know every box and which MIB to walk.
+That is just an SNMP a poller. You hand it a target list and module names. You have to already know every box and which MIBs to walk.
 
 ktranslate is the reason you are not rebuilding NPM by hand:
 
 | Job | Alloy SNMP exporter | ktranslate |
 |-----|---------------------|------------|
-| **Discovery** | You maintain the list | Walk a CIDR / credential group; devices appear |
-| **Fingerprinting** | You pick the module | `sysObjectID` → vendor profile; Cisco vs Nokia vs Fortinet without a spreadsheet |
+| **Discovery** | You maintain the list | Walks a CIDR / credential group; devices appear |
+| **Fingerprinting** | You pick the MIB modules | `sysObjectID` → vendor profile; Cisco vs Nokia vs Fortinet without a spreadsheet |
 | **SNMP poll** | Yes | Yes — the profile decides what to walk |
 | **Traps** | Not this component | Same collector that polls also listens |
 | **Flow / syslog** | Not this component | First-class: NTA + Kiwi in the same strategy |
@@ -165,4 +165,4 @@ One pane with apps. Correlation without copying timestamps. Consumption pricing 
 
 ## When to call Marc and Colin
 
-Anything past the click path: full SolarWinds replacement plan, NCM/IPAM, wireless/SD-WAN/voice, custom MIB farms, collector sizing, or “import our 400 Advanced Alerts.” Take the note, book the specialist, do not invent a demo.
+Anything past the click path: full SolarWinds replacement plan, NCM/IPAM, wireless/SD-WAN/voice, custom MIB farms, collector sizing, or “import our 400 Advanced Alerts.” Take the note, engage a specialist.
