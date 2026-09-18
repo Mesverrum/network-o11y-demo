@@ -36,9 +36,9 @@ Apps and the network still live in different tools. When checkout is slow, two t
 
 Point at the picture.
 
-Devices already speak SNMP (we ask for counters), NetFlow/sFlow (conversation receipts), and syslog/traps (the box pushes an event). **ktranslate** translates that to OTLP. Grafana Cloud stores it. Same backend as APM — no second NMS, no per-node licence tax.
+Devices already speak SNMP (we ask for counters), NetFlow/sFlow (conversation receipts), and syslog/traps (the box pushes an event). **ktranslate** is the network ingest layer: it finds the boxes, fingerprints what they are, polls the right MIBs, and takes flow + traps. It emits OTLP. Grafana Cloud stores it. Alloy can still be the shipper — it does not have to be the thing that understands a Cisco vs a Fortinet.
 
-First-party Network o11y is on the roadmap. This path stays valid because the contract is OTLP.
+Same backend as APM — no second NMS, no per-node licence tax. First-party Network o11y is on the roadmap. This path stays valid because the contract is OTLP.
 
 ### Device Summary (~5 min) — the wallboard
 
@@ -109,6 +109,21 @@ ktranslate is open. Grafana Cloud is the backend. You are not selling a Kentik l
 
 **“When is Grafana’s own network product?”**  
 On the roadmap. Use this until then. You are not installing a dead-end collector.
+
+**“Why not just Alloy `snmp_exporter`?”**  
+That is a poller. You hand it a target list and module names. You already know every box and which MIB to walk.
+
+ktranslate is the reason you are not rebuilding NPM by hand:
+
+| Job | Alloy SNMP exporter | ktranslate |
+|-----|---------------------|------------|
+| **Discovery** | You maintain the list | Walk a CIDR / credential group; devices appear |
+| **Fingerprinting** | You pick the module | `sysObjectID` → vendor profile; Cisco vs Nokia vs Fortinet without a spreadsheet |
+| **SNMP poll** | Yes | Yes — the profile decides what to walk |
+| **Traps** | Not this component | Same collector that polls also listens |
+| **Flow / syslog** | Not this component | First-class: NTA + Kiwi in the same strategy |
+
+Use Alloy SNMP when the fleet is small, static, and you already know the modules. Use ktranslate when they are leaving SolarWinds and need “find it, identify it, poll it, and catch the trap/flow” in one motion. Alloy still ships the OTLP. The two are not competitors on that hop.
 
 **“Cisco / Arista / Fortinet / Palo?”**  
 Yes. Each platform has an SNMP profile. This demo happens to be live switches, not screenshots. Odd or old gear may need a profile — that is implementation, not a new product.
