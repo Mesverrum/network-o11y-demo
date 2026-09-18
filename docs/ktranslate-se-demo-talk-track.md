@@ -1,16 +1,16 @@
 # ktranslate customer demo — SE talk track
 
 **Stack:** [networko11ydev.grafana.net](https://networko11ydev.grafana.net/)  
-**Story:** network telemetry in Grafana Cloud *today*, before a first-party Network product.  
-**Length:** 15 minutes. If the conversation goes deep (custom MIBs, NCM, a full migration plan), stop and pull in **Marc Netterfield** and **Colin**.
+**What this is:** a live look at network telemetry in Grafana Cloud, using the collector path customers can run today. A first-party Network product is still incoming.  
+**How long:** about 15 minutes. If they want a full SolarWinds replacement plan, custom MIB work, or NCM/IPAM, pause and bring in **Marc Netterfield** and **Colin**.
 
-Stay on the links below. Do not wander the folder tree.
+Use the links below. You do not need to browse around the stack.
 
 ---
 
 ## Before you join
 
-Open these in tabs. Time range **Last 3 hours**.
+Open these in tabs. Set the time range to **Last 3 hours**.
 
 | Stop | Link |
 |------|------|
@@ -18,15 +18,15 @@ Open these in tabs. Time range **Last 3 hours**.
 | Device Summary | https://networko11ydev.grafana.net/d/ktranslate-device-summary |
 | Device Details | https://networko11ydev.grafana.net/d/ktranslate-device-details |
 | Flow Summary | https://networko11ydev.grafana.net/d/ktranslate-flow-summary |
-| NetPath stand-in | https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294 |
+| Traceroute (NetPath equivalent) | https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294 |
 
-Confirm Summary has devices and numbers. If a board is empty, you are on the wrong dashboard or the wrong time range.
+Make sure Device Summary is showing devices and recent data. If a dashboard is empty, you are probably on the wrong board or a very short time range.
 
 ---
 
-## Open
+## How to open
 
-Apps and the network still live in different tools. When checkout is slow, two teams open two consoles and argue. This demo puts device health, port traffic, routing, syslog, and “who talked to whom” in the **same Grafana Cloud stack** as traces and logs.
+Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate. This demo is about putting device health, interface traffic, routing, syslog, and traffic conversations into the same Grafana Cloud stack they already use for traces and logs.
 
 ---
 
@@ -34,135 +34,135 @@ Apps and the network still live in different tools. When checkout is slow, two t
 
 ### Architecture (~1 min)
 
-Point at the picture.
+Start with the diagram.
 
-Devices already speak SNMP (we ask for counters), NetFlow/sFlow (conversation receipts), and syslog/traps (the box pushes an event). **ktranslate** is the network ingest layer: it finds the boxes, fingerprints what they are, polls the right MIBs, and takes flow + traps. It emits OTLP. Grafana Cloud stores it. Alloy can still be the shipper — it does not have to be the thing that understands a Cisco vs a Fortinet.
+Network devices already speak a few standard protocols: SNMP for hardware counters, NetFlow or sFlow for who is talking to whom, and syslog or traps when something happens on the box. **ktranslate** sits in front of that. It discovers devices on the network, figures out what each one is from its SNMP identity, polls the right MIBs, and also receives flows and traps. It sends all of that out as OTLP. Grafana Cloud stores it. Alloy can still be the component that forwards OTLP — it does not have to be the thing that knows a Cisco from a Fortinet.
 
-Same backend as APM — no second NMS, no per-node licence tax. First-party Network o11y is on the roadmap. This path stays valid because the contract is OTLP.
+They are not buying a second network-management product, and they are not paying per interface the way SolarWinds does. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP.
 
-### Device Summary (~5 min) — the wallboard
+### Device Summary (~5 min)
 
-Walk the tabs. Do not scroll at random.
+This is the fleet view. Walk the tabs in order.
 
-| Tab | Line |
-|-----|------|
-| **Overview** | How many boxes, are we still polling them, what is already sick. |
-| **Traffic** | Who is using bandwidth. |
-| **Resources** | CPU and memory — same language as hosts, on the switch. |
-| **Interfaces** | Every network ticket: a port is down or an error counter is climbing. |
-| **Routing** | BGP = how routers stay neighbors. A down session is a path problem, not an app bug. |
-| **Events** | The device yelled. Metrics are the trend; events are the moment. |
+| Tab | What to say |
+|-----|-------------|
+| **Overview** | How many devices we have, whether we are still collecting from them, and whether anything is already in a bad state. |
+| **Traffic** | Which devices are moving the most traffic right now. |
+| **Resources** | CPU and memory on the switches, the same kind of resource picture they are used to on servers. |
+| **Interfaces** | The usual network ticket: a port is down, or error counters are going up. |
+| **Routing** | BGP is how routers tell each other they can still reach a neighbor. If that session drops, it is a path problem, not an application bug. |
+| **Events** | Syslog and traps from the devices. The graphs tell you the trend; the events tell you when something actually happened. |
 
-Click a device name. That drill-down is the demo.
+Click a device name to open Details. That is the main handoff in the demo.
 
 ### Device Details (~4 min)
 
-Overview, then **Interfaces**. If Routing has rows, show one neighbor.
+Stay on Overview, then open **Interfaces**. If the Routing tab has data, show one BGP neighbor.
 
-“Ticket says this box is sad. One board: CPU, ports, errors, events. Grafana already graphs, alerts, and drills. We did not invent a second UI.”
+If someone opened a ticket on this device, this is the board they would land on: CPU, ports, errors, and the recent events for that one box. It is a normal Grafana dashboard, so the rest of the product (alerts, Explore, drill-downs) works the way they already expect.
 
 ### Flow Summary (~3 min)
 
-Conversations, then Sankey. Skip the world map if it is empty — internal IPs have no country. That is normal.
+Look at Conversations, then the Sankey. If the world map is empty, that is fine — private or internal addresses do not have a country.
 
-“SNMP is the box. Flow is the conversation. Together they end the app-vs-network argument.”
+SNMP provides metrics about the network hardware. Flow tells you about which devices are talking to each other over that network. Together they help solve the app-vs-network argument.
 
 ### Close
 
-Same alerts, same Explore, same Assistant as the app stack. You page a switch the way you page a service.
+Alerts, Explore, and Grafana Assistant are the same tools they already use for applications. A switch can page the same way a service does.
 
 ---
 
-## Words
+## Words they will use
 
-| They say | You say |
-|----------|---------|
-| SNMP | We ask each device for counters — CPU, ports, BGP. |
-| Trap / syslog | The device pushes an event: link down, neighbor lost, config change. |
-| NetFlow / NTA | A receipt: who talked to whom, how many bytes. |
-| Interface | A port on the box. |
-| BGP | How routers stay neighbors. |
-| NetPath | A repeating traceroute from a probe you place. That is Synthetic Monitoring. |
-| NPM | Device and interface health — Summary + Details. |
-| NMS | Their current network monitor (usually SolarWinds). |
+| They say | What that means |
+|----------|-----------------|
+| SNMP | Periodic asks to each device for counters — CPU, ports, BGP, and so on. |
+| Trap / syslog | The device sends an event when something happens: a link goes down, a neighbor drops, someone changes config. |
+| NetFlow / NTA | Records of conversations: who talked to whom, and how much data moved. |
+| Interface | A port on the device. |
+| BGP | The protocol routers use to stay in sync about reachability. |
+| NetPath | A traceroute that runs over and over from a probe you control. In Grafana that is Synthetic Monitoring. |
+| NPM | SolarWinds’ device and interface monitoring. Summary + Details here. |
+| NMS | Their current network monitor, usually SolarWinds. |
 
 ---
 
 ## If they name a SolarWinds module
 
-| They have | Show | One line |
-|-----------|------|----------|
-| **NPM** | Summary + Details | Device and port health in Grafana. |
-| **NTA** | Flow Summary | Same UI, not a second licence. |
-| **Log Analyzer / Kiwi / traps** | **Events** tab | Logs next to the metric, same time picker. |
-| **NetPath / IP SLA ping** | [Synthetics traceroute](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294) | Hop path from Ohio and North Virginia to `grafana.com`. |
-| **Advanced Alerts** | Grafana Alerting | Same rules language as the dashboard. IRM if they want on-call. |
-| **PerfStack** | Explore or dashboard variables | Overlay whatever they click. |
-| **IPAM / NCM / SAM / wireless** | Do not demo it | Separate workstream. Bring Marc and Colin. |
+| They have | Show | What to tell them |
+|-----------|------|-------------------|
+| **NPM** | Summary + Details | Device and port health, in Grafana. |
+| **NTA** | Flow Summary | Traffic conversations in the same UI. They do not need a second product licence. |
+| **Log Analyzer / Kiwi / traps** | **Events** tab | Device logs sit next to the metrics, with the same time range. |
+| **NetPath / IP SLA ping** | [This traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294) | Hops from Ohio and North Virginia to `grafana.com`. |
+| **Advanced Alerts** | Grafana Alerting | Rules run on the same queries as the dashboards. IRM if they also want on-call. |
+| **PerfStack** | Explore or dashboard variables | They can overlay the series they care about. |
+| **IPAM / NCM / SAM / wireless** | Skip it | Different project. Bring Marc and Colin. |
 
 ---
 
-## Customer asks (keep it short)
+## Questions that come up
 
 **“Is this Kentik?”**  
-ktranslate is open. Grafana Cloud is the backend. You are not selling a Kentik licence.
+ktranslate started at Kentik and is open source. Grafana Cloud is what you are showing. This is not a Kentik licence.
 
 **“When is Grafana’s own network product?”**  
-On the roadmap. Use this until then. You are not installing a dead-end collector.
+It is on the roadmap. This is what we recommend until then, and it is not throwaway work — the devices still speak SNMP, flow, and syslog, and Grafana still stores OTLP.
 
 **“Why not just Alloy `snmp_exporter`?”**  
-That is just an SNMP a poller. You hand it a target list and module names. You have to already know every box and which MIBs to walk.
+Alloy’s SNMP exporter is a poller. You give it a target list and module names, and you already have to know every box and which MIBs to walk.
 
-ktranslate is the reason you are not rebuilding NPM by hand:
+That is not usually where a SolarWinds shop is starting. They need to find devices, tell a Cisco from a Fortinet without maintaining a spreadsheet, poll the right counters, and also get traps and flow. ktranslate does that in one strategy:
 
-| Job | Alloy SNMP exporter | ktranslate |
-|-----|---------------------|------------|
-| **Discovery** | You maintain the list | Walks a CIDR / credential group; devices appear |
-| **Fingerprinting** | You pick the MIB modules | `sysObjectID` → vendor profile; Cisco vs Nokia vs Fortinet without a spreadsheet |
-| **SNMP poll** | Yes | Yes — the profile decides what to walk |
-| **Traps** | Not this component | Same collector that polls also listens |
-| **Flow / syslog** | Not this component | First-class: NTA + Kiwi in the same strategy |
+| Need | Alloy SNMP exporter | ktranslate |
+|------|---------------------|------------|
+| Finding devices | You keep the list | It can scan a range or a credential group |
+| Identifying the vendor / OS | You choose the module | It reads `sysObjectID` and applies a vendor profile |
+| SNMP polling | Yes | Yes, driven by that profile |
+| Traps | Separate work | The same collector that polls can listen for traps |
+| Flow and syslog | Separate work | Included in the same approach |
 
-Use Alloy SNMP when the fleet is small, static, and you already know the modules. Use ktranslate when they are leaving SolarWinds and need “find it, identify it, poll it, and catch the trap/flow” in one motion. Alloy still ships the OTLP. The two are not competitors on that hop.
+If the fleet is small and already well documented, Alloy SNMP is enough. If they are trying to replace NPM and NTA, ktranslate is the shorter path. Alloy can still forward the OTLP either way. Those are different jobs.
 
-**“Cisco / Arista / Fortinet / Palo?”**  
-Yes. Each platform has an SNMP profile. This demo happens to be live switches, not screenshots. Odd or old gear may need a profile — that is implementation, not a new product.
+**“Will this work on Cisco / Arista / Fortinet / Palo?”**  
+Yes. Each platform has an SNMP profile. What you are looking at is live hardware, not screenshots. Unusual or very old gear might need a profile added, which is implementation work, not a new product.
 
-**“UnDPs?”**  
-Custom OIDs become a profile + a Grafana panel, once, for every box of that type.
+**“We have UnDPs.”**  
+Those custom OIDs become part of a profile and a normal Grafana panel. You do it once for that device type, not once per box.
 
 **“We poll every 5 minutes. Can you go faster?”**  
-Yes. These boards update about every minute. Going much faster can hurt the device. For “it just broke,” use traps/syslog (push), not a faster poll.
+Yes. These dashboards are updating about once a minute. Polling much faster than that can put real load on the device. If they need to know the moment something breaks, traps and syslog are the better signal.
 
-**“Interface util / errors / discards?”**  
-Summary → Interfaces, then Details → Interfaces. Same counters they know, next to that device’s syslog.
+**“Where do I see interface utilization, errors, or discards?”**  
+Device Summary → Interfaces, then Device Details → Interfaces. Same counters they already know, and the syslog for that device is on the same board.
 
-**“Fans / PSU / temperature?”**  
-Hardware tab when the vendor profile has those sensors. Missing on a given box means that MIB is not there — not that Grafana is broken.
+**“What about fans, power supplies, temperature?”**  
+The Hardware tab, when that vendor’s profile includes those sensors. If a device does not show them, that MIB is not on the box — the dashboard is not missing a panel by accident.
 
-**“BGP dropped at 14:32?”**  
-Routing tab for session state. Events tab for the syslog in the same window.
+**“A BGP neighbor dropped at 14:32.”**  
+Routing tab for session state. Events tab for the syslog in that same window.
 
 **“Where is NetPath?”**  
-Open the [traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294). That is NetPath: a probe, hops, latency. Private probes in *their* sites are the equivalent of NetPath agents. Flow Sankey is NTA (who talked), not hops.
+Open the [traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294). That is the same idea: a probe you place, a hop list, and latency along the path. They can put private probes in their own sites the way they placed NetPath agents. The Flow Sankey is the NTA view (who talked to whom), not traceroute.
 
-**“Top talkers?”**  
-Flow → Conversations / Sankey.
+**“Can I see top talkers?”**  
+Flow Summary → Conversations or Sankey.
 
-**“Trap storms / parent-child alerts / unmanage?”**  
-Traps are logs; alert on rate and inhibit children when the parent link is down. Silences cover maintenance. Grafana Alerting, not an Orion calendar clone.
+**“We get trap storms. We also use parent/child alerts and Unmanage.”**  
+Traps show up as logs. You can alert on volume, and you can suppress child alerts when the parent link is already down. Maintenance windows are silences in Grafana Alerting. It is not a copy of the Orion calendar, but the operations are there.
 
-**“Site / role / custom properties?”**  
-Labels on the series (and later NetBox). Not a field typed into the NMS that goes stale.
+**“How do we tag site or role, like custom properties?”**  
+Those become labels on the metrics. NetBox is the usual source of truth later, so the CMDB and the dashboards do not drift apart.
 
-**“We can’t turn NPM off.”**  
-Don’t. Run in parallel. Add 10–20 devices, compare, then expand. Cut over module by module (flows and logs first). Frame it as adding capability.
+**“We cannot turn NPM off.”**  
+They should not, at first. Run this next to SolarWinds. Start with a small set of devices they know well, compare the numbers, then widen. Move flows and logs first if they want a low-risk cutover. The easier internal story is “we are adding observability,” not “we are ripping out NPM this quarter.”
 
-**“How is this better? Our dashboards are already green.”**  
-One pane with apps. Correlation without copying timestamps. Consumption pricing instead of per-interface elements. Skills that transfer off the NMS. Use **their** renewal quote with a Cloud AE — not blog ranges.
+**“Our dashboards are already green. Why switch?”**  
+They get the network in the same place as the apps, so they stop copying timestamps between consoles. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
 
 ---
 
 ## When to call Marc and Colin
 
-Anything past the click path: full SolarWinds replacement plan, NCM/IPAM, wireless/SD-WAN/voice, custom MIB farms, collector sizing, or “import our 400 Advanced Alerts.” Take the note, engage a specialist.
+Anything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and engage Marc or Colin. Do not try to demo it on the spot.
