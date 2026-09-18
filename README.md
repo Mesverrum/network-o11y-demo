@@ -11,7 +11,7 @@ Companion repo for **Network Observability Without the Lock-in**: a Nokia SR Lin
 | **AWS EC2** (colocated) | Always-on ContainerLab fabric + k3s ktranslate-golden in your AWS account | [`terraform/colocated-network-lab/README.md`](terraform/colocated-network-lab/README.md) → `make -C local colocated-lab-up` |
 | **AWS / EKS** | Full blog-series Clos (2 spines, 3 leaves), NetBox, Ansible | `make deploy` (AWS) or [`make help`](#aws--eks) below |
 
-**AI agents / new operators:** [`AGENTS.md`](AGENTS.md) → *Agent playbook*. **New to ktranslate or Clos?** [`docs/network-observability-primer.md`](docs/network-observability-primer.md).
+**AI agents / new operators:** [`AGENTS.md`](AGENTS.md) → *Agent playbook*. **New to ktranslate or Clos?** [`docs/network-observability-primer.md`](docs/network-observability-primer.md). **SE customer demo (ktranslate on networko11ydev):** [`docs/ktranslate-se-demo-talk-track.md`](docs/ktranslate-se-demo-talk-track.md).
 
 ---
 
@@ -137,7 +137,7 @@ Posts **3–6** map to `make post-03` … `make post-06` / `make all` on the AWS
 ├── oneclick/          One-click deploy/teardown (local laptop or AWS/EKS — interactive)
 ├── local/             Laptop lab (ContainerLab + ktranslate golden path)
 ├── blog/              Series drafts (posts 1–7) + blog-series-overview.md
-├── docs/              Primer, ktranslate model, Grafana dashboard playbook
+├── docs/              Primer, SE ktranslate demo talk track, ktranslate model, Grafana playbook
 ├── k8s/               EKS manifests (topology, telemetry, NetBox, reconciler)
 ├── terraform/         AWS VPC + EKS + bastion + colocated-network-lab
 ├── grafana/           Dashboard JSON + provisioning scripts (EKS/blog set)

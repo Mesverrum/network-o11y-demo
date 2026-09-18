@@ -20,3 +20,5 @@ observability stack built on Grafana, Prometheus, Loki, NetBox, and Ansible.
 ---
 
 **Series arc:** why → what → build it → enrich it → observe it → automate it → migrate
+
+**SE live demo (ktranslate on networko11ydev, SolarWinds Q&A):** [`docs/ktranslate-se-demo-talk-track.md`](../docs/ktranslate-se-demo-talk-track.md). Use this series for the migration narrative; use the talk track for the click path and “what did they just ask?” translation.

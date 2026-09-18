@@ -38,6 +38,8 @@ On the colocated host: `make -C local workshop-fault` / `workshop-fault-stop`. S
 
 Building 4 / Check Point / EdgeConnect names (`bld4-*`, `wan-edge-01`) stay on the Infinity mock API (Lab 6), not this poller.
 
+**SE customer demo** (not this student hunt): ktranslate boards on networko11ydev + SolarWinds Q&A — [`docs/ktranslate-se-demo-talk-track.md`](../../docs/ktranslate-se-demo-talk-track.md). Do not send SEs through the Alloy Network Fork folder.
+
 ## Optional: campus vendors
 
 A second fabric (`network-o11y-campus-lab`) still polls Forti / Arista / Nokia / Cisco as `tags_snmp_group=campus`. Workshop dashboards **hide** that group so HQ/branch stays the hunt. Leave it running if you want vendor extras in Explore; do not default the Device Summary hunt there (CPU/interfaces on that static list are often empty).

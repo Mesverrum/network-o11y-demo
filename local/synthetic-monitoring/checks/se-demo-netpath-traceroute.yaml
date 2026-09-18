@@ -1,0 +1,25 @@
+apiVersion: syntheticmonitoring.ext.grafana.app/v1alpha1
+kind: Check
+metadata:
+  name: se-demo-netpath-traceroute
+spec:
+  job: se-demo-netpath-traceroute
+  target: grafana.com
+  frequency: 120000
+  timeout: 30000
+  enabled: true
+  labels:
+    - name: project
+      value: se-demo
+    - name: check_type
+      value: traceroute
+    - name: story
+      value: netpath
+  probes:
+    - Ohio
+    - NorthVirginia
+  settings:
+    traceroute:
+      maxHops: 25
+      maxUnknownHops: 10
+      ptrLookup: true

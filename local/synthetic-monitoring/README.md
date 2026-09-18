@@ -44,6 +44,8 @@ Check families (filter by `check_type` / `direction` labels in Explore):
 | DNS | `8.8.4.4` resolver (WSL often blocks `8.8.8.8` UDP/53) | VPC resolver `169.254.169.253` |
 | Traceroute | *not on WSL* (SM mtr only sees hop 1) | Path inside VPC + NAT egress |
 
+**SE demo (networko11ydev):** public-probe traceroute `se-demo-netpath-traceroute` (Ohio + North Virginia → `grafana.com`) — [check 7294](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294). Recreate: `python3 local/scripts/provision-se-netpath-check.py`. This is the NetPath stand-in in [`docs/ktranslate-se-demo-talk-track.md`](../../docs/ktranslate-se-demo-talk-track.md).
+
 **WSL laptop probe notes:** outbound HTTPS usually works; DNS checks that hardcode `8.8.8.8` fail on this host — prefer `8.8.4.4`. Agent must run `--network host --user 0:0 --cap-add NET_RAW` (image user `sm` cannot open SOCK_RAW). **SM traceroute does not work on WSL** — the agent’s mtr only sees the first hop (`172.31.32.1`) even when `traceroute(8)` completes; use the colocated probe for traceroute. AKC ALB and ALB traceroute checks were removed (unreachable / silent ICMP).
 
 Metrics: `probe_success`, `probe_duration_seconds`, `probe_dns_lookup_time_seconds`, traceroute hop metrics.

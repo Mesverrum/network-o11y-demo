@@ -294,6 +294,7 @@ join-app ──traces/metrics─────────────────
 
 ## 10. Further reading
 
+- SE customer demo (ktranslate, networko11ydev): [ktranslate-se-demo-talk-track.md](ktranslate-se-demo-talk-track.md)
 - Blog series outline: [blog/blog-series-overview.md](../blog/blog-series-overview.md)
 - ktranslate → Grafana pattern: [KtransToGrafana](https://github.com/Mesverrum/KtransToGrafana)
 - Grafana Alloy: https://grafana.com/docs/alloy/latest/
