@@ -40,7 +40,7 @@ Start with the diagram.
 
 Network devices already speak a few standard protocols: SNMP for hardware counters, NetFlow or sFlow for who is talking to whom, and syslog or traps when something happens on the box. **ktranslate** sits in front of that. It discovers devices on the network, figures out what each one is from its SNMP identity, polls the right MIBs, and also receives flows and traps. It sends all of that out as OTLP. Grafana Cloud stores it. Alloy can still be the component that forwards OTLP — it does not have to be the thing that knows a Cisco from a Fortinet.
 
-They are not buying a second network-management product, and they are not paying per interface the way SolarWinds does. The value is one platform: the people who already live in Grafana can see the network without switching tools. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP.
+They are not buying a second network-management product, and they are not paying per interface or node the way SolarWinds does. The value is one platform: the people who already live in Grafana can see the network without switching tools. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP.
 
 ### Device Summary (~5 min)
 
@@ -169,10 +169,14 @@ They should not, at first. Run this next to SolarWinds. Start with a small set o
 Yes. That is the point of putting the network on the same platform. App and syseng teams can ask Assistant if they are hitting a network problem before they page the person who owns the routers. Network SMEs get fewer drive-by tickets. People also use it to draft or adjust alerts from the panel in front of them. SolarWinds does not have an equivalent. If they want to see it live, open Assistant on Device Details or Flow Summary and ask something concrete, like what is using bandwidth or whether any interfaces on this device look unhealthy. You do not need a scripted demo for that.
 
 **“Our dashboards are already green. Why switch?”**  
-They get one platform instead of two consoles and a Slack argument. App and syseng can check the network themselves, which is what people mean when they talk about mean time to innocence. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
+They get one platform instead of two consoles and a Slack argument. App and syseng can check the network themselves, which is what people mean when they talk about mean time to innocence. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate.
+
+**Cost?**
+Network devices vary significantly, but across a whole estate an average of 1000 series per network device usually gets you in the right range.  One major exception is wireless access points, each AP does NOT create 1000 series, usually just a couple hundred if you bother to collect SNMP from them at all.  This is a place where we usually want to look at a big tent data source strategy rather than polling each AP. Almost all wireless solutions are sold with a native monitoring built in, so connecting to the Meraki API via our marketplace partner's plugin https://grafana.com/grafana/plugins/crestdata-ciscomeraki-datasource/ or via Infinity, for very price sensitive teams, can be a better strategy than trying to duplicate all the data they already paid Meraki to collect.
+Another facet to consider around cost is that Grafana is a fully managed SaaS with SLA's.  Compared to self hosted tools like SolarWinds or Nagios you don't have to run large database servers with expensive SQL Server licenses and you arent responsible for keeping those servers up to date.  You can often uncover a lot of pain asking how much effort goes into executing their upgrade cycles, or how long have they just avoided doing upgrades.  Complaints about poor performance and unstable servers that nobody wants to touch are extremely common in the self hosted network world.
 
 ---
 
 ## When to post in #sme-network
 
-Anything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and post in **#sme-network**. Do not try to demo it on the spot.
+Anything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and post in **#sme-network**.
