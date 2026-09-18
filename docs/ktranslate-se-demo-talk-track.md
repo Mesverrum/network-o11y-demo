@@ -2,7 +2,7 @@
 
 **Stack:** [networko11ydev.grafana.net](https://networko11ydev.grafana.net/)  
 **What this is:** a live look at network telemetry in Grafana Cloud, using the collector path customers can run today. A first-party Network product is still incoming.  
-**How long:** about 15 minutes. If they want a full SolarWinds replacement plan, custom MIB work, or NCM/IPAM, pause and bring in **Marc Netterfield** and **Colin**.
+**How long:** about 15 minutes. If they want a full SolarWinds replacement plan, custom MIB work, or NCM/IPAM, pause and post in **#sme-network**.
 
 Use the links below. You do not need to browse around the stack.
 
@@ -102,7 +102,7 @@ A switch can page the same way a service does. Alerts and Explore are the same t
 | **NetPath / IP SLA ping** | [This traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294) | Hops from Ohio and North Virginia to `grafana.com`. |
 | **Advanced Alerts** | Grafana Alerting | Rules run on the same queries as the dashboards. Assistant can help write or tune them. IRM if they also want on-call. |
 | **PerfStack** | Explore or dashboard variables | They can overlay the series they care about. |
-| **IPAM / NCM / SAM / wireless** | Skip it | Different project. Bring Marc and Colin. |
+| **IPAM / NCM / SAM / wireless** | Skip it | Different project. Post in **#sme-network**. |
 
 ---
 
@@ -170,6 +170,6 @@ They get the network in the same place as the apps, so they stop copying timesta
 
 ---
 
-## When to call Marc and Colin
+## When to post in #sme-network
 
-Anything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and engage Marc or Colin. Do not try to demo it on the spot.
+Anything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and post in **#sme-network**. Do not try to demo it on the spot.
