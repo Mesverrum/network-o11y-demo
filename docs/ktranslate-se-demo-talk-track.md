@@ -28,7 +28,7 @@ Make sure Device Summary is showing devices and recent data. If a dashboard is e
 
 Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate about whose problem it is.
 
-This demo is about putting the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant. An app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers like to call that **mean time to innocence**. SolarWinds cannot do that, because the network data is still stuck in a second product.
+This demo is about putting the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant. An app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers are often engaged because the rest of the org doesnt know how to to prove that there is not a network problem happening.  So network engineers spend a lot of cycles on **mean time to innocence** instead of focusing on their work. SolarWinds cannot help with that, because the network data is stuck in a second product and lacks a way for the rest of the company to ask natural language questions about the network state.
 
 ---
 
