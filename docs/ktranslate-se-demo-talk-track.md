@@ -26,7 +26,9 @@ Make sure Device Summary is showing devices and recent data. If a dashboard is e
 
 ## How to open
 
-Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate. This demo is about putting device health, interface traffic, routing, syslog, and traffic conversations into the same Grafana Cloud stack they already use for traces and logs. Once the network data is there, Grafana Assistant can use it in investigations the same way it uses app metrics and logs. That is not something SolarWinds can do today.
+Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate about whose problem it is.
+
+This demo is about putting the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant. An app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers like to call that **mean time to innocence**. SolarWinds cannot do that, because the network data is still stuck in a second product.
 
 ---
 
@@ -38,7 +40,7 @@ Start with the diagram.
 
 Network devices already speak a few standard protocols: SNMP for hardware counters, NetFlow or sFlow for who is talking to whom, and syslog or traps when something happens on the box. **ktranslate** sits in front of that. It discovers devices on the network, figures out what each one is from its SNMP identity, polls the right MIBs, and also receives flows and traps. It sends all of that out as OTLP. Grafana Cloud stores it. Alloy can still be the component that forwards OTLP — it does not have to be the thing that knows a Cisco from a Fortinet.
 
-They are not buying a second network-management product, and they are not paying per interface the way SolarWinds does. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP.
+They are not buying a second network-management product, and they are not paying per interface the way SolarWinds does. The value is one platform: the people who already live in Grafana can see the network without switching tools. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP.
 
 ### Device Summary (~5 min)
 
@@ -59,19 +61,19 @@ Click a device name to open Details. That is the main handoff in the demo.
 
 Stay on Overview, then open **Interfaces**. If the Routing tab has data, show one BGP neighbor.
 
-If someone opened a ticket on this device, this is the board they would land on: CPU, ports, errors, and the recent events for that one box. It is a normal Grafana dashboard, so the rest of the product (alerts, Explore, drill-downs) works the way they already expect.
+If someone opened a ticket on this device, this is the board they would land on: CPU, ports, errors, and the recent events for that one box. It is also the board an app or syseng person can open when they want to see if this box is why their service looks sick, without waiting for a network SME. It is a normal Grafana dashboard, so alerts, Explore, and drill-downs work the way they already expect.
 
 ### Flow Summary (~3 min)
 
 Look at Conversations, then the Sankey. If the world map is empty, that is fine — private or internal addresses do not have a country.
 
-SNMP provides metrics about the network hardware. Flow tells you about which devices are talking to each other over that network. Together they help solve the app-vs-network argument.
+SNMP provides metrics about the network hardware. Flow tells you which devices are talking to each other over that network. Together they let someone decide if the network is actually in the path of the problem, without opening a second tool.
 
 ### Close
 
-This is also where Grafana pulls ahead of SolarWinds in a way that is hard to copy. Because the network data lives in the same stack as the apps, Grafana Assistant can include a switch, a port, or a flow conversation when someone is doing RCA. They can ask what changed, whether the network looks involved, and get a starting point instead of opening a second product.
+The point is not a prettier network console. It is one platform. App and syseng teams can ask Assistant whether a down port, a BGP drop, or a noisy conversation is sitting under their service, and get an answer before they page the network SME. That is how you shrink **mean time to innocence**. Network people get fewer 2am “is it the network?” tickets. Everyone else stops waiting on a second login.
 
-The same thing applies to alerting. Assistant can help draft a rule from a panel they are looking at, or tighten a noisy one, using the actual queries on these dashboards. SolarWinds is years behind on that kind of investigation and alert-tuning workflow.
+Assistant can also help draft a rule from a panel they are looking at, or tighten a noisy one. SolarWinds is years behind on that kind of investigation and alert-tuning workflow.
 
 A switch can page the same way a service does. Alerts and Explore are the same tools they already use.
 
@@ -89,6 +91,7 @@ A switch can page the same way a service does. Alerts and Explore are the same t
 | NetPath | A traceroute that runs over and over from a probe you control. In Grafana that is Synthetic Monitoring. |
 | NPM | SolarWinds’ device and interface monitoring. Summary + Details here. |
 | NMS | Their current network monitor, usually SolarWinds. |
+| Mean time to innocence | Our line: how fast a network engineer can show it is not their box, or an app/syseng person can see that it is, without paging anyone. |
 
 ---
 
@@ -163,10 +166,10 @@ Those become labels on the metrics. NetBox is the usual source of truth later, s
 They should not, at first. Run this next to SolarWinds. Start with a small set of devices they know well, compare the numbers, then widen. Move flows and logs first if they want a low-risk cutover. The easier internal story is “we are adding observability,” not “we are ripping out NPM this quarter.”
 
 **“Can Grafana Assistant actually use this?”**  
-Yes. That is a big part of why you put the network in Grafana Cloud instead of leaving it in SolarWinds. Assistant already knows how to work with metrics, logs, and dashboards in this stack. Once SNMP, flow, and syslog are here, a network device can show up in an investigation the same way a service does. People use it to ask whether the path looks healthy, to explain a spike on a port, and to draft or adjust alerts from the panel in front of them. SolarWinds does not have an equivalent. If they want to see it live, open Assistant on Device Details or Flow Summary and ask something concrete, like what is using bandwidth or whether any interfaces on this device look unhealthy. You do not need a scripted demo for that.
+Yes. That is the point of putting the network on the same platform. App and syseng teams can ask Assistant if they are hitting a network problem before they page the person who owns the routers. Network SMEs get fewer drive-by tickets. People also use it to draft or adjust alerts from the panel in front of them. SolarWinds does not have an equivalent. If they want to see it live, open Assistant on Device Details or Flow Summary and ask something concrete, like what is using bandwidth or whether any interfaces on this device look unhealthy. You do not need a scripted demo for that.
 
 **“Our dashboards are already green. Why switch?”**  
-They get the network in the same place as the apps, so they stop copying timestamps between consoles. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
+They get one platform instead of two consoles and a Slack argument. App and syseng can check the network themselves, which is what people mean when they talk about mean time to innocence. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate. For money, use their actual SolarWinds renewal and a Cloud AE — not a generic range from a blog post.
 
 ---
 
