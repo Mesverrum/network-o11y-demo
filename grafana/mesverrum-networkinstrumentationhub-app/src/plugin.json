@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "app",
+  "name": "Network Instrumentation Hub",
+  "id": "mesverrum-networkinstrumentationhub-app",
+  "info": {
+    "keywords": ["app"],
+    "description": "Guided network discovery for Grafana Alloy. Runs in a local Grafana. Unsigned, so it does not load in Grafana Cloud.",
+    "author": {
+      "name": "Mesverrum"
+    },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "includes": [
+    {
+      "type": "page",
+      "name": "Collector",
+      "path": "/a/%PLUGIN_ID%/collector",
+      "addToNav": true,
+      "defaultNav": true
+    },
+    {
+      "type": "page",
+      "name": "Add a group",
+      "path": "/a/%PLUGIN_ID%/group",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "What we found",
+      "path": "/a/%PLUGIN_ID%/found",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "What to collect",
+      "path": "/a/%PLUGIN_ID%/collect",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Apply",
+      "path": "/a/%PLUGIN_ID%/apply",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Receiving",
+      "path": "/a/%PLUGIN_ID%/receiving",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Devices",
+      "path": "/a/%PLUGIN_ID%/devices",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "icon": "cog",
+      "name": "Configuration",
+      "path": "/plugins/%PLUGIN_ID%",
+      "role": "Admin",
+      "addToNav": true
+    }
+  ],
+  "dependencies": {
+    "grafanaDependency": ">=12.3.0",
+    "plugins": []
+  }
+}

@@ -7,7 +7,15 @@ SNMPSD_SRC="${SNMPSD_SRC:-$(cd "${ALLOY_SRC}/../snmp-sd" 2>/dev/null && pwd || e
 TAG="${ALLOY_NETWORK_TAG:-srl-local/alloy:network-dev}"
 WORKDIR="/tmp/alloy-network-bin-$$"
 mkdir -p "$WORKDIR"
-trap 'chmod -R u+w "$WORKDIR" 2>/dev/null || true; rm -rf "$WORKDIR" || true' EXIT
+MOD_DIRTY=0
+cleanup() {
+  if [[ "${MOD_DIRTY}" == 1 ]]; then
+    git checkout -- go.mod go.sum collector/go.mod collector/go.sum || true
+  fi
+  chmod -R u+w "$WORKDIR" 2>/dev/null || true
+  rm -rf "$WORKDIR" || true
+}
+trap cleanup EXIT
 
 cd "$ALLOY_SRC"
 echo "==> pwd=$(pwd)"
@@ -40,26 +48,42 @@ build_in_docker() {
     golang:1.26.6 \
     bash -c '
       set -euo pipefail
+      git config --global --add safe.directory /src
+      go mod edit -replace github.com/Mesverrum/snmp-sd=/snmp-sd
+      ( cd collector && go mod edit -replace github.com/Mesverrum/snmp-sd=/snmp-sd )
       ( cd collector && go build -tags netgo -o ../build/alloy . )
       go build -o build/snmp-discovery github.com/Mesverrum/snmp-sd/cmd/snmp-discovery
-      SNMPSD="$(go list -m -f "{{.Dir}}" github.com/Mesverrum/snmp-sd)"
-      rm -rf build/snmp-lib
+      if [[ -d build/snmp-lib ]]; then
+        chmod -R u+w build/snmp-lib 2>/dev/null || true
+        rm -rf build/snmp-lib
+      fi
       mkdir -p build/snmp-lib
-      cp -a "${SNMPSD}/snmp/." build/snmp-lib/
+      cp -a /snmp-sd/snmp/. build/snmp-lib/
+      git checkout -- go.mod go.sum collector/go.mod collector/go.sum
     '
 }
 
 if [[ "${GO_VER}" == go1.26* ]]; then
   echo "==> go build alloy (collector, tags=netgo) with ${GO_VER}"
+  echo "==> replace snmp-sd with ${SNMPSD_SRC}"
+  [[ -f "${SNMPSD_SRC}/go.mod" ]] || { echo "missing snmp-sd at ${SNMPSD_SRC}"; exit 1; }
+  go mod edit -replace "github.com/Mesverrum/snmp-sd=${SNMPSD_SRC}"
+  ( cd collector && go mod edit -replace "github.com/Mesverrum/snmp-sd=${SNMPSD_SRC}" )
+  MOD_DIRTY=1
   ( cd collector && go build -tags 'netgo' -o ../build/alloy . )
-  echo "==> go build snmp-discovery from Mesverrum/snmp-sd"
+  echo "==> go build snmp-discovery from local snmp-sd"
   go build -o build/snmp-discovery github.com/Mesverrum/snmp-sd/cmd/snmp-discovery
-  SNMPSD="$(go list -m -f '{{.Dir}}' github.com/Mesverrum/snmp-sd)"
+  # A previous Docker build can leave this tree root-owned.
+  if [[ -d build/snmp-lib ]] && ! chmod -R u+w build/snmp-lib 2>/dev/null; then
+    docker run --rm -v "${PWD}/build:/build" alpine chmod -R a+w /build/snmp-lib
+  fi
   rm -rf build/snmp-lib
   mkdir -p build/snmp-lib
-  cp -a "${SNMPSD}/snmp/." build/snmp-lib/
+  cp -a "${SNMPSD_SRC}/snmp/." build/snmp-lib/
+  git checkout -- go.mod go.sum collector/go.mod collector/go.sum
+  MOD_DIRTY=0
 else
-  build_in_docker
+  build_in_docke
 fi
 
 [[ -f build/alloy ]]
@@ -82,7 +106,7 @@ docker build -t "$TAG" "$WORKDIR"
 docker image inspect "$TAG" --format 'ok {{.Id}} {{.Created}}'
 echo "==> strings check discovery.snmp + otelcol.receiver.syslog + snmp-sd"
 docker run --rm --entrypoint /bin/sh "$TAG" -c '
-  for s in discovery.snmp otelcol.receiver.syslog otelcol.receiver.snmptrap Mesverrum/snmp-sd; do
+  for s in discovery.snmp discovery_snmp_group_info otelcol.receiver.syslog otelcol.receiver.snmptrap Mesverrum/snmp-sd; do
     n=$(grep -a -o -F "$s" /bin/alloy | wc -l)
     echo "$s $n"
     test "$n" -gt 0
