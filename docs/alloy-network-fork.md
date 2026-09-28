@@ -18,7 +18,7 @@ Stock Alloy already polls SNMP (`prometheus.exporter.snmp`). The fight internall
 |------|----------------|--------------------|
 | Credentials | named `auth=` / `__param_auth` from `snmp.yml` `auths:` | community string, v3 secret, on labels or SD files |
 | MIB / module | `module=` / `__param_module` (comma-separated, same as snmp_exporter) | a side-channel profile name |
-| New devices | CIDR/`/32` probe → GET `sysObjectID` → SuperQ **fingerprinters** ([snmp_exporter#1468](https://github.com/prometheus/snmp_exporter/issues/1468)) | exporter-side CIDR walker |
+| New devices | CIDR probe → GET `sysName` + `sysObjectID` → stable identity + SuperQ **fingerprinters** ([snmp_exporter#1468](https://github.com/prometheus/snmp_exporter/issues/1468)) | exporter-side CIDR walker |
 | Consumers | Alloy YAML, Prometheus `file_sd`, and HTTP SD (`GET /sd`) | Alloy-only lock-in |
 
 The exporter stays **stock**. Fingerprinters run at SD time (portable subset of #1468 until that lands in snmp_exporter). Alloy loads targets the documented way: `targets = encoding.from_yaml(local.file….content)`.
@@ -31,6 +31,8 @@ The exporter stays **stock**. Fingerprinters run at SD time (portable subset of 
 | Flow collector | 4 | **`otelcol.receiver.netflow`** (experimental wrap of contrib logs receiver) — [alloy#6304](https://github.com/grafana/alloy/issues/6304). Metrics via existing `otelcol.connector.signaltometrics`. Lab: `LAB_ALLOY_NETFLOW=1` + `make alloy-netflow-up` |
 
 `discovery.snmp` now has slog, health, metrics, Live Debugging, unmarshal tests, and Alloy-shaped reference docs. Colocated `LAB_ALLOY_SNMP=1` runs the component in the k3s ConfigMap (not only Fleet) and self-scrapes `discovery_snmp_*` as `job="alloy"`. Remaining GA items: fork [`docs/discovery-snmp-production-gaps.md`](https://github.com/Mesverrum/alloy/blob/network-snmp/docs/discovery-snmp-production-gaps.md).
+
+The colocated lab scans the Docker `clab` management subnet as one discovery group. Device identity comes from live SNMP `sysName`; module tiers come from the `sysObjectID` fingerprinter. It does not generate management-IP-to-name overrides. `snmp-overrides.yml` is reserved for explicit operator exceptions, so ContainerLab IPAM changes cannot rename a different device. Discovery retains missed targets for three refreshes before aging them out. `snmp_group` site labels are applied after discovery from the lab naming convention and do not select targets.
 
 Syslog on the network path is `otelcol.receiver.syslog` (`protocol = "none"` keeps non-RFC bodies; `on_error = "send"` never drops). Optional `targets` join stamps `device_name`. Historical Loki / Cisco-components notes: [`docs/alloy-cisco-syslog-lab.md`](alloy-cisco-syslog-lab.md).
 
@@ -47,6 +49,21 @@ Fleet Management can only push **config** for components in the running binary. 
 | **topology** | 15m (`LAB_ALLOY_SNMP_TOPOLOGY_INTERVAL`) | LLDP/CDP/BGP-class neighbor walks — **Alloy enrich → topology-exporter `/v1/metrics`**, not Mimir | include `topology`, or `LAB_ALLOY_SNMP_TOPOLOGY=1` when `TIERS` is unset. Colocated glue test: `python3 local/scripts/ssm-alloy-topology-glue.py` (exporter on host `:9100`, Alloy `hostNetwork` → `http://127.0.0.1:9100`). Exporter restart holds last-known `snapshot.json` (`graph_stale=1`) until ingest POSTs; empty buffer does not darken `:9100`. |
 
 Default when `LAB_ALLOY_SNMP_TIERS` is unset: **hot+cold**. `LAB_ALLOY_SNMP_TIERS=hot` is the absolute minimum scrape. Alloy: `tiers = ["hot"]`. CLI: `--tiers=hot`. Each tier is independently optional.
+
+**Dashboard contract:** raw topology-tier metrics such as `snmp_tBgpPeerNgConnState`
+are intentionally absent from Mimir. Alloy A3/A4 Connections panels query the
+reconciled `network_topology_edge_info{tester_id="network-lab"}` graph instead:
+`discovery_proto="bgp"` for established routing sessions and
+`discovery_proto="lldp"` for physical adjacency. An unavailable BGP session
+temporarily disappears from the graph; `network_topology_graph_stale` distinguishes
+an ingest outage from a current reconciliation. Patch the live tabbed dashboards with
+`python3 local/scripts/patch-alloy-topology-connections.py`, then apply the
+Alloy skill audit fixes with
+`python3 local/scripts/patch-alloy-dashboard-skill-findings.py` (A3/A4 on both
+configured stacks). The latter removes stale ktranslate queries/transforms,
+uses `rate()` / `increase()` for Alloy flow counters, makes current-value stats
+instant, and adds `network_topology_graph_stale` to A4. Then sync the fork copies.
+Assistant skills for these boards: [`grafana-alloy-network-dashboard-design-patterns.md`](grafana-alloy-network-dashboard-design-patterns.md) and [`grafana-alloy-network-dashboard-expand-hardware.md`](grafana-alloy-network-dashboard-expand-hardware.md) — do not attach the ktranslate skill pair.
 
 
 Discovery writes `snmp-targets.yml` (hot), `snmp-targets-cold.yml`, `snmp-targets-topology.yml`. Converter emits `snmp/module-tiers.yaml` + fingerprinter `modules_hot` / `modules_cold` / `modules_topology`.
@@ -94,9 +111,10 @@ discovery.snmp "fabric" {
   auths = env("SNMP_AUTHS")
   tier  = "hot"   // or "all" + discovery.relabel by snmp_tier
   group {
-    name  = "hq"
-    cidrs = ["172.20.20.0/24"]
-    auths = ["public_v2"]
+    name        = "hq"
+    description = "HQ fabric switches. Same community on all of them."
+    cidrs       = ["172.20.20.0/24"]
+    auths       = ["public_v2"]
   }
 }
 prometheus.exporter.snmp "fabric_hot" {
@@ -104,6 +122,8 @@ prometheus.exporter.snmp "fabric_hot" {
   targets = discovery.snmp.fabric.targets
 }
 ```
+
+`description` (fork `801b0ba`) is an operator note for the next person: one line, max 256 chars, not used by the scan and not stamped on targets. It is published as `discovery_snmp_group_info{group,description}` on every config apply, so a UI can read it back from Mimir without parsing the Fleet pipeline. Images built before that commit reject the attribute — do not add it to the live lab pipeline until the from-source image is rebuilt.
 
 The image library paths (`snmp_config`, `fingerprinters`, `config_file`, `mib_paths`) are component defaults. Set them only to override. Credentials are `SNMP_AUTHS` (snmp_exporter `auths:` YAML) or `auths_file` — see the fork [`snmp/auths.example.yml`](https://github.com/Mesverrum/alloy/blob/network-snmp/snmp/auths.example.yml). Empty `SNMP_AUTHS` falls back to auths already in the image library.
 
@@ -204,7 +224,7 @@ make -C local alloy-network-image
 #    ALLOY_IMAGE=srl-local/alloy:network-dev
 #    LAB_ALLOY_SNMP=1
 # Optional: ALLOY_SNMP_AUTHS=public_v2
-# Optional: ALLOY_SNMP_CIDRS=172.20.20.2/32,...  (default: live spine/leaf /32s)
+# Optional: ALLOY_SNMP_CIDRS=10.20.0.0/24,...  (default: Docker clab IPv4 subnet)
 
 # 3) Discover + recreate Alloy (fabric must be on the clab network)
 make -C local alloy-snmp-up
@@ -279,7 +299,7 @@ Prefer editing `snmp/modules/<vendor>/` in the fork (that YAML is the library). 
 
 1. Drop the profile YAML in the fork or point `--profiles` at the cookbook tree.
 2. `python3 tools/snmp-profile-convert/convert.py --profiles … --clean-modules` once → split modules + `snmp-network.yml` + fingerprinters.
-3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), `{name}_topo` (topology: BGP, OSPF/ISIS leftovers). Every `modules_topology` chain also walks `lldp_mib`; Cisco / Meraki add `cdp_mib`. Nokia keeps `nokia_srlinux` / `_sensors` / `_topo` plus that LLDP coverage walk. Rebuild the overlay image after editing modules. Unknown `sysObjectID` scrapes `device_base,if_mib` (hot) and `lldp_mib` (topology).
+3. Every vendor pack is split the same way: `{name}` (hot vitals), `{name}_sensors` / `{name}_ext` (cold), and one complete `{name}_topo` object. Convert folds generic LLDP into every topology object, CDP into Cisco/Meraki objects, and the selected BGP/OSPF/ISIS or vendor-private neighbor fragments into that same module. Discovery therefore emits exactly one topology module per fingerprint (`nokia_srlinux_topo`, `cisco_catalyst_topo`, etc.); unknown `sysObjectID` uses `device_base_topo`. Rebuild the overlay image after editing modules.
 4. Fingerprinters and `snmp-network.yml` are one catalog — do not add a `module=` name that convert did not write. Re-extract both from the image after rebuild.
 
 ## Converter (one-shot ingest)
@@ -302,7 +322,7 @@ Kentik profile YAML (numeric OIDs) → split `snmp/modules/<vendor>/` + concaten
 
 **One catalog (do not drift).** `module=` on SD targets must be keys under `modules:` in the snmp.yml the exporter loads. Convert intersects fingerprinter lists with converted module names (no invented `nokia_srlinux_hot` unless that sidecar was written). Discovery drops names missing from the live `config_file`. Keep `snmp-network.yml` and `fingerprinters.yml` from the **same convert as the running image** — `alloy-snmp-discover.sh` re-extracts both from the image; `render-alloy-snmp-scrape.sh` must not overwrite that library with older `fixtures/alloy-snmp/`. Mixing generations looks like `up=1` with no `snmp_CPU`, or a collector panic.
 
-**Extends:** kentik `extends:` → discovery `module=` chains (transitive), e.g. `if_mib,nokia_srlinux` or `if_mib,cisco_all_devices,cisco_catalyst`. Kentik `system-mib.yml` is folded into `snmp_device_info` on the fingerprint module (not a sibling scrape). `_general` bases are converted modules; Alloy uses `config_merge_strategy = "replace"`.
+**Extends:** kentik `extends:` → discovery `module=` chains for hot/cold (transitive), e.g. `if_mib,nokia_srlinux` or `if_mib,cisco_all_devices,cisco_catalyst`. Topology is deliberately materialized as one `{fingerprint}_topo` object instead of a chain. Kentik `system-mib.yml` is folded into `snmp_device_info` on the fingerprint module (not a sibling scrape). `_general` bases are converted modules and reusable topology fragments; Alloy uses `config_merge_strategy = "replace"`.
 
 **Enums:** status symbols → `gauge` (+ `enum_values` catalog); inventory symbols → `EnumAsInfo`; `metric_tags` → lookups (`EnumAsInfo` when the tag column has an enum). No `EnumAsStateSet`.
 
