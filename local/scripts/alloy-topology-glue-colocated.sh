@@ -54,10 +54,9 @@ fi
 install -m 0644 "${CFG}" /etc/topology-exporter/config.yaml
 # Catalog is a live file; bind via symlink so discovery updates are seen after restart.
 ln -sfn "${CATALOG}" /etc/topology-exporter/catalog.yml
-ALIASES="${ROOT}/topology-exporter/aliases-colocated.yml"
-if [[ -f "${ALIASES}" ]]; then
-  install -m 0644 "${ALIASES}" /etc/topology-exporter/aliases.yml
-fi
+# No alias catalog: BGP peers resolve inside prometheus.network_topology from
+# each device's own tBgpPeerNgLocalAddress; the exporter only sees gnmic LLDP.
+rm -f /etc/topology-exporter/aliases.yml
 systemctl stop topology-exporter-glue.service 2>/dev/null || true
 install -m 0755 "${BIN}" /usr/local/bin/topology-exporter
 

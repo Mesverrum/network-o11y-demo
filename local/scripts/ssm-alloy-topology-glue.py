@@ -26,7 +26,6 @@ FILES = [
     "local/scripts/apply-discovered-mibs.py",
     "local/scripts/fabric-nodes.sh",
     "local/topology-exporter/config-alloy-glue.yaml",
-    "local/topology-exporter/aliases-colocated.yml",
     "local/templates/k8s/alloy.yaml.tmpl",
     "local/alloy/config.alloy",
 ]

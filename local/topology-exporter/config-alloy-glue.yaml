@@ -45,7 +45,6 @@ output:
 inventory:
   snmp_sd:
     path: /etc/topology-exporter/catalog.yml
-    aliases_path: /etc/topology-exporter/aliases.yml
 
 source:
   alloy_otlp:

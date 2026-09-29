@@ -73,7 +73,6 @@ Neighbor tables stay off Mimir. Alloy scrapes the SNMP topology tier and forks g
 | File | Purpose |
 |------|---------|
 | `topology-exporter/config-alloy-glue.yaml` | Glue-mode exporter (no native SNMP modules) |
-| `topology-exporter/aliases-colocated.yml` | system0 / WAN `/31` IP → device_name |
 | `scripts/alloy-topology-glue-colocated.sh` | On-host apply (Alloy prefix + systemd exporter) |
 | `scripts/ssm-alloy-topology-glue.py` | Sync files + linux amd64 binary, then apply |
 

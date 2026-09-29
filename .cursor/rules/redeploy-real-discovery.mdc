@@ -1,0 +1,32 @@
+# Redeploy = real discovery, not hardcoded values
+
+When the lab is (re)deployed, every device list, address map, module choice, and
+neighbor relationship must come from the discovery and collection features the
+lab exists to demonstrate. Do not paper over a gap with a catalog someone typed.
+
+## Apply
+
+- Device inventory: `discovery.snmp` / `snmp-discovery` scan of the management
+  subnet (Alloy) and `make discover` (ktranslate). Never hand-populate
+  `snmp-targets*.yml`, `state/devices-*.yaml`, or management-IP/name overrides.
+- Module selection: `sysObjectID` fingerprinters. Identity: live `sysName`.
+- Topology: LLDP/CDP/BGP walks reconciled by `prometheus.network_topology`.
+  BGP peers resolve from each device's own `local_address`
+  (`tBgpPeerNgLocalAddress`, `bgpPeerLocalAddr`) — the alias file
+  `aliases-colocated.yml` is gone; do not bring it back.
+- Site/role: naming-convention relabel (`-br1` → `branch1`) is a lab convention,
+  not identity; deeper inventory belongs in NetBox, not a second hardcoded map.
+
+## When a platform does not expose the data
+
+Prove it with a live walk first (`snmpwalk -On` from the host), then fix it in
+the collector or library (snmp-sd module lookup, component resolver) so the
+feature works for the next platform too. If a mock is unavoidable, label it as
+a mock (`enabled_in_lab="false"` pattern) and record the gap in `AGENTS.md`.
+
+## Still allowed
+
+- Lab *definition* that is the intended topology (`topology-*.clab.yml`,
+  `fabric-nodes.sh` node lists): that is what gets deployed, not what gets
+  discovered. Addresses for those nodes still come live from `docker inspect`.
+- Operator exceptions in `snmp-overrides.yml` (kept empty unless needed).
