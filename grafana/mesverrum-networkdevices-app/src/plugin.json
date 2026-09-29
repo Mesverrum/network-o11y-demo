@@ -5,7 +5,7 @@
   "id": "mesverrum-networkdevices-app",
   "info": {
     "keywords": ["app"],
-    "description": "Devices the Network Instrumentation Hub is watching. Separate from the discovery wizard.",
+    "description": "Remove a device or force a catalog profile on an address the collectors are already polling.",
     "author": { "name": "Mesverrum" },
     "logos": { "small": "img/logo.svg", "large": "img/logo.svg" },
     "screenshots": [],

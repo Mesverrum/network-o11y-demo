@@ -1,0 +1,2736 @@
+{
+  "fingerprinter": "network",
+  "library_hash": "2fe1fbc93756adf3",
+  "source": "alloy/snmp/fingerprinters.yml",
+  "profiles": [
+    {
+      "name": "a10_thunder",
+      "hot": [
+        "if_mib",
+        "a10_thunder"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "a10_thunder_sensors",
+        "a10_thunder_ext"
+      ],
+      "topology": [
+        "a10_thunder_topo"
+      ]
+    },
+    {
+      "name": "acs",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "acs"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "acs_sensors",
+        "acs_ext"
+      ],
+      "topology": [
+        "acs_topo"
+      ]
+    },
+    {
+      "name": "alcatel_lucent_ent",
+      "hot": [
+        "if_mib",
+        "alcatel_lucent_ent"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "alcatel_lucent_ent_sensors",
+        "alcatel_lucent_ent_ext"
+      ],
+      "topology": [
+        "alcatel_lucent_ent_topo"
+      ]
+    },
+    {
+      "name": "alcatel_lucent_ind",
+      "hot": [
+        "if_mib",
+        "alcatel_lucent_ind"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "alcatel_lucent_ind_sensors",
+        "alcatel_lucent_ind_ext"
+      ],
+      "topology": [
+        "alcatel_lucent_ind_topo"
+      ]
+    },
+    {
+      "name": "anue_packet_broker",
+      "hot": [
+        "if_mib",
+        "anue_packet_broker"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "anue_packet_broker_topo"
+      ]
+    },
+    {
+      "name": "apc_ats",
+      "hot": [
+        "apc_ats"
+      ],
+      "cold": [
+        "apc_ats_sensors",
+        "apc_ats_ext"
+      ],
+      "topology": [
+        "apc_ats_topo"
+      ]
+    },
+    {
+      "name": "apc_netbotz",
+      "hot": [
+        "apc_netbotz"
+      ],
+      "cold": [
+        "apc_netbotz_sensors",
+        "apc_netbotz_ext"
+      ],
+      "topology": [
+        "apc_netbotz_topo"
+      ]
+    },
+    {
+      "name": "apc_pdu",
+      "hot": [
+        "apc_pdu"
+      ],
+      "cold": [
+        "apc_pdu_sensors",
+        "apc_pdu_ext"
+      ],
+      "topology": [
+        "apc_pdu_topo"
+      ]
+    },
+    {
+      "name": "apc_ups",
+      "hot": [
+        "apc_ups"
+      ],
+      "cold": [
+        "ups_mib",
+        "apc_ups_sensors",
+        "apc_ups_ext"
+      ],
+      "topology": [
+        "apc_ups_topo"
+      ]
+    },
+    {
+      "name": "arista_switch",
+      "hot": [
+        "if_mib",
+        "arista_switch"
+      ],
+      "cold": [
+        "entity_sensor_mib",
+        "if_mib_meta",
+        "ip_addr",
+        "arista_switch_ext"
+      ],
+      "topology": [
+        "arista_switch_topo"
+      ]
+    },
+    {
+      "name": "aruba_access_point",
+      "hot": [
+        "if_mib",
+        "aruba_access_point"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "aruba_access_point_topo"
+      ]
+    },
+    {
+      "name": "aruba_clearpass",
+      "hot": [
+        "if_mib",
+        "aruba_clearpass"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "aruba_clearpass_ext"
+      ],
+      "topology": [
+        "aruba_clearpass_topo"
+      ]
+    },
+    {
+      "name": "aruba_cx_switch",
+      "hot": [
+        "if_mib",
+        "aruba_cx_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "aruba_cx_switch_sensors"
+      ],
+      "topology": [
+        "aruba_cx_switch_topo"
+      ]
+    },
+    {
+      "name": "aruba_mobility_controller",
+      "hot": [
+        "if_mib",
+        "aruba_mobility_controller"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "aruba_mobility_controller_topo"
+      ]
+    },
+    {
+      "name": "aruba_switch",
+      "hot": [
+        "if_mib",
+        "aruba_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "aruba_switch_ext"
+      ],
+      "topology": [
+        "aruba_switch_topo"
+      ]
+    },
+    {
+      "name": "aruba_wireless_controller",
+      "hot": [
+        "if_mib",
+        "aruba_wireless_controller"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "aruba_wireless_controller_ext"
+      ],
+      "topology": [
+        "aruba_wireless_controller_topo"
+      ]
+    },
+    {
+      "name": "audiocodes_mediant_sbc",
+      "hot": [
+        "if_mib",
+        "audiocodes_mediant_sbc"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "audiocodes_mediant_sbc_topo"
+      ]
+    },
+    {
+      "name": "aura_media_server",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "aura_media_server"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext"
+      ],
+      "topology": [
+        "aura_media_server_topo"
+      ]
+    },
+    {
+      "name": "avaya_cajun_switch",
+      "hot": [
+        "avaya_cajun_switch"
+      ],
+      "cold": [
+        "avaya_cajun_switch_ext"
+      ],
+      "topology": [
+        "avaya_cajun_switch_topo"
+      ]
+    },
+    {
+      "name": "avaya_media_gateway",
+      "hot": [
+        "if_mib",
+        "avaya_media_gateway"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "entity_sensor_mib",
+        "avaya_media_gateway_ext"
+      ],
+      "topology": [
+        "avaya_media_gateway_topo"
+      ]
+    },
+    {
+      "name": "barracuda_cloudgen",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "barracuda_cloudgen"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "barracuda_cloudgen_sensors",
+        "barracuda_cloudgen_ext"
+      ],
+      "topology": [
+        "barracuda_cloudgen_topo"
+      ]
+    },
+    {
+      "name": "barracuda_email_gateway",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "barracuda_email_gateway"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "barracuda_email_gateway_ext"
+      ],
+      "topology": [
+        "barracuda_email_gateway_topo"
+      ]
+    },
+    {
+      "name": "barracuda_waf",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "barracuda_waf"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "barracuda_waf_ext"
+      ],
+      "topology": [
+        "barracuda_waf_topo"
+      ]
+    },
+    {
+      "name": "base",
+      "hot": [
+        "if_mib",
+        "base"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ip_mib",
+        "tcp_mib",
+        "udp_mib"
+      ],
+      "topology": [
+        "base_topo"
+      ]
+    },
+    {
+      "name": "bluecat_server",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "bluecat_server"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "bluecat_server_ext"
+      ],
+      "topology": [
+        "bluecat_server_topo"
+      ]
+    },
+    {
+      "name": "brocade_fc_switch",
+      "hot": [
+        "if_mib",
+        "brocade_fc_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "brocade_fc_switch_ext"
+      ],
+      "topology": [
+        "brocade_fc_switch_topo"
+      ]
+    },
+    {
+      "name": "brother_net_printer",
+      "hot": [
+        "brother_net_printer"
+      ],
+      "cold": [
+        "brother_net_printer_ext"
+      ],
+      "topology": [
+        "brother_net_printer_topo"
+      ]
+    },
+    {
+      "name": "cambium_mib",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "cambium_mib"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "cambium_mib_ext"
+      ],
+      "topology": [
+        "cambium_mib_topo"
+      ]
+    },
+    {
+      "name": "checkpoint_firewall",
+      "hot": [
+        "if_mib",
+        "checkpoint_firewall"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "checkpoint_firewall_sensors",
+        "checkpoint_firewall_ext"
+      ],
+      "topology": [
+        "checkpoint_firewall_topo"
+      ]
+    },
+    {
+      "name": "cisco_access_point",
+      "hot": [
+        "if_mib",
+        "cisco_access_point"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_access_point_ext"
+      ],
+      "topology": [
+        "cisco_access_point_topo"
+      ]
+    },
+    {
+      "name": "cisco_apic_server",
+      "hot": [
+        "cisco_apic_server"
+      ],
+      "cold": [
+        "cisco_apic_server_sensors",
+        "cisco_apic_server_ext"
+      ],
+      "topology": [
+        "cisco_apic_server_topo"
+      ]
+    },
+    {
+      "name": "cisco_asa",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_asa"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_asa_ext"
+      ],
+      "topology": [
+        "cisco_asa_topo"
+      ]
+    },
+    {
+      "name": "cisco_asr",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_asr"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_asr_ext"
+      ],
+      "topology": [
+        "cisco_asr_topo"
+      ]
+    },
+    {
+      "name": "cisco_call_manager",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_call_manager"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_call_manager_ext"
+      ],
+      "topology": [
+        "cisco_call_manager_topo"
+      ]
+    },
+    {
+      "name": "cisco_catalyst",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_catalyst"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_catalyst_ext"
+      ],
+      "topology": [
+        "cisco_catalyst_topo"
+      ]
+    },
+    {
+      "name": "cisco_csr",
+      "hot": [
+        "if_mib",
+        "cisco_csr"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_csr_ext"
+      ],
+      "topology": [
+        "cisco_csr_topo"
+      ]
+    },
+    {
+      "name": "cisco_firepower",
+      "hot": [
+        "if_mib",
+        "cisco_firepower"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_firepower_sensors",
+        "cisco_firepower_ext"
+      ],
+      "topology": [
+        "cisco_firepower_topo"
+      ]
+    },
+    {
+      "name": "cisco_ironport_email",
+      "hot": [
+        "if_mib",
+        "cisco_ironport_email"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_ironport_email_sensors",
+        "cisco_ironport_email_ext"
+      ],
+      "topology": [
+        "cisco_ironport_email_topo"
+      ]
+    },
+    {
+      "name": "cisco_ise",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "cisco_ise"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "cisco_ise_topo"
+      ]
+    },
+    {
+      "name": "cisco_load_balancer",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_load_balancer"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_load_balancer_ext"
+      ],
+      "topology": [
+        "cisco_load_balancer_topo"
+      ]
+    },
+    {
+      "name": "cisco_nexus",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_nexus"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext"
+      ],
+      "topology": [
+        "cisco_nexus_topo"
+      ]
+    },
+    {
+      "name": "cisco_sb",
+      "hot": [
+        "if_mib",
+        "cisco_sb"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "cisco_sb_topo"
+      ]
+    },
+    {
+      "name": "cisco_ucs",
+      "hot": [
+        "if_mib",
+        "cisco_ucs"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_ucs_sensors",
+        "cisco_ucs_ext"
+      ],
+      "topology": [
+        "cisco_ucs_topo"
+      ]
+    },
+    {
+      "name": "cisco_voice",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "cisco_voice"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "cisco_voice_ext"
+      ],
+      "topology": [
+        "cisco_voice_topo"
+      ]
+    },
+    {
+      "name": "cisco_wan_optimizer",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "host_resources_mib",
+        "cisco_wan_optimizer"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "host_resources_mib_ext",
+        "cisco_wan_optimizer_ext"
+      ],
+      "topology": [
+        "cisco_wan_optimizer_topo"
+      ]
+    },
+    {
+      "name": "cisco_wlc",
+      "hot": [
+        "if_mib",
+        "cisco_all_devices",
+        "host_resources_mib",
+        "cisco_wlc"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cisco_all_devices_sensors",
+        "cisco_all_devices_ext",
+        "host_resources_mib_ext",
+        "cisco_wlc_sensors",
+        "cisco_wlc_ext"
+      ],
+      "topology": [
+        "cisco_wlc_topo"
+      ]
+    },
+    {
+      "name": "cloudgenix",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "cloudgenix"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "cloudgenix_topo"
+      ]
+    },
+    {
+      "name": "cradlepoint",
+      "hot": [
+        "if_mib",
+        "cradlepoint"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "cradlepoint_ext"
+      ],
+      "topology": [
+        "cradlepoint_topo"
+      ]
+    },
+    {
+      "name": "cumulus_linux_switch",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "cumulus_linux_switch"
+      ],
+      "cold": [
+        "entity_sensor_mib",
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "cumulus_linux_switch_ext"
+      ],
+      "topology": [
+        "cumulus_linux_switch_topo"
+      ]
+    },
+    {
+      "name": "cyberpower_pdu",
+      "hot": [
+        "cyberpower_pdu"
+      ],
+      "cold": [
+        "cyberpower_pdu_sensors",
+        "cyberpower_pdu_ext"
+      ],
+      "topology": [
+        "cyberpower_pdu_topo"
+      ]
+    },
+    {
+      "name": "cyberpower_ups",
+      "hot": [
+        "cyberpower_ups"
+      ],
+      "cold": [
+        "ups_mib",
+        "cyberpower_ups_sensors",
+        "cyberpower_ups_ext"
+      ],
+      "topology": [
+        "cyberpower_ups_topo"
+      ]
+    },
+    {
+      "name": "dctrack",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "dctrack"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "dctrack_ext"
+      ],
+      "topology": [
+        "dctrack_topo"
+      ]
+    },
+    {
+      "name": "dell_avamar",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "dell_avamar"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext"
+      ],
+      "topology": [
+        "dell_avamar_topo"
+      ]
+    },
+    {
+      "name": "dell_idrac",
+      "hot": [
+        "dell_idrac"
+      ],
+      "cold": [
+        "dell_idrac_sensors",
+        "dell_idrac_ext"
+      ],
+      "topology": [
+        "dell_idrac_topo"
+      ]
+    },
+    {
+      "name": "dell_os10",
+      "hot": [
+        "if32_mib",
+        "host_resources_mib",
+        "dell_os10"
+      ],
+      "cold": [
+        "if32_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "dell_os10_sensors",
+        "dell_os10_ext"
+      ],
+      "topology": [
+        "dell_os10_topo"
+      ]
+    },
+    {
+      "name": "dell_powerconnect",
+      "hot": [
+        "if_mib",
+        "dell_powerconnect"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "dell_powerconnect_sensors",
+        "dell_powerconnect_ext"
+      ],
+      "topology": [
+        "dell_powerconnect_topo"
+      ]
+    },
+    {
+      "name": "dialogic_media_gateway",
+      "hot": [
+        "if_mib",
+        "dialogic_media_gateway"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "dialogic_media_gateway_topo"
+      ]
+    },
+    {
+      "name": "diameter",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "diameter"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "diameter_ext"
+      ],
+      "topology": [
+        "diameter_topo"
+      ]
+    },
+    {
+      "name": "disk_station",
+      "hot": [
+        "if_mib",
+        "disk_station"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "disk_station_sensors",
+        "disk_station_ext"
+      ],
+      "topology": [
+        "disk_station_topo"
+      ]
+    },
+    {
+      "name": "dlink_dgs_switch",
+      "hot": [
+        "if_mib",
+        "dlink_dgs_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "dlink_dgs_switch_sensors",
+        "dlink_dgs_switch_ext"
+      ],
+      "topology": [
+        "dlink_dgs_switch_topo"
+      ]
+    },
+    {
+      "name": "dominion",
+      "hot": [
+        "if_mib",
+        "dominion"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "dominion_sensors",
+        "dominion_ext"
+      ],
+      "topology": [
+        "dominion_topo"
+      ]
+    },
+    {
+      "name": "eagle_i",
+      "hot": [
+        "eagle_i"
+      ],
+      "cold": [
+        "eagle_i_ext"
+      ],
+      "topology": [
+        "eagle_i_topo"
+      ]
+    },
+    {
+      "name": "eaton_epdu",
+      "hot": [
+        "eaton_epdu"
+      ],
+      "cold": [
+        "eaton_epdu_sensors",
+        "eaton_epdu_ext"
+      ],
+      "topology": [
+        "eaton_epdu_topo"
+      ]
+    },
+    {
+      "name": "edgeconnect",
+      "hot": [
+        "if_mib",
+        "edgeconnect"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "edgeconnect_ext"
+      ],
+      "topology": [
+        "edgeconnect_topo"
+      ]
+    },
+    {
+      "name": "elemental_device",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "elemental_device"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "elemental_device_ext"
+      ],
+      "topology": [
+        "elemental_device_topo"
+      ]
+    },
+    {
+      "name": "emc_data_domain",
+      "hot": [
+        "if_mib",
+        "emc_data_domain"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "emc_data_domain_ext"
+      ],
+      "topology": [
+        "emc_data_domain_topo"
+      ]
+    },
+    {
+      "name": "esx",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "esx"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "esx_ext"
+      ],
+      "topology": [
+        "esx_topo"
+      ]
+    },
+    {
+      "name": "exagrid",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "exagrid"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "exagrid_ext"
+      ],
+      "topology": [
+        "exagrid_topo"
+      ]
+    },
+    {
+      "name": "extreme_switching",
+      "hot": [
+        "if_mib",
+        "extreme_switching"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "entity_sensor_mib",
+        "extreme_switching_sensors",
+        "extreme_switching_ext"
+      ],
+      "topology": [
+        "extreme_switching_topo"
+      ]
+    },
+    {
+      "name": "f5",
+      "hot": [
+        "if_mib",
+        "f5"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "f5_ext"
+      ],
+      "topology": [
+        "f5_topo"
+      ]
+    },
+    {
+      "name": "fireeye",
+      "hot": [
+        "if_mib",
+        "fireeye"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "fireeye_sensors",
+        "fireeye_ext"
+      ],
+      "topology": [
+        "fireeye_topo"
+      ]
+    },
+    {
+      "name": "force10",
+      "hot": [
+        "if_mib",
+        "force10"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "force10_topo"
+      ]
+    },
+    {
+      "name": "fortinet_appliance",
+      "hot": [
+        "if_mib",
+        "fortinet_appliance"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "fortinet_appliance_ext"
+      ],
+      "topology": [
+        "fortinet_appliance_topo"
+      ]
+    },
+    {
+      "name": "fortinet_fortiap",
+      "hot": [
+        "if_mib",
+        "fortinet_fortiap"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "fortinet_fortiap_ext"
+      ],
+      "topology": [
+        "fortinet_fortiap_topo"
+      ]
+    },
+    {
+      "name": "fortinet_fortigate",
+      "hot": [
+        "if_mib",
+        "fortinet_fortigate"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "fortinet_fortigate_ext"
+      ],
+      "topology": [
+        "fortinet_fortigate_topo"
+      ]
+    },
+    {
+      "name": "fortinet_fortiswitch",
+      "hot": [
+        "if_mib",
+        "fortinet_fortiswitch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "fortinet_fortiswitch_ext"
+      ],
+      "topology": [
+        "fortinet_fortiswitch_topo"
+      ]
+    },
+    {
+      "name": "gigamon",
+      "hot": [
+        "if_mib",
+        "gigamon"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "gigamon_topo"
+      ]
+    },
+    {
+      "name": "hp_h3c_switch",
+      "hot": [
+        "if_mib",
+        "hp_h3c_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "hp_h3c_switch_ext"
+      ],
+      "topology": [
+        "hp_h3c_switch_topo"
+      ]
+    },
+    {
+      "name": "hp_icf_switch",
+      "hot": [
+        "if_mib",
+        "hp_icf_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "hp_icf_switch_topo"
+      ]
+    },
+    {
+      "name": "hp_ilo",
+      "hot": [
+        "if_mib",
+        "hp_ilo"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "hp_ilo_sensors",
+        "hp_ilo_ext"
+      ],
+      "topology": [
+        "hp_ilo_topo"
+      ]
+    },
+    {
+      "name": "hpe_bladesystem_enclosure",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "hpe_bladesystem_enclosure"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "hpe_bladesystem_enclosure_sensors",
+        "hpe_bladesystem_enclosure_ext"
+      ],
+      "topology": [
+        "hpe_bladesystem_enclosure_topo"
+      ]
+    },
+    {
+      "name": "hpe_cambium",
+      "hot": [
+        "hpe_cambium"
+      ],
+      "cold": [
+        "ups_mib",
+        "hpe_cambium_sensors",
+        "hpe_cambium_ext"
+      ],
+      "topology": [
+        "hpe_cambium_topo"
+      ]
+    },
+    {
+      "name": "hpe_msa",
+      "hot": [
+        "if_mib",
+        "hpe_msa"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "hpe_msa_ext"
+      ],
+      "topology": [
+        "hpe_msa_topo"
+      ]
+    },
+    {
+      "name": "hpe_nimble",
+      "hot": [
+        "if_mib",
+        "hpe_nimble"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "hpe_nimble_ext"
+      ],
+      "topology": [
+        "hpe_nimble_topo"
+      ]
+    },
+    {
+      "name": "hpe_synergy",
+      "hot": [
+        "if_mib",
+        "hpe_synergy"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ip_mib",
+        "hpe_synergy_ext"
+      ],
+      "topology": [
+        "hpe_synergy_topo"
+      ]
+    },
+    {
+      "name": "huawei_access_controllers",
+      "hot": [
+        "if_mib",
+        "huawei_access_controllers"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "huawei_access_controllers_topo"
+      ]
+    },
+    {
+      "name": "huawei_all_devices",
+      "hot": [
+        "if_mib",
+        "huawei_all_devices",
+        "huawei_all_devices_identity"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "huawei_all_devices_sensors",
+        "huawei_all_devices_ext"
+      ],
+      "topology": [
+        "huawei_all_devices_topo"
+      ]
+    },
+    {
+      "name": "huawei_routers",
+      "hot": [
+        "if_mib",
+        "huawei_all_devices",
+        "huawei_routers"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "huawei_all_devices_sensors",
+        "huawei_all_devices_ext",
+        "huawei_routers_ext"
+      ],
+      "topology": [
+        "huawei_routers_topo"
+      ]
+    },
+    {
+      "name": "huawei_switches",
+      "hot": [
+        "if_mib",
+        "huawei_all_devices",
+        "huawei_switches"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "huawei_all_devices_sensors",
+        "huawei_all_devices_ext",
+        "huawei_switches_ext"
+      ],
+      "topology": [
+        "huawei_switches_topo"
+      ]
+    },
+    {
+      "name": "ibm_datapower_gateway",
+      "hot": [
+        "ibm_datapower_gateway"
+      ],
+      "cold": [
+        "ibm_datapower_gateway_sensors",
+        "ibm_datapower_gateway_ext"
+      ],
+      "topology": [
+        "ibm_datapower_gateway_topo"
+      ]
+    },
+    {
+      "name": "ibm_lenovo_server",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "ibm_lenovo_server"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "ibm_lenovo_server_ext"
+      ],
+      "topology": [
+        "ibm_lenovo_server_topo"
+      ]
+    },
+    {
+      "name": "ibm_wga",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "ibm_wga"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "ibm_wga_topo"
+      ]
+    },
+    {
+      "name": "infinera",
+      "hot": [
+        "if_mib",
+        "infinera"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "infinera_sensors",
+        "infinera_ext"
+      ],
+      "topology": [
+        "infinera_topo"
+      ]
+    },
+    {
+      "name": "infoblox_ipam",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "ucd_mib",
+        "infoblox_ipam"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "infoblox_ipam_ext"
+      ],
+      "topology": [
+        "infoblox_ipam_topo"
+      ]
+    },
+    {
+      "name": "ipower_mib",
+      "hot": [
+        "ipower_mib"
+      ],
+      "cold": [
+        "ipower_mib_sensors",
+        "ipower_mib_ext"
+      ],
+      "topology": [
+        "ipower_mib_topo"
+      ]
+    },
+    {
+      "name": "isilon",
+      "hot": [
+        "isilon"
+      ],
+      "cold": [
+        "isilon_ext"
+      ],
+      "topology": [
+        "isilon_topo"
+      ]
+    },
+    {
+      "name": "juniper_all_devices",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "juniper_all_devices",
+        "juniper_all_devices_identity"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "juniper_all_devices_sensors",
+        "juniper_all_devices_ext"
+      ],
+      "topology": [
+        "juniper_all_devices_topo"
+      ]
+    },
+    {
+      "name": "juniper_ex_switches",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "juniper_all_devices",
+        "juniper_ex_switches"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "juniper_all_devices_sensors",
+        "juniper_all_devices_ext",
+        "juniper_ex_switches_ext"
+      ],
+      "topology": [
+        "juniper_ex_switches_topo"
+      ]
+    },
+    {
+      "name": "juniper_mx_router",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "juniper_all_devices",
+        "juniper_mx_router"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "juniper_all_devices_sensors",
+        "juniper_all_devices_ext",
+        "juniper_mx_router_ext"
+      ],
+      "topology": [
+        "juniper_mx_router_topo"
+      ]
+    },
+    {
+      "name": "juniper_qfx_switches",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "juniper_all_devices",
+        "juniper_qfx_switches"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "juniper_all_devices_sensors",
+        "juniper_all_devices_ext",
+        "juniper_qfx_switches_ext"
+      ],
+      "topology": [
+        "juniper_qfx_switches_topo"
+      ]
+    },
+    {
+      "name": "juniper_srx_firewalls",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "juniper_all_devices",
+        "juniper_srx_firewalls"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "juniper_all_devices_sensors",
+        "juniper_all_devices_ext",
+        "juniper_srx_firewalls_ext"
+      ],
+      "topology": [
+        "juniper_srx_firewalls_topo"
+      ]
+    },
+    {
+      "name": "kyocera_printer",
+      "hot": [
+        "if32_mib",
+        "kyocera_printer"
+      ],
+      "cold": [
+        "if32_mib_meta",
+        "ip_addr",
+        "kyocera_printer_ext"
+      ],
+      "topology": [
+        "kyocera_printer_topo"
+      ]
+    },
+    {
+      "name": "lenovo_rackswitch",
+      "hot": [
+        "if_mib",
+        "lenovo_rackswitch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "lenovo_rackswitch_sensors",
+        "lenovo_rackswitch_ext"
+      ],
+      "topology": [
+        "lenovo_rackswitch_topo"
+      ]
+    },
+    {
+      "name": "liebert_ac",
+      "hot": [
+        "liebert_ac"
+      ],
+      "cold": [
+        "liebert_ac_sensors",
+        "liebert_ac_ext"
+      ],
+      "topology": [
+        "liebert_ac_topo"
+      ]
+    },
+    {
+      "name": "linksys",
+      "hot": [
+        "if_mib",
+        "linksys"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "linksys_topo"
+      ]
+    },
+    {
+      "name": "luna_hsm",
+      "hot": [
+        "ucd_mib",
+        "luna_hsm"
+      ],
+      "cold": [
+        "tcp_mib",
+        "ucd_mib_ext",
+        "luna_hsm_ext"
+      ],
+      "topology": [
+        "luna_hsm_topo"
+      ]
+    },
+    {
+      "name": "mcafee_web_gateway",
+      "hot": [
+        "if_mib",
+        "mcafee_web_gateway"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "mcafee_web_gateway_ext"
+      ],
+      "topology": [
+        "mcafee_web_gateway_topo"
+      ]
+    },
+    {
+      "name": "mellanox_switchx",
+      "hot": [
+        "if_mib",
+        "mellanox_switchx"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "entity_sensor_mib"
+      ],
+      "topology": [
+        "mellanox_switchx_topo"
+      ]
+    },
+    {
+      "name": "meraki_cloud_controller",
+      "hot": [
+        "if_mib",
+        "meraki_cloud_controller"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "meraki_cloud_controller_ext"
+      ],
+      "topology": [
+        "meraki_cloud_controller_topo"
+      ]
+    },
+    {
+      "name": "meraki_device",
+      "hot": [
+        "if_mib",
+        "meraki_device"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "meraki_device_topo"
+      ]
+    },
+    {
+      "name": "mikrotik_router",
+      "hot": [
+        "if_mib",
+        "mikrotik_router"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "mikrotik_router_sensors",
+        "mikrotik_router_ext"
+      ],
+      "topology": [
+        "mikrotik_router_topo"
+      ]
+    },
+    {
+      "name": "mikrotik_switch",
+      "hot": [
+        "if_mib",
+        "mikrotik_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "mikrotik_switch_sensors",
+        "mikrotik_switch_ext"
+      ],
+      "topology": [
+        "mikrotik_switch_topo"
+      ]
+    },
+    {
+      "name": "mimosa_device",
+      "hot": [
+        "if_mib",
+        "mimosa_device"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "mimosa_device_sensors",
+        "mimosa_device_ext"
+      ],
+      "topology": [
+        "mimosa_device_topo"
+      ]
+    },
+    {
+      "name": "minuteman_pdu",
+      "hot": [
+        "minuteman_pdu"
+      ],
+      "cold": [
+        "minuteman_pdu_ext"
+      ],
+      "topology": [
+        "minuteman_pdu_topo"
+      ]
+    },
+    {
+      "name": "mycloud_ex2",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "mycloud_ex2"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "mycloud_ex2_sensors",
+        "mycloud_ex2_ext"
+      ],
+      "topology": [
+        "mycloud_ex2_topo"
+      ]
+    },
+    {
+      "name": "nasuni_filer",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "nasuni_filer"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "nasuni_filer_sensors",
+        "nasuni_filer_ext"
+      ],
+      "topology": [
+        "nasuni_filer_topo"
+      ]
+    },
+    {
+      "name": "net_snmp",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "dell_poweredge",
+        "net_snmp"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "dell_poweredge_sensors",
+        "dell_poweredge_ext"
+      ],
+      "topology": [
+        "net_snmp_topo"
+      ]
+    },
+    {
+      "name": "netapp_cluster",
+      "hot": [
+        "if_mib",
+        "netapp_cluster"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "netapp_cluster_sensors",
+        "netapp_cluster_ext"
+      ],
+      "topology": [
+        "netapp_cluster_topo"
+      ]
+    },
+    {
+      "name": "netapp_hci",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "netapp_hci"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "netapp_hci_sensors",
+        "netapp_hci_ext"
+      ],
+      "topology": [
+        "netapp_hci_topo"
+      ]
+    },
+    {
+      "name": "netgear_access_point",
+      "hot": [
+        "if_mib",
+        "netgear_access_point"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "netgear_access_point_topo"
+      ]
+    },
+    {
+      "name": "netgear_generic",
+      "hot": [
+        "if_mib",
+        "netgear_generic"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "netgear_generic_topo"
+      ]
+    },
+    {
+      "name": "netgear_switch",
+      "hot": [
+        "if_mib",
+        "netgear_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "netgear_switch_topo"
+      ]
+    },
+    {
+      "name": "netoptics_switch",
+      "hot": [
+        "if_mib",
+        "netoptics_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "netoptics_switch_sensors",
+        "netoptics_switch_ext"
+      ],
+      "topology": [
+        "netoptics_switch_topo"
+      ]
+    },
+    {
+      "name": "netscaler",
+      "hot": [
+        "if_mib",
+        "netscaler"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "netscaler_ext"
+      ],
+      "topology": [
+        "netscaler_topo"
+      ]
+    },
+    {
+      "name": "netscaler_sdx",
+      "hot": [
+        "netscaler_sdx"
+      ],
+      "cold": [
+        "netscaler_sdx_ext"
+      ],
+      "topology": [
+        "netscaler_sdx_topo"
+      ]
+    },
+    {
+      "name": "netskope_appliance",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "netskope_appliance"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "netskope_appliance_topo"
+      ]
+    },
+    {
+      "name": "nokia_srlinux",
+      "hot": [
+        "if_mib",
+        "nokia_srlinux"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "nokia_srlinux_sensors",
+        "nokia_srlinux_ext"
+      ],
+      "topology": [
+        "nokia_srlinux_topo"
+      ]
+    },
+    {
+      "name": "nortel_ethernet_routing_switch",
+      "hot": [
+        "if_mib",
+        "nortel_ethernet_routing_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "nortel_ethernet_routing_switch_ext"
+      ],
+      "topology": [
+        "nortel_ethernet_routing_switch_topo"
+      ]
+    },
+    {
+      "name": "nutanix",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "nutanix"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "nutanix_ext"
+      ],
+      "topology": [
+        "nutanix_topo"
+      ]
+    },
+    {
+      "name": "omni_access_wlc",
+      "hot": [
+        "if_mib",
+        "omni_access_wlc"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "omni_access_wlc_ext"
+      ],
+      "topology": [
+        "omni_access_wlc_topo"
+      ]
+    },
+    {
+      "name": "omron_cj_ethernet_ip",
+      "hot": [
+        "if_mib",
+        "omron_cj_ethernet_ip"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "omron_cj_ethernet_ip_topo"
+      ]
+    },
+    {
+      "name": "opengear_console_manager",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "opengear_console_manager"
+      ],
+      "cold": [
+        "entity_sensor_mib",
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "opengear_console_manager_ext"
+      ],
+      "topology": [
+        "opengear_console_manager_topo"
+      ]
+    },
+    {
+      "name": "opengear_infrastructure_manager",
+      "hot": [
+        "if_mib",
+        "opengear_infrastructure_manager"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "opengear_infrastructure_manager_sensors",
+        "opengear_infrastructure_manager_ext"
+      ],
+      "topology": [
+        "opengear_infrastructure_manager_topo"
+      ]
+    },
+    {
+      "name": "opnsense_protectli",
+      "hot": [
+        "if_mib",
+        "opnsense_protectli"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "opnsense_protectli_topo"
+      ]
+    },
+    {
+      "name": "palo_alto",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "palo_alto"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "entity_sensor_mib",
+        "host_resources_mib_ext",
+        "palo_alto_ext"
+      ],
+      "topology": [
+        "palo_alto_topo"
+      ]
+    },
+    {
+      "name": "panduit_pdu",
+      "hot": [
+        "panduit_pdu"
+      ],
+      "cold": [
+        "panduit_pdu_ext"
+      ],
+      "topology": [
+        "panduit_pdu_topo"
+      ]
+    },
+    {
+      "name": "peplink",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "peplink"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "peplink_sensors",
+        "peplink_ext"
+      ],
+      "topology": [
+        "peplink_topo"
+      ]
+    },
+    {
+      "name": "pf_sense",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "ucd_mib",
+        "pf_sense"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "pf_sense_topo"
+      ]
+    },
+    {
+      "name": "power_iq",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "power_iq"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "power_iq_ext"
+      ],
+      "topology": [
+        "power_iq_topo"
+      ]
+    },
+    {
+      "name": "pulse_secure",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "ucd_mib",
+        "pulse_secure"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "ucd_mib_ext",
+        "pulse_secure_sensors",
+        "pulse_secure_ext"
+      ],
+      "topology": [
+        "pulse_secure_topo"
+      ]
+    },
+    {
+      "name": "raritan_pdu",
+      "hot": [
+        "raritan_pdu"
+      ],
+      "cold": [
+        "raritan_pdu_sensors",
+        "raritan_pdu_ext"
+      ],
+      "topology": [
+        "raritan_pdu_topo"
+      ]
+    },
+    {
+      "name": "readynas",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "readynas"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "readynas_sensors",
+        "readynas_ext"
+      ],
+      "topology": [
+        "readynas_topo"
+      ]
+    },
+    {
+      "name": "riverbed_interceptor",
+      "hot": [
+        "if_mib",
+        "riverbed_interceptor"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "riverbed_interceptor_ext"
+      ],
+      "topology": [
+        "riverbed_interceptor_topo"
+      ]
+    },
+    {
+      "name": "riverbed_steelhead",
+      "hot": [
+        "if_mib",
+        "riverbed_steelhead"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "riverbed_steelhead_ext"
+      ],
+      "topology": [
+        "riverbed_steelhead_topo"
+      ]
+    },
+    {
+      "name": "roomalert_32s",
+      "hot": [
+        "roomalert_32s"
+      ],
+      "cold": [
+        "roomalert_32s_sensors",
+        "roomalert_32s_ext"
+      ],
+      "topology": [
+        "roomalert_32s_topo"
+      ]
+    },
+    {
+      "name": "roomalert_3e",
+      "hot": [
+        "roomalert_3e"
+      ],
+      "cold": [
+        "roomalert_3e_ext"
+      ],
+      "topology": [
+        "roomalert_3e_topo"
+      ]
+    },
+    {
+      "name": "roomalert_3s",
+      "hot": [
+        "roomalert_3s"
+      ],
+      "cold": [
+        "roomalert_3s_ext"
+      ],
+      "topology": [
+        "roomalert_3s_topo"
+      ]
+    },
+    {
+      "name": "ruckus_unleashed",
+      "hot": [
+        "if_mib",
+        "ruckus_unleashed"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ruckus_unleashed_ext"
+      ],
+      "topology": [
+        "ruckus_unleashed_topo"
+      ]
+    },
+    {
+      "name": "ruckus_wap",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "ruckus_wap"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "ruckus_wap_topo"
+      ]
+    },
+    {
+      "name": "sensor_gateway_base_unit",
+      "hot": [
+        "sensor_gateway_base_unit"
+      ],
+      "cold": [
+        "sensor_gateway_base_unit_ext"
+      ],
+      "topology": [
+        "sensor_gateway_base_unit_topo"
+      ]
+    },
+    {
+      "name": "server_iron_switch",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "server_iron_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext"
+      ],
+      "topology": [
+        "server_iron_switch_topo"
+      ]
+    },
+    {
+      "name": "servertech_pdu3",
+      "hot": [
+        "servertech_pdu3"
+      ],
+      "cold": [
+        "servertech_pdu3_sensors",
+        "servertech_pdu3_ext"
+      ],
+      "topology": [
+        "servertech_pdu3_topo"
+      ]
+    },
+    {
+      "name": "servertech_pdu4",
+      "hot": [
+        "servertech_pdu4"
+      ],
+      "cold": [
+        "servertech_pdu4_ext"
+      ],
+      "topology": [
+        "servertech_pdu4_topo"
+      ]
+    },
+    {
+      "name": "sonicwall",
+      "hot": [
+        "if_mib",
+        "sonicwall"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "sonicwall_ext"
+      ],
+      "topology": [
+        "sonicwall_topo"
+      ]
+    },
+    {
+      "name": "sonicwall_sma",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "sonicwall_sma"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "sonicwall_sma_ext"
+      ],
+      "topology": [
+        "sonicwall_sma_topo"
+      ]
+    },
+    {
+      "name": "tp_link",
+      "hot": [
+        "if_mib",
+        "tp_link"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "tp_link_topo"
+      ]
+    },
+    {
+      "name": "tripplite_pdu",
+      "hot": [
+        "tripplite_pdu"
+      ],
+      "cold": [
+        "tripplite_pdu_sensors",
+        "tripplite_pdu_ext"
+      ],
+      "topology": [
+        "tripplite_pdu_topo"
+      ]
+    },
+    {
+      "name": "tripplite_ups",
+      "hot": [
+        "tripplite_ups"
+      ],
+      "cold": [
+        "ups_mib",
+        "tripplite_ups_sensors",
+        "tripplite_ups_ext"
+      ],
+      "topology": [
+        "tripplite_ups_topo"
+      ]
+    },
+    {
+      "name": "truenas",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "host_resources_mib",
+        "truenas"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext",
+        "host_resources_mib_ext",
+        "truenas_ext"
+      ],
+      "topology": [
+        "truenas_topo"
+      ]
+    },
+    {
+      "name": "unifi_access_point",
+      "hot": [
+        "if_mib",
+        "unifi_access_point"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "unifi_access_point_ext"
+      ],
+      "topology": [
+        "unifi_access_point_topo"
+      ]
+    },
+    {
+      "name": "unifi_security_gateway",
+      "hot": [
+        "if_mib",
+        "ucd_mib",
+        "unifi_security_gateway"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "ucd_mib_ext"
+      ],
+      "topology": [
+        "unifi_security_gateway_topo"
+      ]
+    },
+    {
+      "name": "unifi_switch",
+      "hot": [
+        "if_mib",
+        "unifi_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "unifi_switch_topo"
+      ]
+    },
+    {
+      "name": "univerge",
+      "hot": [
+        "if_mib",
+        "univerge"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "univerge_ext"
+      ],
+      "topology": [
+        "univerge_topo"
+      ]
+    },
+    {
+      "name": "ups",
+      "hot": [
+        "ups"
+      ],
+      "cold": [
+        "ups_mib"
+      ],
+      "topology": [
+        "ups_topo"
+      ]
+    },
+    {
+      "name": "velocloud_edge",
+      "hot": [
+        "if_mib",
+        "host_resources_mib",
+        "velocloud_edge"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext",
+        "velocloud_edge_ext"
+      ],
+      "topology": [
+        "velocloud_edge_topo"
+      ]
+    },
+    {
+      "name": "vertiv_pdu",
+      "hot": [
+        "vertiv_pdu"
+      ],
+      "cold": [
+        "vertiv_pdu_ext"
+      ],
+      "topology": [
+        "vertiv_pdu_topo"
+      ]
+    },
+    {
+      "name": "vertiv_ups",
+      "hot": [
+        "vertiv_ups"
+      ],
+      "cold": [
+        "ups_mib",
+        "vertiv_ups_sensors",
+        "vertiv_ups_ext"
+      ],
+      "topology": [
+        "vertiv_ups_topo"
+      ]
+    },
+    {
+      "name": "vmware_nsx",
+      "hot": [
+        "if_mib",
+        "vmware_nsx"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "vmware_nsx_ext"
+      ],
+      "topology": [
+        "vmware_nsx_topo"
+      ]
+    },
+    {
+      "name": "watchdog",
+      "hot": [
+        "watchdog"
+      ],
+      "cold": [
+        "watchdog_sensors",
+        "watchdog_ext"
+      ],
+      "topology": [
+        "watchdog_topo"
+      ]
+    },
+    {
+      "name": "watchguard",
+      "hot": [
+        "host_resources_mib",
+        "if_mib",
+        "watchguard"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "host_resources_mib_ext"
+      ],
+      "topology": [
+        "watchguard_topo"
+      ]
+    },
+    {
+      "name": "workcentre",
+      "hot": [
+        "if_mib",
+        "workcentre"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "workcentre_ext"
+      ],
+      "topology": [
+        "workcentre_topo"
+      ]
+    },
+    {
+      "name": "xgs_firewall",
+      "hot": [
+        "if_mib",
+        "xgs_firewall"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr",
+        "xgs_firewall_ext"
+      ],
+      "topology": [
+        "xgs_firewall_topo"
+      ]
+    },
+    {
+      "name": "zebra_printer",
+      "hot": [
+        "zebra_printer"
+      ],
+      "cold": [
+        "zebra_printer_ext"
+      ],
+      "topology": [
+        "zebra_printer_topo"
+      ]
+    },
+    {
+      "name": "zscaler_nss",
+      "hot": [
+        "zscaler_nss"
+      ],
+      "cold": [
+        "zscaler_nss_ext"
+      ],
+      "topology": [
+        "zscaler_nss_topo"
+      ]
+    },
+    {
+      "name": "zyxel_switch",
+      "hot": [
+        "if_mib",
+        "zyxel_switch"
+      ],
+      "cold": [
+        "if_mib_meta",
+        "ip_addr"
+      ],
+      "topology": [
+        "zyxel_switch_topo"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { getBackendSrv } from '@grafana/runtime';
 import { lastValueFrom } from 'rxjs';
+import { preserveProfileOverrides } from './deviceOverrides';
 import pluginJson from './plugin.json';
 
 const STORE = 'hub.';
@@ -442,7 +443,19 @@ ${exportTail(collector, logs)}
 
 /** Upsert whichever pipeline this browser has reached, so an ignore does not wipe polling. */
 export async function pushDraft(draft: GroupDraft, choices: CollectChoices): Promise<string> {
-  const river = appliedName() ? pipelineRiver(draft, choices) : discoveryRiver(draft, choices);
+  let river = appliedName() ? pipelineRiver(draft, choices) : discoveryRiver(draft, choices);
+  try {
+    const listed = await fleetCall<{ pipelines?: Array<{ name?: string; contents?: string }> }>(
+      'pipeline.v1.PipelineService/ListPipelines',
+      {}
+    );
+    const current = (listed.pipelines || []).find((item) => item.name === pipelineName(draft.name));
+    if (current?.contents) {
+      river = preserveProfileOverrides(river, current.contents, draft.ignores);
+    }
+  } catch {
+    // First write, or Fleet list failed. The draft still upserts.
+  }
   const name = await upsertPipeline(draft, river);
   if (appliedName()) {
     markApplied(name, riverRevision(river));

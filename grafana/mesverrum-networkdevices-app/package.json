@@ -2,7 +2,7 @@
   "name": "network-devices",
   "version": "0.1.0",
   "scripts": {
-    "build": "webpack -c ./.config/webpack/webpack.config.ts --env production"
+    "build": "npx webpack -c ./.config/webpack/webpack.config.ts --env production"
   },
   "license": "Apache-2.0"
 }

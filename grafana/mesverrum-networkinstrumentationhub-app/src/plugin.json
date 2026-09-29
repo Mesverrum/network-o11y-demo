@@ -102,6 +102,10 @@
           "content": "Bearer {{.JsonData.stackId}}:{{.SecureJsonData.fmToken}}"
         }
       ]
+    },
+    {
+      "path": "canary-http/*",
+      "url": "http://172.17.0.1:12347"
     }
   ],
   "dependencies": {
