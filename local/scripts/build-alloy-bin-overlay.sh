@@ -83,7 +83,7 @@ if [[ "${GO_VER}" == go1.26* ]]; then
   git checkout -- go.mod go.sum collector/go.mod collector/go.sum
   MOD_DIRTY=0
 else
-  build_in_docke
+  build_in_docker
 fi
 
 [[ -f build/alloy ]]
@@ -106,7 +106,7 @@ docker build -t "$TAG" "$WORKDIR"
 docker image inspect "$TAG" --format 'ok {{.Id}} {{.Created}}'
 echo "==> strings check discovery.snmp + otelcol.receiver.syslog + snmp-sd"
 docker run --rm --entrypoint /bin/sh "$TAG" -c '
-  for s in discovery.snmp discovery_snmp_group_info otelcol.receiver.syslog otelcol.receiver.snmptrap Mesverrum/snmp-sd; do
+  for s in discovery.snmp discovery_snmp_group_info otelcol.receiver.syslog otelcol.receiver.snmptrap prometheus.network_topology Mesverrum/snmp-sd; do
     n=$(grep -a -o -F "$s" /bin/alloy | wc -l)
     echo "$s $n"
     test "$n" -gt 0
