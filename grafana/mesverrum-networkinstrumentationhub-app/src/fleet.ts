@@ -23,7 +23,17 @@ export type GroupDraft = {
   description: string;
   cidrs: string[];
   auths: string[];
+  ignores: string[];
 };
+
+// Offset from the lab collector on the same host (1620/11620, 1514/1515, 2055, 6343/6344)
+// so this Alloy can bind without taking those sockets.
+export const LISTEN = {
+  traps: 11621,
+  syslog: 1516,
+  netflow: 2056,
+  sflow: 6345,
+} as const;
 
 export function readDraft(): GroupDraft {
   return {
@@ -32,7 +42,16 @@ export function readDraft(): GroupDraft {
     description: sessionStorage.getItem(STORE + 'description') || 'Instrumentation Hub canary',
     cidrs: (sessionStorage.getItem(STORE + 'cidrs') || '172.20.20.0/24').split('\n').filter(Boolean),
     auths: readAuths(),
+    ignores: readIgnores(),
   };
+}
+
+function readIgnores(): string[] {
+  return (sessionStorage.getItem(STORE + 'ignores') || '')
+    .split(/[\s,]+/)
+    .map((ip) => ip.trim())
+    .filter(Boolean)
+    .sort();
 }
 
 function readAuths(): string[] {
@@ -50,6 +69,7 @@ export function writeDraft(draft: GroupDraft) {
   sessionStorage.setItem(STORE + 'description', draft.description);
   sessionStorage.setItem(STORE + 'cidrs', draft.cidrs.join('\n'));
   sessionStorage.setItem(STORE + 'auths', draft.auths.join('\n'));
+  sessionStorage.setItem(STORE + 'ignores', [...draft.ignores].sort().join('\n'));
 }
 
 export type CollectChoices = {
@@ -286,8 +306,26 @@ export function refreshInterval(rescan: boolean): string {
   return rescan ? '24h' : '8760h';
 }
 
+const IPV4_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+export function validateAddress(address: string): string | null {
+  if (!IPV4_RE.test(address)) {
+    return `${address} is not an IPv4 address.`;
+  }
+  return null;
+}
+
 function discoveryBlock(draft: GroupDraft, choices: CollectChoices): string {
   const cidrs = draft.cidrs.map(alloyString).join(', ');
+  const ignores = [...draft.ignores].filter((ip) => !validateAddress(ip)).sort();
+  const overrides = ignores
+    .map(
+      (ip) => `  override {
+    address = ${alloyString(ip)}
+    ignore  = true
+  }`
+    )
+    .join('\n');
   return `discovery.snmp "hub" {
   refresh_interval = "${refreshInterval(choices.rescan)}"
   state_path       = "/var/lib/alloy/data/hub-discovery.state.json"
@@ -299,6 +337,7 @@ function discoveryBlock(draft: GroupDraft, choices: CollectChoices): string {
     cidrs       = [${cidrs}]
     auths       = [${draft.auths.map(alloyString).join(', ')}]
   }
+${overrides}
 }`;
 }
 
@@ -316,7 +355,7 @@ const SELF_METRICS = [
   'alloy_build_info',
 ].join('|');
 
-function exportTail(collector: string): string {
+function exportTail(collector: string, logs: boolean): string {
   return `otelcol.receiver.prometheus "hub" {
   output {
     metrics = [otelcol.processor.batch.hub.input]
@@ -345,7 +384,7 @@ prometheus.relabel "hub_self" {
 
   rule {
     source_labels = ["__name__"]
-    regex         = "${SELF_METRICS}"
+    regex         = "${SELF_METRICS}|otelcol_receiver_accepted_log_records_total|otelcol_receiver_refused_log_records_total"
     action        = "keep"
   }
 }
@@ -359,7 +398,7 @@ prometheus.scrape "hub_self" {
 otelcol.processor.batch "hub" {
   output {
     metrics = [otelcol.exporter.otlphttp.hub.input]
-  }
+${logs ? '    logs    = [otelcol.exporter.otlphttp.hub.input]\n' : ''}  }
 }
 
 otelcol.auth.basic "hub" {
@@ -381,13 +420,14 @@ export function discoveryRiver(draft: GroupDraft, choices: CollectChoices = read
   return stampRevision(`// Discovery only. Written by the Network Instrumentation Hub for ${draft.collectorId}.
 ${discoveryBlock(draft, choices)}
 
-${exportTail(collector)}
+${exportTail(collector, false)}
 `);
 }
 
 /** River fragment Fleet will deliver to the one collector this group is matched to. */
 export function pipelineRiver(draft: GroupDraft, choices: CollectChoices = readChoices()): string {
   const collector = alloyString(draft.collectorId);
+  const logs = choices.traps || choices.syslog;
   return stampRevision(`// Written by the Network Instrumentation Hub. Matched only to ${draft.collectorId}.
 ${discoveryBlock(draft, choices)}
 
@@ -395,8 +435,230 @@ ${tierScrape('hot', '60s', '55s', collector)}
 
 ${tierScrape('cold', '5m', '4m', collector)}
 ${choices.neighbors ? `\n${topologyBlock(collector)}\n` : ''}
-${exportTail(collector)}
+${listenersBlock(choices, collector)}
+${exportTail(collector, logs)}
 `);
+}
+
+/** Upsert whichever pipeline this browser has reached, so an ignore does not wipe polling. */
+export async function pushDraft(draft: GroupDraft, choices: CollectChoices): Promise<string> {
+  const river = appliedName() ? pipelineRiver(draft, choices) : discoveryRiver(draft, choices);
+  const name = await upsertPipeline(draft, river);
+  if (appliedName()) {
+    markApplied(name, riverRevision(river));
+  } else {
+    markDiscovery(name);
+  }
+  return name;
+}
+
+const otel = (statement: string) => '`' + statement + '`';
+
+function listenersBlock(choices: CollectChoices, collector: string): string {
+  const any = choices.traps || choices.syslog || choices.netflow || choices.sflow;
+  if (!any) {
+    return '';
+  }
+  const setService = (name: string) => otel('set(attributes["service.name"], "' + name + '")');
+  const setCollector = otel('set(attributes["collector"], ' + collector + ')');
+  const setLocal = otel(
+    'set(attributes["network.local.address"], attributes["source.address"]) where attributes["source.address"] != nil'
+  );
+  const setPeer = otel(
+    'set(attributes["network.peer.address"], attributes["destination.address"]) where attributes["destination.address"] != nil'
+  );
+  const setIntegration = otel('set(datapoint.attributes["integration"], "alloy-netflow")');
+  const parts = [
+    `// Listeners. Ports are offset from the lab collector so both can bind on one host.
+discovery.relabel "hub_join" {
+  targets = discovery.snmp.hub.targets
+
+  rule {
+    source_labels = ["snmp_tier"]
+    regex         = "hot"
+    action        = "keep"
+  }
+}`,
+  ];
+  if (choices.traps) {
+    parts.push(`otelcol.receiver.snmptrap "hub_traps" {
+  listen_address = "0.0.0.0:${LISTEN.traps}"
+  targets        = discovery.relabel.hub_join.output
+
+  attributes = {
+    job       = "snmptrap",
+    collector = ${collector},
+  }
+
+  output {
+    logs = [otelcol.processor.transform.hub_traps.input]
+  }
+}
+
+otelcol.processor.transform "hub_traps" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "resource"
+    statements = [
+      ${setService('alloy-snmptrap')},
+      ${setCollector},
+    ]
+  }
+
+  output {
+    logs = [otelcol.processor.batch.hub.input]
+  }
+}`);
+  }
+  if (choices.syslog) {
+    parts.push(`otelcol.receiver.syslog "hub_syslog" {
+  protocol              = "none"
+  allow_skip_pri_header = true
+  on_error              = "send"
+  targets               = discovery.relabel.hub_join.output
+
+  udp {
+    listen_address = "0.0.0.0:${LISTEN.syslog}"
+    add_attributes = true
+  }
+
+  output {
+    logs = [otelcol.processor.transform.hub_syslog.input]
+  }
+}
+
+otelcol.processor.transform "hub_syslog" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "resource"
+    statements = [
+      ${setService('alloy-syslog')},
+      ${setCollector},
+    ]
+  }
+
+  output {
+    logs = [otelcol.processor.batch.hub.input]
+  }
+}`);
+  }
+  if (choices.netflow || choices.sflow) {
+    const receivers: string[] = [];
+    if (choices.netflow) {
+      receivers.push(`otelcol.receiver.netflow "hub_netflow" {
+  scheme              = "netflow"
+  hostname            = "0.0.0.0"
+  port                = ${LISTEN.netflow}
+  targets             = discovery.relabel.hub_join.output
+  udp_host_cache_size = 1024
+
+  output {
+    logs = [otelcol.processor.transform.hub_flow.input]
+  }
+}`);
+    }
+    if (choices.sflow) {
+      receivers.push(`otelcol.receiver.netflow "hub_sflow" {
+  scheme              = "sflow"
+  hostname            = "0.0.0.0"
+  port                = ${LISTEN.sflow}
+  targets             = discovery.relabel.hub_join.output
+  udp_host_cache_size = 1024
+
+  output {
+    logs = [otelcol.processor.transform.hub_flow.input]
+  }
+}`);
+    }
+    parts.push(`${receivers.join('\n\n')}
+
+otelcol.processor.transform "hub_flow" {
+  error_mode = "ignore"
+
+  log_statements {
+    context = "resource"
+    statements = [
+      ${setService('alloy-netflow')},
+      ${setCollector},
+    ]
+  }
+
+  log_statements {
+    context = "log"
+    statements = [
+      ${setLocal},
+      ${setPeer},
+    ]
+  }
+
+  output {
+    logs = [otelcol.connector.signaltometrics.hub_flow.input]
+  }
+}
+
+otelcol.connector.signaltometrics "hub_flow" {
+  error_mode = "ignore"
+
+  logs {
+    name        = "alloy.network.io.by_flow"
+    description = "Bytes observed in decoded NetFlow, IPFIX, and sFlow records"
+    unit        = "By"
+    include_resource_attributes {
+      key = "service.name"
+    }
+    include_resource_attributes {
+      key = "collector"
+    }
+    attributes {
+      key = "flow.sampler_address"
+    }
+    attributes {
+      key = "network.local.address"
+      optional = true
+    }
+    attributes {
+      key = "network.peer.address"
+      optional = true
+    }
+    attributes {
+      key = "device_name"
+      optional = true
+    }
+    sum { value = "Int(attributes[\\"flow.io.bytes\\"])" }
+  }
+
+  output {
+    metrics = [otelcol.processor.deltatocumulative.hub_flow.input]
+  }
+}
+
+otelcol.processor.deltatocumulative "hub_flow" {
+  max_stale   = "5m"
+  max_streams = 100000
+
+  output {
+    metrics = [otelcol.processor.transform.hub_flow_metrics.input]
+  }
+}
+
+otelcol.processor.transform "hub_flow_metrics" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      ${setIntegration},
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.hub.input]
+  }
+}`);
+  }
+  return parts.join('\n\n') + '\n';
 }
 
 // Neighbor walks stay on the collector. prometheus.network_topology reconciles them
@@ -578,7 +840,7 @@ export async function liveChecks(draft: GroupDraft, choices: CollectChoices): Pr
   const controller = `controller_id="${promLabel(pipelineName(draft.name))}.default"`;
   const expected = appliedRevision();
   const want = expected.revision || riverRevision(pipelineRiver(draft, choices));
-  const [running, loaded, polled, failures, healthy, unhealthy, devices, groupInfo, hotUp, hotAll, coldUp, coldAll, coldAge, edges] =
+  const [running, loaded, polled, failures, healthy, unhealthy, devices, groupInfo, hotUp, hotAll, coldUp, coldAll, coldAge, edges, trapsIn, syslogIn, netflowIn, sflowIn, flowSeries] =
     await Promise.all([
       promQuery(`count by (hub_revision) (discovery_snmp_group_info{${c},${g}})`),
       promScalar(`max(remotecfg_last_load_successful{${c}})`),
@@ -596,6 +858,11 @@ export async function liveChecks(draft: GroupDraft, choices: CollectChoices): Pr
       promScalar(`count(up{job="alloy-snmp",${c},snmp_tier="cold"}) or vector(0)`),
       promScalar(`time() - max(timestamp(snmp_ifInErrors{job="alloy-snmp",${c}}))`),
       promScalar(`count(network_topology_edge_info{${c}}) or vector(0)`),
+      promScalar(`sum(increase(otelcol_receiver_accepted_log_records_total{${c},receiver=~".*hub_traps.*"}[15m]))`),
+      promScalar(`sum(increase(otelcol_receiver_accepted_log_records_total{${c},receiver=~".*hub_syslog.*"}[15m]))`),
+      promScalar(`sum(increase(otelcol_receiver_accepted_log_records_total{${c},receiver=~".*hub_netflow.*"}[15m]))`),
+      promScalar(`sum(increase(otelcol_receiver_accepted_log_records_total{${c},receiver=~".*hub_sflow.*"}[15m]))`),
+      promScalar(`count(alloy_network_io_by_flow_bytes{${c},integration="alloy-netflow"})`),
     ]);
 
   const revisions = running.map((row) => row.metric?.hub_revision || 'an older unstamped pipeline');
@@ -680,6 +947,42 @@ export async function liveChecks(draft: GroupDraft, choices: CollectChoices): Pr
       : 'Neighbor walks run every 15 minutes. The first links show after that.',
     dashboard: DASHBOARDS.arriving,
   });
+  const listener = (id: string, label: string, on: boolean, port: number, accepted: number | null, extra: number | null): LiveCheck => {
+    if (!on) {
+      return { id, label, state: 'off', detail: 'Off', dashboard: DASHBOARDS.arriving };
+    }
+    const arrived = (accepted ?? 0) > 0 || (extra ?? 0) > 0;
+    if (arrived) {
+      const bits = [`UDP ${port}`];
+      if ((accepted ?? 0) > 0) {
+        bits.push(`${Math.round(accepted ?? 0)} records in 15m`);
+      }
+      if ((extra ?? 0) > 0) {
+        bits.push(`${extra} flow series`);
+      }
+      return { id, label, state: 'ok', detail: bits.join('. ') + '.', dashboard: DASHBOARDS.arriving };
+    }
+    if ((unhealthy ?? 0) > 0 && accepted === null) {
+      return {
+        id,
+        label,
+        state: 'problem',
+        detail: `Nothing on UDP ${port}, and the pipeline has an unhealthy component. A port already in use fails the bind.`,
+        dashboard: DASHBOARDS.arriving,
+      };
+    }
+    return {
+      id,
+      label,
+      state: 'waiting',
+      detail: `Listening on UDP ${port}. Nothing received yet. Point the device at ${draft.collectorId}.`,
+      dashboard: DASHBOARDS.arriving,
+    };
+  };
+  checks.push(listener('traps', 'Alarms (SNMP traps)', choices.traps, LISTEN.traps, trapsIn, null));
+  checks.push(listener('syslog', 'Device logs (syslog)', choices.syslog, LISTEN.syslog, syslogIn, null));
+  checks.push(listener('netflow', 'NetFlow and IPFIX', choices.netflow, LISTEN.netflow, netflowIn, flowSeries));
+  checks.push(listener('sflow', 'sFlow', choices.sflow, LISTEN.sflow, sflowIn, flowSeries));
   return checks;
 }
 

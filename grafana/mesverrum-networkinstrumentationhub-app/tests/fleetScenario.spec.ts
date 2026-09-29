@@ -22,5 +22,16 @@ test.describe('fleet scenario', () => {
     await expect(page.getByRole('row', { name: /Health and traffic/ })).toContainText('Receiving', {
       timeout: 5 * 60 * 1000,
     });
+    await expect(page.getByRole('row', { name: /Alarms/ })).toContainText(/Listening on UDP 11621|Receiving/);
+    await expect(page.getByRole('row', { name: /Device logs/ })).toContainText(/Listening on UDP 1516|Receiving/);
+
+    await gotoPage('/found');
+    const ignore = page.getByRole('button', { name: 'Ignore' }).first();
+    await expect(ignore).toBeVisible({ timeout: 60000 });
+    await ignore.click();
+    await expect(page.getByRole('heading', { name: 'Ignored' })).toBeVisible();
+    await expect(page.getByText('Fleet has the ignore')).toBeVisible({ timeout: 30000 });
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect(page.getByText('is back in the scan')).toBeVisible({ timeout: 30000 });
   });
 });

@@ -16,7 +16,7 @@ export const STEPS = [
   {
     id: 'found',
     title: 'What we found',
-    body: 'Devices that answered, from discovery_snmp_device_info.',
+    body: 'Devices that answered. Ignore drops an address from the catalog.',
   },
   {
     id: 'collect',
@@ -26,11 +26,11 @@ export const STEPS = [
   {
     id: 'apply',
     title: 'Apply',
-    body: 'Dry run. Shows the settings that would go to that one collector. Nothing is written yet.',
+    body: 'Writes the long-term pipeline, including any listeners you turned on, to that one collector.',
   },
   {
     id: 'receiving',
     title: 'Receiving',
-    body: 'Polling goes ready after Apply. Alarms, logs, and traffic stay listening until the device sends them. Devices are a separate app.',
+    body: 'Confirms polled metrics and, for each listener, whether records are arriving. Devices are a separate app.',
   },
 ] as const;

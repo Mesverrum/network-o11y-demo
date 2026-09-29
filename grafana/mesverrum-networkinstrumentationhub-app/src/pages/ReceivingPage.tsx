@@ -55,13 +55,6 @@ function ReceivingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const listeners: Array<[string, boolean]> = [
-    ['Alarms (traps, port 1620)', choices.traps],
-    ['Device logs (syslog, port 1514)', choices.syslog],
-    ['NetFlow and IPFIX (port 2055)', choices.netflow],
-    ['sFlow', choices.sflow],
-  ];
-
   return (
     <HubFrame
       stepId="receiving"
@@ -105,16 +98,6 @@ function ReceivingPage() {
                   Dashboard
                 </LinkButton>
               </td>
-            </tr>
-          ))}
-          {listeners.map(([label, on]) => (
-            <tr key={label}>
-              <td>{label}</td>
-              <td>
-                <Badge text={on ? 'Not in pipeline' : 'Off'} color={on ? 'orange' : ('darkgrey' as BadgeColor)} />
-              </td>
-              <td>{on ? 'Chosen. This Apply does not add the listener yet.' : 'Off'}</td>
-              <td />
             </tr>
           ))}
         </tbody>

@@ -10,7 +10,9 @@ Datasources: `python3 local/scripts/provision-hub-aws-datasources.py` adds netwo
 
 ## Is the Fleet config working?
 
-The hub pipeline ships its own proof, labeled `collector="<id>"`: `discovery_snmp_*`, `remotecfg_*`, `alloy_component_controller_running_components`, `alloy_build_info`, plus the hot/cold `snmp_*` scrapes (`job="alloy-snmp"`, `snmp_tier`) and `network_topology_*`. Every pipeline is stamped with a content hash (`hub_revision` on its self-metrics). Receiving compares the running hash with the one Apply sent, so a collector that rejects a new pipeline (it logs `failed to parse and load new remote configuration` and keeps the old one, while `remotecfg_last_load_successful` stays 1) shows as a problem instead of green.
+The hub pipeline ships its own proof, labeled `collector="<id>"`: `discovery_snmp_*`, `remotecfg_*`, `alloy_component_controller_running_components`, `alloy_build_info`, plus the hot/cold `snmp_*` scrapes (`job="alloy-snmp"`, `snmp_tier`) and `network_topology_*`. Apply also opens the listeners that were switched on: traps UDP 11621, syslog UDP 1516, NetFlow UDP 2056, sFlow UDP 6345. Those ports sit off the lab collector so both can bind on one host. Traps and syslog go out as logs. Flow is converted to `alloy.network.io.by_flow`.
+
+What we found can ignore an address. That writes a `discovery.snmp` `override { ignore = true }` into the pipeline already on the collector (the discovery pipeline before Apply, the full one after) and Fleet pushes it. The collector rescans on load and drops the address from the catalog. Every pipeline is stamped with a content hash (`hub_revision` on its self-metrics). Receiving compares the running hash with the one Apply sent, so a collector that rejects a new pipeline (it logs `failed to parse and load new remote configuration` and keeps the old one, while `remotecfg_last_load_successful` stays 1) shows as a problem instead of green.
 
 | Dashboard | UID | Answers |
 |---|---|---|

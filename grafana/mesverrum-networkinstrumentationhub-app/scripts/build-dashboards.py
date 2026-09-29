@@ -319,7 +319,15 @@ def arriving() -> dict:
         ts("Scrape duration", [
             target(f"max by (snmp_tier) (scrape_duration_seconds{{{snmp}}})", "{{snmp_tier}}"),
         ], 12, 23, unit="s"),
-        table("Neighbor links", f"network_topology_edge_info{{{C}}}", 0, 31,
+        ts("Records received", [
+            target(f'sum by (receiver) (increase(otelcol_receiver_accepted_log_records_total{{{C}}}[15m]))',
+                   "{{receiver}}"),
+        ], 0, 31, h=7, unit="short",
+           desc="Traps, syslog, and flow listeners. Zero means the socket is up and no device has sent anything."),
+        ts("Flow bytes/s", [
+            target(f'sum(rate(alloy_network_io_by_flow_bytes{{{C},integration="alloy-netflow"}}[5m]))', "flow"),
+        ], 12, 31, h=7, unit="Bps"),
+        table("Neighbor links", f"network_topology_edge_info{{{C}}}", 0, 38,
               ["src_device", "src_port", "dst_device", "dst_port", "discovery_proto", "evidence"],
               {"src_device": "From", "src_port": "Port", "dst_device": "To", "dst_port": "Peer port",
                "discovery_proto": "Via", "evidence": "Evidence"}, h=8),

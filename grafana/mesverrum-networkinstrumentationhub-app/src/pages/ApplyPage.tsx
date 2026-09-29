@@ -12,6 +12,7 @@ import {
   pipelineRiver,
   discoveryName,
   readChoices,
+  LISTEN,
   readDraft,
   riverRevision,
   validateDraft,
@@ -95,10 +96,11 @@ function ApplyPage() {
         <li>{`Ranges ${draft.cidrs.join(', ') || 'none'}. Logins, in try order: ${draft.auths.join(', ') || 'none'}.`}</li>
         <li>Health and traffic every minute. Names and errors every 5 minutes.</li>
         <li>{choices.neighbors ? 'Neighbor topology on.' : 'Neighbor topology off.'}</li>
-        <li>{choices.traps ? 'Alarms stay listening on port 1620 until the device is pointed there.' : 'Alarms off.'}</li>
-        <li>{choices.syslog ? 'Device logs stay listening on port 1514.' : 'Device logs off.'}</li>
-        <li>{choices.netflow ? 'NetFlow and IPFIX stay listening on port 2055.' : 'NetFlow and IPFIX off.'}</li>
-        <li>{choices.sflow ? 'sFlow stays listening on its own port.' : 'sFlow off.'}</li>
+        <li>{draft.ignores.length ? `Ignored addresses: ${draft.ignores.join(', ')}.` : 'No addresses ignored.'}</li>
+        <li>{choices.traps ? `Alarms listen on UDP ${LISTEN.traps}. Point each device at the collector.` : 'Alarms off.'}</li>
+        <li>{choices.syslog ? `Device logs listen on UDP ${LISTEN.syslog}.` : 'Device logs off.'}</li>
+        <li>{choices.netflow ? `NetFlow and IPFIX listen on UDP ${LISTEN.netflow}.` : 'NetFlow and IPFIX off.'}</li>
+        <li>{choices.sflow ? `sFlow listens on UDP ${LISTEN.sflow}.` : 'sFlow off.'}</li>
       </ul>
       {river && (
         <details>

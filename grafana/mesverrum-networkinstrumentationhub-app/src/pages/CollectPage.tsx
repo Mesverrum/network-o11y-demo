@@ -5,7 +5,7 @@ import { RadioButtonGroup, useStyles2 } from '@grafana/ui';
 import { useNavigate } from 'react-router-dom';
 import { HelpButton, HubFrame } from '../components/HubFrame';
 import { PLUGIN_BASE_URL } from '../constants';
-import { CollectChoices, readChoices, writeChoices } from '../fleet';
+import { CollectChoices, LISTEN, readChoices, writeChoices } from '../fleet';
 
 type ChoiceKey = 'neighbors' | 'traps' | 'syslog' | 'netflow' | 'sflow';
 
@@ -22,25 +22,25 @@ const LISTENING: Array<{ key: ChoiceKey; title: string; detail: string; help: st
   {
     key: 'traps',
     title: 'Alarms (SNMP traps)',
-    detail: 'Instant alarms from the device, like a port going down. The device is pointed at port 1620.',
+    detail: `Instant alarms from the device, like a port going down. Point the device at UDP ${LISTEN.traps}.`,
     help: 'traps',
   },
   {
     key: 'syslog',
     title: 'Device logs (syslog)',
-    detail: 'A copy of the device’s running log. The device is pointed at port 1514.',
+    detail: `A copy of the device’s running log. Point the device at UDP ${LISTEN.syslog}.`,
     help: 'syslog',
   },
   {
     key: 'netflow',
     title: 'NetFlow and IPFIX',
-    detail: 'Who talked to whom. v5, v9, and IPFIX share one listener. Point the device at port 2055.',
+    detail: `Who talked to whom. v5, v9, and IPFIX share one listener. Point the device at UDP ${LISTEN.netflow}.`,
     help: 'netflow',
   },
   {
     key: 'sflow',
     title: 'sFlow',
-    detail: 'The same kind of record, in a different format. It needs its own listener. Point the device at port 6343.',
+    detail: `The same kind of record, in a different format. It needs its own listener. Point the device at UDP ${LISTEN.sflow}.`,
     help: 'sflow',
   },
 ];

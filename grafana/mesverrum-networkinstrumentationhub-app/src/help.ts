@@ -55,23 +55,23 @@ export const HELP: Record<string, HelpEntry> = {
   },
   ports: {
     title: 'Why these port numbers?',
-    body: 'The traditional ports are 162 and 514. A normal user account cannot listen below 1024, and Alloy should not run as an administrator. The collector listens on 1620 and 1514. When you point the device, include that port.',
+    body: 'The traditional ports are 162 and 514. A normal user account cannot listen below 1024, and Alloy should not run as an administrator. This collector listens on 11621 for alarms, 1516 for logs, 2056 for NetFlow and IPFIX, and 6345 for sFlow. Those sit one step off the lab collector, which already holds 1620, 1514, 2055, and 6344 on the same host. When you point the device, include that port.',
   },
   traps: {
     title: 'SNMP traps',
-    body: 'A trap is an alarm the device sends the moment something happens, like a port going down. The collector listens on port 1620. Someone still has to point the device at it.',
+    body: 'A trap is an alarm the device sends the moment something happens, like a port going down. Apply turns the listener on at UDP 11621. Someone still has to point the device at it.',
   },
   syslog: {
     title: 'Syslog',
-    body: 'The running log the device keeps. The collector listens on port 1514. The device has to be told to send there.',
+    body: 'The running log the device keeps. Apply turns the listener on at UDP 1516. The device has to be told to send there.',
   },
   netflow: {
     title: 'NetFlow and IPFIX',
-    body: 'These are three ways to say who talked to whom. One listener understands all three, on UDP port 2055. Not every device sends them, and it is more data than the other options, so it starts off.',
+    body: 'These are three ways to say who talked to whom. One listener understands all three, on UDP 2056. Not every device sends them, and it is more data than the other options, so it starts off. Apply is what turns the listener on.',
   },
   sflow: {
     title: 'sFlow',
-    body: 'sFlow answers the same question, but the collector cannot read it on the NetFlow port. It is a separate listener. The usual port is 6343. On this lab the Alloy collector uses 6344, because 6343 is already taken by the other collector.',
+    body: 'sFlow answers the same question, but the collector cannot read it on the NetFlow port. It is a separate listener on UDP 6345. The usual port is 6343, and the lab Alloy already uses 6344.',
   },
   apply: {
     title: 'What happens when I click Apply?',
