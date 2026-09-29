@@ -13,6 +13,7 @@ import {
   discoveryName,
   readChoices,
   readDraft,
+  riverRevision,
   validateDraft,
 } from '../fleet';
 
@@ -42,7 +43,7 @@ function ApplyPage() {
       },
     })
       .then(() => {
-        markApplied(name);
+        markApplied(name, riverRevision(river));
         setResult(name);
       })
       .catch((err: unknown) => {

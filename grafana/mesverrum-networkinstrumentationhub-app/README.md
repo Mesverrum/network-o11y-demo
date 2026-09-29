@@ -1,10 +1,24 @@
 # Network Instrumentation Hub
 
-Unsigned Grafana app. The pages are the walkthrough: Collector, Add a group, What we found, What to collect, Apply, Receiving, Devices. Apply does not write Fleet.
+Unsigned Grafana app. The pages are the walkthrough: Collector, Add a group, What we found, What to collect, Apply, Receiving, Devices. Apply upserts the Fleet pipeline `hub_<group>` matched to `collector.ID="<collector>"`.
 
-This app loads in the Docker Grafana that `docker compose up` starts in this folder (`http://localhost:3000`). Grafana Cloud will not load it. Cloud only runs signed catalog plugins, and `GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS` is a setting on Grafana you run yourself.
+Grafana Cloud will not load it. Cloud only runs signed catalog plugins, and `GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS` is a setting on Grafana you run yourself.
 
-To read the lab's Cloud metrics from this local Grafana, add a Prometheus datasource aimed at the stack the collectors already write. The group note series is `discovery_snmp_group_info`.
+The running test Grafana is `hub-grafana` on the colocated EC2, exposed on the NetBox NLB `:3000` (`python3 local/scripts/hub-ui-expose.py`). Build and deploy there, not on a laptop: `python3 local/scripts/hub-app-ship.py` tars the source to S3, typechecks and builds on the host in `node:22`, restarts `hub-grafana`, and imports the bundled dashboards. `--e2e` also runs `tests/fleetScenario.spec.ts` in a Playwright container on the host; it clicks Apply (a real Fleet write for `hub-canary`) and waits for Receiving to go green.
+
+Datasources: `python3 local/scripts/provision-hub-aws-datasources.py` adds networko11ydev (`grafanacloud-prom` default, `grafanacloud-logs`, `grafanacloud-traces`, `GRAFANA_TOKEN_2`) and marcnetterfield1 (`mf1-prom`, `mf1-logs`, `GRAFANA_TOKEN`). `hub-canary` exports to marcnetterfield1, so the dashboards default to `mf1-prom`.
+
+## Is the Fleet config working?
+
+The hub pipeline ships its own proof, labeled `collector="<id>"`: `discovery_snmp_*`, `remotecfg_*`, `alloy_component_controller_running_components`, `alloy_build_info`, plus the hot/cold `snmp_*` scrapes (`job="alloy-snmp"`, `snmp_tier`) and `network_topology_*`. Every pipeline is stamped with a content hash (`hub_revision` on its self-metrics). Receiving compares the running hash with the one Apply sent, so a collector that rejects a new pipeline (it logs `failed to parse and load new remote configuration` and keeps the old one, while `remotecfg_last_load_successful` stays 1) shows as a problem instead of green.
+
+| Dashboard | UID | Answers |
+|---|---|---|
+| Hub 1 · Fleet rollout | `hub-fleet-rollout` | Config loaded, last good load, failed loads, pipeline component health, running revision, Alloy build |
+| Hub 2 · Discovery | `hub-discovery` | Group echoed back, devices found (with login and sysObjectID), targets by tier, scans and login failures |
+| Hub 3 · Data arriving | `hub-data-arriving` | Hot/cold poll success per device, last cold sample, CPU, traffic, errors, neighbor links |
+
+Dashboard JSON is generated: edit `scripts/build-dashboards.py`, then run it.
 
 # Grafana app plugin template
 

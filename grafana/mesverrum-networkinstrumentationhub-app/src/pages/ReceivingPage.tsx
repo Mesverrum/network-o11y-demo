@@ -1,20 +1,65 @@
-import React from 'react';
-import { Alert } from '@grafana/ui';
+import React, { useEffect, useState } from 'react';
+import { Alert, Badge, BadgeColor, LinkButton } from '@grafana/ui';
 import { HubFrame } from '../components/HubFrame';
-import { appliedName, readChoices, readDraft } from '../fleet';
+import {
+  CheckState,
+  DASHBOARDS,
+  LiveCheck,
+  appliedName,
+  dashboardUrl,
+  liveChecks,
+  readChoices,
+  readDraft,
+} from '../fleet';
+
+const POLL_MS = 15000;
+
+const BADGE: Record<CheckState, { text: string; color: BadgeColor }> = {
+  ok: { text: 'Receiving', color: 'green' },
+  waiting: { text: 'Waiting', color: 'blue' },
+  problem: { text: 'Check this', color: 'red' },
+  off: { text: 'Off', color: 'darkgrey' as BadgeColor },
+};
 
 function ReceivingPage() {
   const draft = readDraft();
   const choices = readChoices();
   const applied = appliedName();
-  const rows: Array<[string, string]> = [
-    ['Health and traffic', applied ? 'The collector picks this up within a minute.' : 'Waiting for Apply.'],
-    ['Names and errors', applied ? 'Arriving every 5 minutes.' : 'Waiting for Apply.'],
-    ['Neighbor topology', choices.neighbors ? 'Chosen. Not sent in this apply yet.' : 'Off'],
-    ['Alarms', choices.traps ? 'Listening on port 1620 once the listener is on the collector.' : 'Off'],
-    ['Device logs', choices.syslog ? 'Listening on port 1514 once the listener is on the collector.' : 'Off'],
-    ['NetFlow and IPFIX', choices.netflow ? 'Listening on port 2055 once that listener is on the collector.' : 'Off'],
-    ['sFlow', choices.sflow ? 'Listening on its own port once that listener is on the collector.' : 'Off'],
+  const [checks, setChecks] = useState<LiveCheck[]>([]);
+  const [error, setError] = useState('');
+  const [updated, setUpdated] = useState('');
+
+  useEffect(() => {
+    let cancel = false;
+    const run = () =>
+      liveChecks(draft, choices)
+        .then((rows) => {
+          if (!cancel) {
+            setChecks(rows);
+            setError('');
+            setUpdated(new Date().toLocaleTimeString());
+          }
+        })
+        .catch((err: unknown) => {
+          if (!cancel) {
+            setError(err instanceof Error ? err.message : 'The stack did not answer.');
+          }
+        });
+    run();
+    const timer = window.setInterval(run, POLL_MS);
+    return () => {
+      cancel = true;
+      window.clearInterval(timer);
+    };
+    // The draft lives in sessionStorage and does not change while this page is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const listeners: Array<[string, boolean]> = [
+    ['Alarms (traps, port 1620)', choices.traps],
+    ['Device logs (syslog, port 1514)', choices.syslog],
+    ['NetFlow and IPFIX (port 2055)', choices.netflow],
+    ['sFlow', choices.sflow],
   ];
 
   return (
@@ -22,37 +67,70 @@ function ReceivingPage() {
       stepId="receiving"
       title="Receiving"
       helpId="listening"
-      intro="This is the end of discovery. Listening means the collector is ready and waiting for the device to send. Devices you come back to live in their own app."
+      intro={`Live from the stack ${draft.collectorId} writes to. Refreshes every 15 seconds.`}
       continueLabel="Open devices"
       onContinue={() => {
         window.location.assign('/a/mesverrum-networkdevices-app');
       }}
     >
-      {applied ? (
-        <Alert title="Fleet has the group" severity="success">
-          {`${applied} is on ${draft.collectorId}. The note comes back as discovery_snmp_group_info in marcnetterfield1.`}
-        </Alert>
-      ) : (
-        <Alert title="Not applied yet" severity="warning">
-          Go back to Apply. Nothing is being polled for this group until you do.
+      {!applied && (
+        <Alert title="Not applied in this browser" severity="info">
+          {`This page still reads live data for ${draft.name} on ${draft.collectorId}. Apply from this browser to change what it polls.`}
         </Alert>
       )}
-      <table>
+      {error && (
+        <Alert title="Could not read the stack" severity="error">
+          {error}
+        </Alert>
+      )}
+      <table style={{ width: '100%' }}>
         <thead>
           <tr>
             <th>What</th>
             <th>Now</th>
+            <th>Detail</th>
+            <th />
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row[0]}>
-              <td>{row[0]}</td>
-              <td>{row[1]}</td>
+          {checks.map((check) => (
+            <tr key={check.id}>
+              <td>{check.label}</td>
+              <td>
+                <Badge text={BADGE[check.state].text} color={BADGE[check.state].color} />
+              </td>
+              <td>{check.detail}</td>
+              <td>
+                <LinkButton size="sm" variant="secondary" fill="text" href={dashboardUrl(check.dashboard, draft)}>
+                  Dashboard
+                </LinkButton>
+              </td>
+            </tr>
+          ))}
+          {listeners.map(([label, on]) => (
+            <tr key={label}>
+              <td>{label}</td>
+              <td>
+                <Badge text={on ? 'Not in pipeline' : 'Off'} color={on ? 'orange' : ('darkgrey' as BadgeColor)} />
+              </td>
+              <td>{on ? 'Chosen. This Apply does not add the listener yet.' : 'Off'}</td>
+              <td />
             </tr>
           ))}
         </tbody>
       </table>
+      <p>{updated ? `Updated ${updated}.` : 'Reading…'}</p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <LinkButton variant="secondary" href={dashboardUrl(DASHBOARDS.rollout, draft)}>
+          Fleet rollout
+        </LinkButton>
+        <LinkButton variant="secondary" href={dashboardUrl(DASHBOARDS.discovery, draft)}>
+          Discovery
+        </LinkButton>
+        <LinkButton variant="secondary" href={dashboardUrl(DASHBOARDS.arriving, draft)}>
+          Data arriving
+        </LinkButton>
+      </div>
     </HubFrame>
   );
 }

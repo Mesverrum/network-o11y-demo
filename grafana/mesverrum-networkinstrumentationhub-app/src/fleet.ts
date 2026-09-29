@@ -86,8 +86,38 @@ export function writeChoices(choices: CollectChoices) {
   sessionStorage.setItem(STORE + 'rescan', choices.rescan ? '1' : '0');
 }
 
-export function markApplied(name: string) {
+export function markApplied(name: string, revision: string) {
   sessionStorage.setItem(STORE + 'applied', name);
+  sessionStorage.setItem(STORE + 'appliedRevision', revision);
+  sessionStorage.setItem(STORE + 'appliedAt', String(Date.now()));
+}
+
+export function appliedRevision(): { revision: string; at: number } {
+  return {
+    revision: sessionStorage.getItem(STORE + 'appliedRevision') || '',
+    at: Number(sessionStorage.getItem(STORE + 'appliedAt') || 0),
+  };
+}
+
+const REVISION_SLOT = '__HUB_REVISION__';
+
+/** FNV-1a over the pipeline text. The collector echoes it back as hub_revision. */
+function revisionOf(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+function stampRevision(river: string): string {
+  return river.split(REVISION_SLOT).join(revisionOf(river));
+}
+
+export function riverRevision(river: string): string {
+  const m = river.match(/target_label = "hub_revision"\s+replacement\s+= "([0-9a-f]{8})"/);
+  return m ? m[1] : '';
 }
 
 export function markDiscovery(name: string) {
@@ -272,6 +302,20 @@ function discoveryBlock(draft: GroupDraft, choices: CollectChoices): string {
 }`;
 }
 
+// Stock Fleet self-monitoring may not reach this stack, so the hub pipeline ships the
+// signals its dashboards and Receiving page read: remote config, component health, discovery.
+const SELF_METRICS = [
+  'discovery_snmp_.*',
+  'remotecfg_last_load_successful',
+  'remotecfg_last_load_success_timestamp_seconds',
+  'remotecfg_load_attempts_total',
+  'remotecfg_load_failures_total',
+  'remotecfg_hash',
+  'alloy_component_controller_running_components',
+  'alloy_config_last_load_successful',
+  'alloy_build_info',
+].join('|');
+
 function exportTail(collector: string): string {
   return `otelcol.receiver.prometheus "hub" {
   output {
@@ -295,8 +339,13 @@ prometheus.relabel "hub_self" {
   }
 
   rule {
+    target_label = "hub_revision"
+    replacement  = "${REVISION_SLOT}"
+  }
+
+  rule {
     source_labels = ["__name__"]
-    regex         = "discovery_snmp_device_info|discovery_snmp_group_info"
+    regex         = "${SELF_METRICS}"
     action        = "keep"
   }
 }
@@ -329,30 +378,30 @@ otelcol.exporter.otlphttp "hub" {
 /** Discovery sweep only. Device polling is added later by pipelineRiver. */
 export function discoveryRiver(draft: GroupDraft, choices: CollectChoices = readChoices()): string {
   const collector = alloyString(draft.collectorId);
-  return `// Discovery only. Written by the Network Instrumentation Hub for ${draft.collectorId}.
+  return stampRevision(`// Discovery only. Written by the Network Instrumentation Hub for ${draft.collectorId}.
 ${discoveryBlock(draft, choices)}
 
 ${exportTail(collector)}
-`;
+`);
 }
 
 /** River fragment Fleet will deliver to the one collector this group is matched to. */
 export function pipelineRiver(draft: GroupDraft, choices: CollectChoices = readChoices()): string {
   const collector = alloyString(draft.collectorId);
-  return `// Written by the Network Instrumentation Hub. Matched only to ${draft.collectorId}.
+  return stampRevision(`// Written by the Network Instrumentation Hub. Matched only to ${draft.collectorId}.
 ${discoveryBlock(draft, choices)}
 
 ${tierScrape('hot', '60s', '55s', collector)}
 
 ${tierScrape('cold', '5m', '4m', collector)}
-${choices.neighbors ? `\n${topologyBlock()}\n` : ''}
+${choices.neighbors ? `\n${topologyBlock(collector)}\n` : ''}
 ${exportTail(collector)}
-`;
+`);
 }
 
 // Neighbor walks stay on the collector. prometheus.network_topology reconciles them
 // and forwards only network_topology_device_info and network_topology_edge_info.
-function topologyBlock(): string {
+function topologyBlock(collector: string): string {
   return `// Neighbor topology. Requires an Alloy image that includes prometheus.network_topology.
 discovery.relabel "hub_topology" {
   targets = discovery.snmp.hub.targets
@@ -378,7 +427,16 @@ prometheus.scrape "hub_topology" {
 
 prometheus.network_topology "hub" {
   stale_after = "30m"
-  forward_to  = [otelcol.receiver.prometheus.hub.receiver]
+  forward_to  = [prometheus.relabel.hub_topology.receiver]
+}
+
+prometheus.relabel "hub_topology" {
+  forward_to = [otelcol.receiver.prometheus.hub.receiver]
+
+  rule {
+    target_label = "collector"
+    replacement  = ${collector}
+  }
 }`;
 }
 
@@ -411,6 +469,11 @@ prometheus.relabel "${id}" {
     target_label = "collector"
     replacement  = ${collector}
   }
+
+  rule {
+    target_label = "snmp_tier"
+    replacement  = "${tier}"
+  }
 }
 
 prometheus.scrape "${id}" {
@@ -441,20 +504,187 @@ export type FoundDevice = {
   sysObjectID: string;
 };
 
+type PromSample = { metric?: Record<string, string>; value?: [number, string] };
+
 type PromQuery = {
-  data?: { result?: Array<{ metric?: Record<string, string> }> };
+  data?: { result?: PromSample[] };
 };
 
-export async function queryFoundDevices(group: string): Promise<FoundDevice[]> {
+function promLabel(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+/** Instant query against the stack the hub collector exports to. */
+export async function promQuery(expr: string): Promise<PromSample[]> {
   const response = await lastValueFrom(
     getBackendSrv().fetch<PromQuery>({
       url: `/api/plugin-proxy/${pluginJson.id}/stack/api/datasources/proxy/uid/grafanacloud-prom/api/v1/query`,
       method: 'GET',
-      params: { query: `discovery_snmp_device_info{group="${group}"}` },
+      params: { query: expr },
       showErrorAlert: false,
     })
   );
-  const rows = response.data?.data?.result || [];
+  return response.data?.data?.result || [];
+}
+
+async function promScalar(expr: string): Promise<number | null> {
+  const rows = await promQuery(expr);
+  if (rows.length === 0 || !rows[0].value) {
+    return null;
+  }
+  const n = Number(rows[0].value[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+export type CheckState = 'ok' | 'waiting' | 'problem' | 'off';
+
+export type LiveCheck = {
+  id: string;
+  label: string;
+  state: CheckState;
+  detail: string;
+  dashboard: string;
+};
+
+export const DASHBOARDS = {
+  rollout: 'hub-fleet-rollout',
+  discovery: 'hub-discovery',
+  arriving: 'hub-data-arriving',
+};
+
+export function dashboardUrl(uid: string, draft: GroupDraft): string {
+  const q = new URLSearchParams({
+    'var-collector': draft.collectorId,
+    'var-group': draft.name,
+    'var-pipeline': pipelineName(draft.name),
+  });
+  return `/d/${uid}?${q.toString()}`;
+}
+
+function ago(seconds: number): string {
+  if (seconds < 90) {
+    return `${Math.round(seconds)}s ago`;
+  }
+  if (seconds < 5400) {
+    return `${Math.round(seconds / 60)}m ago`;
+  }
+  return `${Math.round(seconds / 3600)}h ago`;
+}
+
+/** Each check reads the metrics the hub pipeline itself ships, filtered to this collector. */
+export async function liveChecks(draft: GroupDraft, choices: CollectChoices): Promise<LiveCheck[]> {
+  const c = `collector="${promLabel(draft.collectorId)}"`;
+  const g = `group="${promLabel(draft.name)}"`;
+  const controller = `controller_id="${promLabel(pipelineName(draft.name))}.default"`;
+  const expected = appliedRevision();
+  const want = expected.revision || riverRevision(pipelineRiver(draft, choices));
+  const [running, loaded, polled, failures, healthy, unhealthy, devices, groupInfo, hotUp, hotAll, coldUp, coldAll, coldAge, edges] =
+    await Promise.all([
+      promQuery(`count by (hub_revision) (discovery_snmp_group_info{${c},${g}})`),
+      promScalar(`max(remotecfg_last_load_successful{${c}})`),
+      promScalar(`sum(increase(remotecfg_load_attempts_total{${c}}[5m]))`),
+      promScalar(`sum(increase(remotecfg_load_failures_total{${c}}[15m]))`),
+      promScalar(`sum(alloy_component_controller_running_components{${c},${controller},health_type="healthy"})`),
+      promScalar(
+        `sum(alloy_component_controller_running_components{${c},${controller},health_type!="healthy"}) or vector(0)`
+      ),
+      promScalar(`count(count by (device_name, address) (discovery_snmp_device_info{${c},${g}})) or vector(0)`),
+      promScalar(`count(count by (group) (discovery_snmp_group_info{${c},${g}})) or vector(0)`),
+      promScalar(`sum(up{job="alloy-snmp",${c},snmp_tier="hot"}) or vector(0)`),
+      promScalar(`count(up{job="alloy-snmp",${c},snmp_tier="hot"}) or vector(0)`),
+      promScalar(`sum(up{job="alloy-snmp",${c},snmp_tier="cold"}) or vector(0)`),
+      promScalar(`count(up{job="alloy-snmp",${c},snmp_tier="cold"}) or vector(0)`),
+      promScalar(`time() - max(timestamp(snmp_ifInErrors{job="alloy-snmp",${c}}))`),
+      promScalar(`count(network_topology_edge_info{${c}}) or vector(0)`),
+    ]);
+
+  const revisions = running.map((row) => row.metric?.hub_revision || 'an older unstamped pipeline');
+  const sinceApply = expected.at ? (Date.now() - expected.at) / 1000 : Infinity;
+  const polls =
+    loaded === null
+      ? ''
+      : ` Last Fleet load ${loaded === 1 ? 'succeeded' : 'failed'}; ${Math.round(polled ?? 0)} polls in 5m.` +
+        (failures ? ` ${Math.round(failures)} failed loads in 15m.` : '');
+  let remotecfg: Pick<LiveCheck, 'state' | 'detail'>;
+  if (revisions.includes(want)) {
+    remotecfg = { state: 'ok', detail: `Running revision ${want}, the one applied.${polls}` };
+  } else if (revisions.length === 0) {
+    remotecfg = {
+      state: 'waiting',
+      detail: `Nothing from ${draft.collectorId} for ${draft.name} yet. It shows about a minute after Apply.`,
+    };
+  } else if (sinceApply < 180) {
+    remotecfg = {
+      state: 'waiting',
+      detail: `Still on revision ${revisions.join(', ')}. Waiting for ${want} to load.${polls}`,
+    };
+  } else {
+    remotecfg = {
+      state: 'problem',
+      detail:
+        `Fleet has revision ${want} but ${draft.collectorId} is still running ${revisions.join(', ')}. ` +
+        'The collector rejected the new pipeline and kept the last one. Its log line is ' +
+        '"failed to parse and load new remote configuration".' +
+        polls,
+    };
+  }
+
+  const checks: LiveCheck[] = [];
+  checks.push({ id: 'remotecfg', label: 'Collector took the config', dashboard: DASHBOARDS.rollout, ...remotecfg });
+  checks.push({
+    id: 'components',
+    label: 'Pipeline components healthy',
+    state: healthy === null ? 'waiting' : (unhealthy ?? 0) > 0 ? 'problem' : 'ok',
+    detail:
+      healthy === null
+        ? `${pipelineName(draft.name)} is not running on ${draft.collectorId} yet.`
+        : `${healthy} healthy, ${unhealthy ?? 0} unhealthy in ${pipelineName(draft.name)}.`,
+    dashboard: DASHBOARDS.rollout,
+  });
+  checks.push({
+    id: 'discovery',
+    label: 'Discovery found devices',
+    state: !groupInfo ? 'waiting' : devices ? 'ok' : 'problem',
+    detail: !groupInfo
+      ? `Group ${draft.name} has not reported yet.`
+      : devices
+      ? `${devices} devices answered in ${draft.name}.`
+      : `Group ${draft.name} is scanning ${draft.cidrs.join(', ')} but nothing answered. Check the ranges and logins.`,
+    dashboard: DASHBOARDS.discovery,
+  });
+  checks.push({
+    id: 'hot',
+    label: 'Health and traffic (every minute)',
+    state: !hotAll ? 'waiting' : hotUp === hotAll ? 'ok' : 'problem',
+    detail: !hotAll ? 'No health polls yet.' : `${hotUp} of ${hotAll} devices answered the last poll.`,
+    dashboard: DASHBOARDS.arriving,
+  });
+  checks.push({
+    id: 'cold',
+    label: 'Names and errors (every 5 minutes)',
+    state: !coldAll || coldAge === null ? 'waiting' : coldAge < 900 && coldUp === coldAll ? 'ok' : 'problem',
+    detail:
+      !coldAll || coldAge === null
+        ? 'No 5-minute poll yet. The first one lands within 5 minutes.'
+        : `${coldUp} of ${coldAll} devices answered. Last sample ${ago(coldAge)}.`,
+    dashboard: DASHBOARDS.arriving,
+  });
+  checks.push({
+    id: 'topology',
+    label: 'Neighbor topology',
+    state: !choices.neighbors ? 'off' : edges ? 'ok' : 'waiting',
+    detail: !choices.neighbors
+      ? 'Off'
+      : edges
+      ? `${edges} neighbor links.`
+      : 'Neighbor walks run every 15 minutes. The first links show after that.',
+    dashboard: DASHBOARDS.arriving,
+  });
+  return checks;
+}
+
+export async function queryFoundDevices(group: string): Promise<FoundDevice[]> {
+  const rows = await promQuery(`discovery_snmp_device_info{group="${promLabel(group)}"}`);
   return rows
     .map((row) => ({
       name: row.metric?.device_name || '',

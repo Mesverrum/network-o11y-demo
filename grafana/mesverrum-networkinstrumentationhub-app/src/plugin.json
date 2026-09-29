@@ -56,6 +56,24 @@
       "addToNav": false
     },
     {
+      "type": "dashboard",
+      "name": "Hub 1 · Fleet rollout",
+      "path": "dashboards/fleet-rollout.json",
+      "addToNav": true
+    },
+    {
+      "type": "dashboard",
+      "name": "Hub 2 · Discovery",
+      "path": "dashboards/discovery.json",
+      "addToNav": true
+    },
+    {
+      "type": "dashboard",
+      "name": "Hub 3 · Data arriving",
+      "path": "dashboards/data-arriving.json",
+      "addToNav": true
+    },
+    {
       "type": "page",
       "icon": "cog",
       "name": "Configuration",
