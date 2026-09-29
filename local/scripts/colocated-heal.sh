@@ -16,6 +16,9 @@ log() { echo "$(date -Is) [colocated-heal] $*"; }
 log "fabric sanity"
 bash scripts/colocated-fabric-sanity.sh
 
+log "refresh Alloy SNMP management-subnet discovery"
+bash scripts/alloy-snmp-discover.sh || log "alloy-snmp-discover skipped"
+
 log "sync flow-dns + ktranslate device consumers"
 bash scripts/reload-ktranslate-devices.sh
 

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-architecture",
+  "type": "guide",
+  "repository": "network-o11y-demo",
+  "description": "How ktranslate turns SNMP, flow, and traps into OTLP in Grafana Cloud.",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/d/ktranslate-architecture",
+  "recommends": ["net-o11y-one-platform"]
+}

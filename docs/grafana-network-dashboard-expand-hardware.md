@@ -4,6 +4,8 @@ Use when a **new device type** (ktranslate SNMP profile or vendor) is added and 
 
 **Panel standards:** [Design Patterns](grafana-network-dashboard-design-patterns.md)
 
+**Alloy boards (A0–A4):** use [Alloy Expanding for New Hardware](grafana-alloy-network-dashboard-expand-hardware.md) instead.
+
 **Convention:** `$device` = your single-device dashboard variable (PromQL label `device_name`).
 
 ---
@@ -183,3 +185,4 @@ max by(device_name)(<panel_metric>{device_name="<new-device>"})
 
 - [Design Patterns](grafana-network-dashboard-design-patterns.md)
 - [Skills README](grafana-network-dashboard-skills-README.md)
+- Alloy twin (do not mix): [Alloy Expanding for New Hardware](grafana-alloy-network-dashboard-expand-hardware.md)

@@ -1,0 +1,18 @@
+---
+description: Test on the latest image, then commit working changes. Do not leave a dirty tree.
+alwaysApply: true
+---
+
+# Commit tested work
+
+Pattern for this repo and the sibling forks (`alloy` branch `network-snmp`, `snmp-sd`):
+
+1. Start from the latest image and the latest commits on those repos.
+2. Change the code or catalog to try the idea.
+3. Test it on the lab (or the repo's own tests when the change never reaches the lab).
+4. If it works and does not break existing behavior, commit it and push to the operator's GitHub repos in the same session.
+5. Leave the working tree clean aside from gitignored scratch (`tmp-*`, `_*.sh`) and secrets (`local/.env`, `local/groups/*.env`, `local/state/`, credential files).
+
+Do not park a large uncommitted catalog, fixture tree, or component change on the laptop because it was "pre-existing" or only partly related. If a file is the source the image bakes, it belongs in the commit that the image was tested against.
+
+Do not commit secrets. Do not commit a change that failed its test.

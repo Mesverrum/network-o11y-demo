@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-device-details",
+  "type": "guide",
+  "repository": "network-o11y-demo",
+  "description": "One box: CPU, ports, errors, and events an app or syseng person can read.",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/d/ktranslate-device-details",
+  "recommends": ["net-o11y-device-summary"]
+}

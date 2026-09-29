@@ -2,7 +2,7 @@
 
 Operators and agents patching **Grafana Cloud v2** dashboards (especially tabbed ktranslate boards). Read this before any dashboard write.
 
-**Related:** [`AGENTS.md`](../AGENTS.md) → *Grafana dashboard updates* · [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) (source of truth for 00–04) · [`grafana-network-dashboard-skills-README.md`](grafana-network-dashboard-skills-README.md) (portable Assistant skills) · [`local/docs/dashboard-query-lessons.md`](../local/docs/dashboard-query-lessons.md) (lab PromQL notes) · scripts under `local/scripts/`.
+**Related:** [`AGENTS.md`](../AGENTS.md) → *Grafana dashboard updates* · [KtransToGrafana `dashboards/`](https://github.com/Mesverrum/KtransToGrafana/tree/main/dashboards) (source of truth for 00–04) · [`grafana-network-dashboard-skills-README.md`](grafana-network-dashboard-skills-README.md) (ktranslate + Alloy Assistant skill catalog) · [`local/docs/dashboard-query-lessons.md`](../local/docs/dashboard-query-lessons.md) (lab PromQL notes) · scripts under `local/scripts/`.
 
 ---
 
@@ -298,9 +298,9 @@ python3 local/scripts/download-flow-dashboard.py
 
 Live export: `local/.dash-payloads/marcnetterfield-live/ktranslate-device-details.json` (gen **13** as of 2026-07-26).
 
-**Design patterns (portable Assistant skill):** [`docs/grafana-network-dashboard-design-patterns.md`](../docs/grafana-network-dashboard-design-patterns.md) — layout, `has_*` gates, table transforms, naming. Import guide: [`docs/grafana-network-dashboard-skills-README.md`](../docs/grafana-network-dashboard-skills-README.md).
+**Design patterns (portable Assistant skills):** ktranslate — [`docs/grafana-network-dashboard-design-patterns.md`](grafana-network-dashboard-design-patterns.md). Alloy A0–A4 — [`docs/grafana-alloy-network-dashboard-design-patterns.md`](grafana-alloy-network-dashboard-design-patterns.md). Import guide: [`docs/grafana-network-dashboard-skills-README.md`](grafana-network-dashboard-skills-README.md).
 
-**Expanding for new hardware/vendor:** [`docs/grafana-network-dashboard-expand-hardware.md`](../docs/grafana-network-dashboard-expand-hardware.md).
+**Expanding for new hardware/vendor:** ktranslate — [`docs/grafana-network-dashboard-expand-hardware.md`](grafana-network-dashboard-expand-hardware.md). Alloy — [`docs/grafana-alloy-network-dashboard-expand-hardware.md`](grafana-alloy-network-dashboard-expand-hardware.md).
 
 **Variables:** `provider` → `instance` (device name). Do not confuse with Device Summary's `device_name`.
 

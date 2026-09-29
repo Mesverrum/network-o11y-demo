@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-ktranslate-se-path",
+  "type": "path",
+  "repository": "network-o11y-demo",
+  "description": "Walk the ktranslate customer demo on networko11ydev: one Grafana platform, live device and flow boards, and Assistant for mean time to innocence.",
+  "language": "en",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/",
+  "milestones": [
+    "net-o11y-one-platform",
+    "net-o11y-architecture",
+    "net-o11y-device-summary",
+    "net-o11y-device-details",
+    "net-o11y-flow",
+    "net-o11y-assistant",
+    "net-o11y-if-they-ask"
+  ],
+  "testEnvironment": {
+    "tier": "cloud",
+    "instance": "networko11ydev.grafana.net"
+  }
+}

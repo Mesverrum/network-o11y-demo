@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-one-platform",
+  "type": "guide",
+  "repository": "network-o11y-demo",
+  "description": "Why the network belongs in the same Grafana Cloud stack as the apps.",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/",
+  "provides": ["net-o11y-demo-opened"]
+}

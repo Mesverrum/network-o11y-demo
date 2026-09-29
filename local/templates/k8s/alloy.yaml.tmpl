@@ -129,6 +129,14 @@ spec:
               mountPath: /snmp-sd
               readOnly: true
             - name: snmp-sd
+              mountPath: /etc/alloy/snmp-network.yml
+              subPath: snmp-network.yml
+              readOnly: true
+            - name: snmp-sd
+              mountPath: /etc/alloy/fingerprinters.yml
+              subPath: fingerprinters.yml
+              readOnly: true
+            - name: snmp-sd
               mountPath: /etc/alloy/snmp-discovery.yml
               subPath: snmp-discovery.yml
               readOnly: true

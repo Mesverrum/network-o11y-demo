@@ -64,6 +64,7 @@ That overlay creates HQ / Branch 1 / Branch 2 sites, spine/leaf/branch-edge/clie
 1. **HQ** — dual-homed leaves, EVPN MAC-VRF, client1↔client2 traffic (same as laptop demo).
 2. **Branches** — single-homed edge leaves over “WAN” links; independent `/24` per site.
 3. **Hub** — spine1 is BGP RR + WAN aggregation; syslog/traps/flows from all sites hit the same k3s collectors on the EC2 host.
+4. **WAN circuit fault + inhibit** — dashboard UID `lab-circuit-fault` admin-disables `spine1 ethernet-1/3` (`WAN-HQ-BR1`) or `ethernet-1/4` (`WAN-HQ-BR2`) via a token-gated webhook. Parent iface-down alert (`role=circuit_parent`) suppresses child BGP notifications (`role=circuit_child`, same `circuit_id`). Restore: `python3 local/scripts/provision-lab-circuit-fault.py`. Workshop hunt remains `leaf1 ethernet-1/1`.
 
 ## Alloy topology glue (observed graph)
 

@@ -1,0 +1,462 @@
+{
+  "title": "Network Lab / circuit-demo",
+  "interval": 30,
+  "rules": [
+    {
+      "uid": "cd-parent-wan-hq-br1",
+      "title": "Circuit parent down WAN-HQ-BR1",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "(snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/3\"} == 2) or (snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/3.0\"} == 2)",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "30s",
+      "annotations": {
+        "summary": "WAN circuit WAN-HQ-BR1 parent spine1 ethernet-1/3 is oper-down",
+        "description": "Admin-disable or link-down on the catalogued WAN port (physical or .0). Parent for notification inhibit (child alerts share circuit_id).",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/alloy-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "alloy",
+        "severity": "critical",
+        "domain": "interfaces",
+        "role": "circuit_parent",
+        "circuit_id": "WAN-HQ-BR1",
+        "site": "hq",
+        "demo": "circuit-inhibit"
+      },
+      "isPaused": false
+    },
+    {
+      "uid": "cd-child-wan-hq-br1",
+      "title": "Circuit child WAN-HQ-BR1",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "(snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"leaf-br1\",if_interface_name=\"ethernet-1/49\"} == 2) or (snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"leaf-br1\",if_interface_name=\"ethernet-1/49.0\"} == 2) or ((snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",tBgpPeerNgAddress=\"192.168.31.0\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",peer_as=\"103\"}) != 6 or (snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br1\",tBgpPeerNgAddress=\"192.168.31.1\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br1\",peer_as=\"201\"}) != 6)",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "30s",
+      "annotations": {
+        "summary": "Downstream of WAN-HQ-BR1 is down ({ $labels.device_name } { $labels.if_interface_name })",
+        "description": "Far-end WAN iface oper-down and/or BGP not established. Notifications are inhibited while the parent (same circuit_id) is firing.",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/alloy-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "alloy",
+        "severity": "warning",
+        "domain": "routing",
+        "role": "circuit_child",
+        "circuit_id": "WAN-HQ-BR1",
+        "site": "hq",
+        "demo": "circuit-inhibit"
+      },
+      "isPaused": false
+    },
+    {
+      "uid": "cd-parent-wan-hq-br2",
+      "title": "Circuit parent down WAN-HQ-BR2",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "(snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/4\"} == 2) or (snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/4.0\"} == 2)",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "30s",
+      "annotations": {
+        "summary": "WAN circuit WAN-HQ-BR2 parent spine1 ethernet-1/4 is oper-down",
+        "description": "Admin-disable or link-down on the catalogued WAN port (physical or .0). Parent for notification inhibit (child alerts share circuit_id).",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/alloy-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "alloy",
+        "severity": "critical",
+        "domain": "interfaces",
+        "role": "circuit_parent",
+        "circuit_id": "WAN-HQ-BR2",
+        "site": "hq",
+        "demo": "circuit-inhibit"
+      },
+      "isPaused": false
+    },
+    {
+      "uid": "cd-child-wan-hq-br2",
+      "title": "Circuit child WAN-HQ-BR2",
+      "condition": "C",
+      "data": [
+        {
+          "refId": "A",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "grafanacloud-prom",
+          "model": {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "grafanacloud-prom"
+            },
+            "expr": "(snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"leaf-br2\",if_interface_name=\"ethernet-1/49\"} == 2) or (snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"leaf-br2\",if_interface_name=\"ethernet-1/49.0\"} == 2) or ((snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",tBgpPeerNgAddress=\"192.168.41.0\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",peer_as=\"104\"}) != 6 or (snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br2\",tBgpPeerNgAddress=\"192.168.41.1\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br2\",peer_as=\"201\"}) != 6)",
+            "instant": true,
+            "intervalMs": 1000,
+            "legendFormat": "__auto",
+            "maxDataPoints": 43200,
+            "refId": "A"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "A",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "reducer": "last",
+            "refId": "B",
+            "settings": {
+              "mode": "dropNN"
+            },
+            "type": "reduce"
+          }
+        },
+        {
+          "refId": "C",
+          "queryType": "",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [
+                    0
+                  ],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": [
+                    "C"
+                  ]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "last"
+                },
+                "type": "query"
+              }
+            ],
+            "datasource": {
+              "type": "__expr__",
+              "uid": "__expr__"
+            },
+            "expression": "B",
+            "intervalMs": 1000,
+            "maxDataPoints": 43200,
+            "refId": "C",
+            "type": "threshold"
+          }
+        }
+      ],
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "for": "30s",
+      "annotations": {
+        "summary": "Downstream of WAN-HQ-BR2 is down ({ $labels.device_name } { $labels.if_interface_name })",
+        "description": "Far-end WAN iface oper-down and/or BGP not established. Notifications are inhibited while the parent (same circuit_id) is firing.",
+        "runbook_url": "https://marcnetterfield1.grafana.net/d/alloy-device-details?var-instance={{ $labels.device_name }}"
+      },
+      "labels": {
+        "category": "network",
+        "source": "alloy",
+        "severity": "warning",
+        "domain": "routing",
+        "role": "circuit_child",
+        "circuit_id": "WAN-HQ-BR2",
+        "site": "hq",
+        "demo": "circuit-inhibit"
+      },
+      "isPaused": false
+    }
+  ]
+}

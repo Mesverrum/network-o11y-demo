@@ -1,15 +1,22 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { STEPS } from '../../constants';
-import HubStep from '../../pages/HubStep';
+import CollectorPage from '../../pages/CollectorPage';
+import GroupPage from '../../pages/GroupPage';
+import FoundPage from '../../pages/FoundPage';
+import CollectPage from '../../pages/CollectPage';
+import ApplyPage from '../../pages/ApplyPage';
+import ReceivingPage from '../../pages/ReceivingPage';
 
 function App() {
   return (
     <Routes>
-      {STEPS.slice(1).map((step) => (
-        <Route key={step.id} path={step.id} element={<HubStep id={step.id} />} />
-      ))}
-      <Route path="*" element={<HubStep id="collector" />} />
+      <Route path="collector" element={<CollectorPage />} />
+      <Route path="group" element={<GroupPage />} />
+      <Route path="found" element={<FoundPage />} />
+      <Route path="collect" element={<CollectPage />} />
+      <Route path="apply" element={<ApplyPage />} />
+      <Route path="receiving" element={<ReceivingPage />} />
+      <Route path="*" element={<CollectorPage />} />
     </Routes>
   );
 }

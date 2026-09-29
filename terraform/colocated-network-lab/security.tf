@@ -30,6 +30,29 @@ resource "aws_security_group" "lab_host" {
     }
   }
 
+  # Circuit-fault webhook via the same public NLB (Grafana Cloud Infinity + dashboard actions).
+  dynamic "ingress" {
+    for_each = length(local.netbox_ui_ingress_cidrs) > 0 ? [1] : []
+    content {
+      description = "Lab fault webhook (TCP 8788) from allowed CIDRs"
+      from_port   = 8788
+      to_port     = 8788
+      protocol    = "tcp"
+      cidr_blocks = local.netbox_ui_ingress_cidrs
+    }
+  }
+
+  dynamic "ingress" {
+    for_each = length(local.netbox_ui_ingress_cidrs) > 0 ? [1] : []
+    content {
+      description = "Lab fault webhook health checks from VPC"
+      from_port   = 8788
+      to_port     = 8788
+      protocol    = "tcp"
+      cidr_blocks = [data.aws_vpc.selected.cidr_block]
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

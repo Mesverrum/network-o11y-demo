@@ -2,9 +2,10 @@
 # build-alloy-network-image.sh — overlay curated snmp.yml onto grafana/alloy:latest.
 #
 # Source: sibling clone of the grafana/alloy fork (branch network-snmp).
-# SNMP library SoT is Mesverrum/snmp-sd when that sibling exists (Nokia
-# hot/cold/topology split). Set SNMP_LIB_SRC= or SKIP_SNMP_CONVERT=1 to
-# skip re-running convert.py (a full convert overwrites the curated split).
+# SNMP library and converter SoT is Mesverrum/snmp-sd. Each fingerprint's
+# topology tier is one materialized *_topo object containing its generic and
+# vendor topology MIBs. Set SNMP_LIB_SRC= to select a non-sibling checkout;
+# SKIP_SNMP_CONVERT=0 regenerates that library before copying it into Alloy.
 #   ALLOY_SRC=/path/to/alloy ./scripts/build-alloy-network-image.sh
 #
 # Then in local/.env:
@@ -66,17 +67,14 @@ resolve_snmp_lib() {
 SRC="$(resolve_alloy_src)" || die "Alloy fork not found. Clone https://github.com/Mesverrum/alloy (branch network-snmp) as a sibling, or set ALLOY_SRC"
 
 [[ -f "${SRC}/Dockerfile.network" ]] || die "missing ${SRC}/Dockerfile.network — checkout branch network-snmp"
-if [[ "${ALLOY_NETWORK_FROM_SOURCE:-0}" != "1" ]]; then
-  [[ -f "${SRC}/tools/snmp-profile-convert/convert.py" ]] || die "missing converter in ${SRC}"
-fi
-
 info "Using Alloy fork: ${SRC}"
-LIB="$(resolve_snmp_lib || true)"
-if [[ -n "${LIB}" && "${SKIP_SNMP_CONVERT:-1}" != "0" ]]; then
-  info "SNMP library from ${LIB} (skip convert — Nokia hot/cold/topology split)"
-  cp -a "${LIB}/snmp/." "${SRC}/snmp/"
+LIB="$(resolve_snmp_lib)" || die "snmp-sd not found. Clone https://github.com/Mesverrum/snmp-sd as a sibling, or set SNMP_LIB_SRC"
+[[ -f "${LIB}/tools/snmp-profile-convert/convert.py" ]] || die "missing canonical converter in ${LIB}"
+
+if [[ "${SKIP_SNMP_CONVERT:-1}" != "0" ]]; then
+  info "SNMP library from ${LIB} (skip convert — consolidated topology objects)"
 else
-  info "Regenerating snmp modules..."
+  info "Regenerating canonical SNMP library in ${LIB}..."
   CONVERT_ARGS=()
   # Prefer full kentik/snmp-profiles tree when present (sibling clone).
   for kentik in \
@@ -91,8 +89,9 @@ else
       break
     fi
   done
-  "${PY}" "${SRC}/tools/snmp-profile-convert/convert.py" "${CONVERT_ARGS[@]+"${CONVERT_ARGS[@]}"}"
+  "${PY}" "${LIB}/tools/snmp-profile-convert/convert.py" "${CONVERT_ARGS[@]+"${CONVERT_ARGS[@]}"}"
 fi
+cp -a "${LIB}/snmp/." "${SRC}/snmp/"
 
 info "Building ${TAG}..."
 DF="Dockerfile.network"

@@ -196,6 +196,11 @@ make alloy-snmp-dash
 make alloy-snmp-recording-rules   # 1m: memory/octets/util; 5m: errors/s + error % (colon names)
 ```
 
+Discovery scans the Docker `clab` management subnet. Live `sysName` supplies
+`device_name`, and `sysObjectID` selects hot/cold/topology modules; no generated
+device-name/IP inventory or topology name pins are required. Set
+`ALLOY_SNMP_CIDRS` only for routed or external networks.
+
 **Optional Alloy-native flow** (does **not** replace ktranslate; needs from-source image):
 
 ```bash
@@ -222,6 +227,10 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make snmp-recover` | After clab IP drift: enable SNMP + `snmp-discover` (`finish-bringup.sh`) |
 | `make finish-flows` | EVPN + softflowd + traffic + verify flows in Grafana |
 | `make lab-log-status` | Tail `state/lab-actions.log` + `docker-events.log` (container stop audit) |
+
+For the AWS colocated parallel lab, use `python3 local/scripts/ssm-alloy-ktranslate-parallel.py`
+after a fabric redeploy. It refreshes Alloy SNMP discovery, ktranslate device catalogs,
+gNMI targets, and flow/event destinations before restarting the collectors.
 | `make netbox-populate` | Seed NetBox Clos SoT (sites, roles, cables, IPAM, WAN circuits). Colocated: `python3 local/scripts/netbox-populate.py --profile colocated` (tidies Orb ghosts / unused ports). Keep Diode dry-run: `python3 local/scripts/orb-deploy-colocated.py --dry-diode` |
 | `make netbox-sync-mgmt` | Refresh NetBox spine/leaf mgmt IPs from clab (NetBox mode only) |
 | `make netbox-sync` | Populate + mgmt sync — optional; see `local/netbox/README.md` |
@@ -234,7 +243,8 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make conversation-kg` | Provision conversation recording rules + Endpoint/NetworkDevice/Interface on the stack |
 | `make topology-exporter-image` | Build local exporter image from GitHub release binary |
 | `make alloy-network-image` | Build `srl-local/alloy:network-dev` (fork overlay: snmp.yml + snmp-discovery) |
-| `make alloy-snmp-discover` | Probe fabric `/32`s → `snmp-targets.yml` (named auth + sysObjectID→module) |
+| `make alloy-snmp-discover` | Sweep the fabric management subnet → `snmp-targets.yml` (`sysName` identity + sysObjectID modules) |
+| `make alloy-snmp-discovery-test` | Check dynamic discovery identity, topology-module, site-label, and state-aging contracts |
 | `make alloy-snmp-up` | Discover + recreate Alloy with native SNMP scrape (`LAB_ALLOY_SNMP=1`; ktranslate stays) |
 | `make alloy-snmp-min` | **Laptop light:** 1× SRL + Alloy SNMP only (stops Clos/clients/ktranslate/traffic) |
 | `make alloy-snmp-min-down` | Tear down snmp-min |
@@ -244,6 +254,7 @@ See [`docs/alloy-network-fork.md`](../docs/alloy-network-fork.md).
 | `make join-app` / `join-app-stop` | OTel HTTP client↔server on EVPN clients (trace↔flow join) |
 | `make join-fault` / `join-fault-stop` | tc netem delay/loss on client eth1 (join demo talk track) |
 | `make workshop-fault` / `workshop-fault-stop` | Webinar hunt: disable HQ `leaf1` `ethernet-1/1` (sustained). SSM: `python3 local/scripts/ssm-workshop-inject-fault.py start` |
+| `make circuit-fault` / `circuit-fault-stop` | WAN parent: disable `WAN-HQ-BR1` (`spine1 ethernet-1/3`). Grafana toggle board: `python3 local/scripts/provision-lab-circuit-fault.py` (UID `lab-circuit-fault`) |
 | `make snmp-traps-config` | Point SRL SNMP traps at ktranslate `:1620`, or Alloy when `LAB_ALLOY_SNMPTRAP=1` |
 | `make alloy-snmptrap-up` | Render `otelcol.receiver.snmptrap`, recreate Alloy, retarget SRL trap-group |
 | `make alloy-syslog-up` | Render `otelcol.receiver.syslog`, recreate Alloy, retarget SRL remote syslog |

@@ -64,7 +64,14 @@ mkdir -p "${ROOT}/alloy"
 [[ -f "${ROOT}/alloy/snmp-targets.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets.yml"
 [[ -f "${ROOT}/alloy/snmp-targets-cold.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets-cold.yml"
 [[ -f "${ROOT}/alloy/snmp-targets-topology.yml" ]] || echo '[]' > "${ROOT}/alloy/snmp-targets-topology.yml"
-bash "${ROOT}/scripts/render-snmp-topology-overrides.sh"
+
+info "discovering the clab management subnet before Alloy starts"
+export SKIP_SNMP_IMAGE_EXTRACT="${SKIP_SNMP_IMAGE_EXTRACT:-1}"
+bash "${ROOT}/scripts/alloy-snmp-discover.sh"
+
+info "refreshing ktranslate device catalogs after clab IP changes"
+bash "${ROOT}/scripts/update-snmp-targets.sh"
+COLLECTOR_RUNTIME=k3s bash "${ROOT}/scripts/run-discovery-all.sh"
 
 info "regenerating Alloy ConfigMap (no trap/syslog listeners) + ktranslate replicas=1"
 cd "${ROOT}"
@@ -81,15 +88,15 @@ kubectl apply -f "${REPO}/k8s/ktranslate-golden/alloy.yaml"
 kubectl -n network-lab delete pod -l app=alloy --wait=true --timeout=90s || true
 kubectl -n network-lab rollout status deploy/alloy --timeout=180s
 
-info "listeners after Alloy recycle (expect 11620/1515/2055/6344, not 1620/1514)"
+info "listeners after Alloy recycle (ktranslate may already own 1620/1514; Alloy must not)"
 ss -ulnp | grep -E ':1620|:1621|:1622|:11620|:1514|:1515|:2055|:6344|:9995|:6343|:4317' || true
-if ss -ulnp | grep -q ':1620'; then
-  echo "ERROR: UDP :1620 still bound — Alloy remotecfg or trap receiver still running" >&2
+if ss -ulnp | grep ':1620' | grep -q 'alloy'; then
+  echo "ERROR: Alloy still bound UDP :1620 — remotecfg or trap receiver still running" >&2
   ss -ulnp | grep ':1620' || true
   exit 1
 fi
-if ss -ulnp | grep -q ':1514'; then
-  echo "ERROR: UDP :1514 still bound — Alloy syslog receiver still running" >&2
+if ss -ulnp | grep ':1514' | grep -q 'alloy'; then
+  echo "ERROR: Alloy still bound UDP :1514 — syslog receiver still running" >&2
   ss -ulnp | grep ':1514' || true
   exit 1
 fi
@@ -99,6 +106,9 @@ kubectl apply -f "${REPO}/k8s/ktranslate-golden/ktranslate-snmp.yaml"
 kubectl apply -f "${REPO}/k8s/ktranslate-golden/ktranslate-flow.yaml"
 kubectl apply -f "${REPO}/k8s/ktranslate-golden/ktranslate-sflow.yaml"
 kubectl apply -f "${REPO}/k8s/ktranslate-golden/ktranslate-syslog.yaml"
+kubectl apply -f "${REPO}/k8s/ktranslate-golden/gnmic-configmap.yaml"
+kubectl apply -f "${REPO}/k8s/ktranslate-golden/gnmic.yaml"
+kubectl -n network-lab rollout restart deployment/gnmic
 
 # shellcheck source=snmp-group-utils.sh
 source "${ROOT}/scripts/snmp-group-utils.sh"
@@ -112,6 +122,8 @@ for dep in ktranslate-flow ktranslate-sflow ktranslate-syslog; do
   info "rollout ${dep}"
   kubectl -n network-lab rollout status "deployment/${dep}" --timeout=180s
 done
+info "rollout gnmic"
+kubectl -n network-lab rollout status deployment/gnmic --timeout=180s
 
 export KTRANSLATE_CLAB_HOST
 KTRANSLATE_CLAB_HOST="$(
@@ -124,9 +136,6 @@ bash scripts/snmp-trap-config.sh
 bash scripts/syslog-config.sh
 bash scripts/sflow-config.sh
 bash scripts/softflowd.sh
-if [[ -f scripts/alloy-snmp-discover.sh ]]; then
-  bash scripts/alloy-snmp-discover.sh || true
-fi
 if [[ -f scripts/traffic.sh ]]; then
   bash scripts/traffic.sh || true
 fi

@@ -4,6 +4,8 @@ Reference for visual and structural consistency in a **ktranslate-based Network 
 
 **Companion skill:** [Expanding for New Hardware](grafana-network-dashboard-expand-hardware.md)
 
+**Alloy boards (A0–A4):** use [Alloy Design Patterns](grafana-alloy-network-dashboard-design-patterns.md) instead. Do not apply this file's PromQL to `snmp_*` / topology-exporter panels.
+
 **Portability:** Assumes ktranslate (`kentik_snmp_*`, `kentik_ping_*`). Does not assume specific hostnames, panel IDs, dashboard UIDs, or vendor MIBs unless labeled as examples.
 
 ---
@@ -271,3 +273,4 @@ avg by (device_name) (kentik_ping_AvgRttMs{device_name=~"$device"})
 
 - [Expanding for New Hardware](grafana-network-dashboard-expand-hardware.md)
 - [Skills README](grafana-network-dashboard-skills-README.md) — prerequisites and variable mapping
+- Alloy twin (do not mix): [Alloy Design Patterns](grafana-alloy-network-dashboard-design-patterns.md)

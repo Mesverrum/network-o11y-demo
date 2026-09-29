@@ -86,7 +86,6 @@ curl -sS -m 3 http://127.0.0.1:9100/healthz || true
 echo
 
 info "render Alloy topology scrape → ${TOPOLOGY_EXPORTER_OTLP} (patch live CM; do not regenerate ktranslate)"
-bash "${ROOT}/scripts/render-snmp-topology-overrides.sh"
 cd "${ROOT}"
 export COLLECTOR_RUNTIME=k3s
 export LAB_ALLOY_SNMP=1

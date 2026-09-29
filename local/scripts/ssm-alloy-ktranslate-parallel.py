@@ -34,6 +34,7 @@ FILES = [
     "local/scripts/reload-ktranslate-devices.sh",
     "local/scripts/snmp-group-utils.sh",
     "local/scripts/fabric-nodes.sh",
+    "local/scripts/grafana-env.sh",
     "local/scripts/collector-clab-ip.sh",
     "local/scripts/collector-runtime-ready.sh",
     "local/scripts/colocated-telemetry-sanity.sh",

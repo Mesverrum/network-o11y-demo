@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-device-summary",
+  "title": "The fleet view",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "You should have arrived from **Network Dashboards**. This is the fleet view. If someone says NPM, this plus Details is that story.\n\n**Say this.** Walk the tabs Pathfinder highlights. Click the highlighted control on the dashboard."
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Overview",
+      "content": "Overview — how many devices we have, whether we are still collecting from them, and whether anything is already in a bad state.",
+      "requirements": ["exists-reftarget", "on-page:/d/ktranslate-device-summary"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Traffic",
+      "content": "Traffic — which devices are moving the most traffic right now.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Resources",
+      "content": "Resources — CPU and memory on the switches, the same kind of resource picture they are used to on servers.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Interfaces",
+      "content": "Interfaces — the usual network ticket: a port is down, or error counters are going up.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Routing",
+      "content": "Routing — BGP is how routers tell each other they can still reach a neighbor. If that session drops, it is a path problem, not an application bug. This tab is on Summary. On a single device, BGP lives under Connections.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Hardware",
+      "content": "Hardware — fans, power, temperature, when that vendor’s profile includes those sensors.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Events",
+      "content": "Events — syslog and traps. The graphs tell you the trend; the events tell you when something actually happened.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "noop",
+      "content": "You can also click a device name. That drill-down is how a ticket lands on Details. The next highlight is the dashboard-link path.",
+      "skippable": true
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.DashboardLinks.dropDown",
+      "content": "Open **Network Dashboards** again, then choose **04. Network Device Details**.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — poll interval, interface errors, custom properties",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**We poll every 5 minutes. Can you go faster?** Yes. These dashboards are updating about once a minute. Polling much faster than that can put real load on the device. If they need to know the moment something breaks, traps and syslog are the better signal.\n\n**Where do I see interface utilization, errors, or discards?** Here on **Interfaces**, then Device Details → Interfaces. Same counters they already know, and the syslog for that device is on the same board.\n\n**How do we tag site or role, like custom properties?** Those become labels on the metrics. NetBox is the usual source of truth later, so the CMDB and the dashboards do not drift apart.\n\n**We get trap storms. We also use parent/child alerts and Unmanage.** Traps show up as logs on **Events**. You can alert on volume, and you can suppress child alerts when the parent link is already down. Maintenance windows are silences in Grafana Alerting. It is not a copy of the Orion calendar, but the operations are there."
+        }
+      ]
+    }
+  ]
+}

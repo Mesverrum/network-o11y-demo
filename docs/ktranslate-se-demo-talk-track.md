@@ -4,13 +4,15 @@
 **What this is:** a live look at network telemetry in Grafana Cloud, using the collector path customers can run today. A first-party Network product is still incoming.  
 **How long:** about 15 minutes. If they want a full SolarWinds replacement plan, custom MIB work, or NCM/IPAM, pause and post in **#sme-network**.
 
-Use the links below. You do not need to browse around the stack.
+**Run the demo from the learning path.** It has the spoken lines, the click steps, and the SolarWinds answers. You do not need this markdown open unless Pathfinder is down.
+
+**Learning path:** https://networko11ydev.grafana.net/?doc=api:net-o11y-ktranslate-se-path — Help also lists it under Custom guides / My learning as **Network in Grafana Cloud**. Source: [`pathfinder/`](pathfinder/README.md).
 
 ---
 
 ## Before you join
 
-Open these in tabs. Set the time range to **Last 3 hours**.
+Start on Architecture. After that, stay in the same window and use **Network Dashboards** at the top of each board. Set the time range to **Last 3 hours**.
 
 | Stop | Link |
 |------|------|
@@ -28,7 +30,7 @@ Make sure Device Summary is showing devices and recent data. If a dashboard is e
 
 Most companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate about whose problem it is.
 
-This demo is about putting the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant. An app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers are often engaged because the rest of the org doesnt know how to to prove that there is not a network problem happening.  So network engineers spend a lot of cycles on **mean time to innocence** instead of focusing on their work. SolarWinds cannot help with that, because the network data is stuck in a second product and lacks a way for the rest of the company to ask natural language questions about the network state.
+This demo is about putting the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant. An app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers are often engaged because the rest of the org doesnt know how to prove that there is not a network problem happening. So network engineers spend a lot of cycles on **mean time to innocence** instead of focusing on their work. SolarWinds cannot help with that, because the network data is stuck in a second product and lacks a way for the rest of the company to ask natural language questions about the network state.
 
 ---
 
@@ -59,7 +61,7 @@ Click a device name to open Details. That is the main handoff in the demo.
 
 ### Device Details (~4 min)
 
-Stay on Overview, then open **Interfaces**. If the Routing tab has data, show one BGP neighbor.
+Stay on Overview, then open **Interfaces**. If the **Connections** tab has data, show one BGP neighbor. **Network Flow** on this board is often empty in this lab — that is expected. Use Flow Summary for the estate-wide view.
 
 If someone opened a ticket on this device, this is the board they would land on: CPU, ports, errors, and the recent events for that one box. It is also the board an app or syseng person can open when they want to see if this box is why their service looks sick, without waiting for a network SME. It is a normal Grafana dashboard, so alerts, Explore, and drill-downs work the way they already expect.
 
@@ -91,7 +93,7 @@ A switch can page the same way a service does. Alerts and Explore are the same t
 | NetPath | A traceroute that runs over and over from a probe you control. In Grafana that is Synthetic Monitoring. |
 | NPM | SolarWinds’ device and interface monitoring. Summary + Details here. |
 | NMS | Their current network monitor, usually SolarWinds. |
-| Mean time to innocence | Our line: how fast a network engineer can show it is not their box, or an app/syseng person can see that it is, without paging anyone. |
+| Mean time to innocence | How much time network engineers spend proving it is not the network, because the rest of the org cannot ask that in their own tools. |
 
 ---
 
@@ -148,7 +150,7 @@ Device Summary → Interfaces, then Device Details → Interfaces. Same counters
 The Hardware tab, when that vendor’s profile includes those sensors. If a device does not show them, that MIB is not on the box — the dashboard is not missing a panel by accident.
 
 **“A BGP neighbor dropped at 14:32.”**  
-Routing tab for session state. Events tab for the syslog in that same window.
+Device Details → **Connections** for session state. **Events** for the syslog in that same window. Device Summary still has a **Routing** tab if you are on the fleet view.
 
 **“Where is NetPath?”**  
 Open the [traceroute check](https://networko11ydev.grafana.net/a/grafana-synthetic-monitoring-app/checks/7294). That is the same idea: a probe you place, a hop list, and latency along the path. They can put private probes in their own sites the way they placed NetPath agents. The Flow Sankey is the NTA view (who talked to whom), not traceroute.
@@ -171,9 +173,10 @@ Yes. That is the point of putting the network on the same platform. App and syse
 **“Our dashboards are already green. Why switch?”**  
 They get one platform instead of two consoles and a Slack argument. App and syseng can check the network themselves, which is what people mean when they talk about mean time to innocence. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate.
 
-**Cost?**
-Network devices vary significantly, but across a whole estate an average of 1000 series per network device usually gets you in the right range.  One major exception is wireless access points, each AP does NOT create 1000 series, usually just a couple hundred if you bother to collect SNMP from them at all.  This is a place where we usually want to look at a big tent data source strategy rather than polling each AP. Almost all wireless solutions are sold with a native monitoring built in, so connecting to the Meraki API via our marketplace partner's plugin https://grafana.com/grafana/plugins/crestdata-ciscomeraki-datasource/ or via Infinity, for very price sensitive teams, can be a better strategy than trying to duplicate all the data they already paid Meraki to collect.
-Another facet to consider around cost is that Grafana is a fully managed SaaS with SLA's.  Compared to self hosted tools like SolarWinds or Nagios you don't have to run large database servers with expensive SQL Server licenses and you arent responsible for keeping those servers up to date.  You can often uncover a lot of pain asking how much effort goes into executing their upgrade cycles, or how long have they just avoided doing upgrades.  Complaints about poor performance and unstable servers that nobody wants to touch are extremely common in the self hosted network world.
+**Cost?**  
+Network devices vary significantly, but across a whole estate an average of 1000 series per network device usually gets you in the right range. One major exception is wireless access points, each AP does NOT create 1000 series, usually just a couple hundred if you bother to collect SNMP from them at all. This is a place where we usually want to look at a big tent data source strategy rather than polling each AP. Almost all wireless solutions are sold with a native monitoring built in, so connecting to the Meraki API via our marketplace partner's plugin https://grafana.com/grafana/plugins/crestdata-ciscomeraki-datasource/ or via Infinity, for very price sensitive teams, can be a better strategy than trying to duplicate all the data they already paid Meraki to collect.
+
+Another facet to consider around cost is that Grafana is a fully managed SaaS with SLAs. Compared to self hosted tools like SolarWinds or Nagios you don't have to run large database servers with expensive SQL Server licenses and you arent responsible for keeping those servers up to date. You can often uncover a lot of pain asking how much effort goes into executing their upgrade cycles, or how long have they just avoided doing upgrades. Complaints about poor performance and unstable servers that nobody wants to touch are extremely common in the self hosted network world.
 
 ---
 

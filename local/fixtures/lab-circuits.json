@@ -1,0 +1,39 @@
+{
+  "default_circuit": "WAN-HQ-BR1",
+  "circuits": {
+    "WAN-HQ-BR1": {
+      "description": "HQ spine WAN to Branch 1",
+      "node": "spine1",
+      "iface": "ethernet-1/3",
+      "peer_node": "leaf-br1",
+      "peer_iface": "ethernet-1/49",
+      "site": "hq",
+      "peer_site": "branch1",
+      "bgp_peers": [
+        {"device_name": "spine1", "tBgpPeerNgAddress": "192.168.31.0", "peer_as": "103", "peer_group": "eBGPv6"},
+        {"device_name": "leaf-br1", "tBgpPeerNgAddress": "192.168.31.1", "peer_as": "201", "peer_group": "eBGP"}
+      ]
+    },
+    "WAN-HQ-BR2": {
+      "description": "HQ spine WAN to Branch 2",
+      "node": "spine1",
+      "iface": "ethernet-1/4",
+      "peer_node": "leaf-br2",
+      "peer_iface": "ethernet-1/49",
+      "site": "hq",
+      "peer_site": "branch2",
+      "bgp_peers": [
+        {"device_name": "spine1", "tBgpPeerNgAddress": "192.168.41.0", "peer_as": "104", "peer_group": "eBGPv6"},
+        {"device_name": "leaf-br2", "tBgpPeerNgAddress": "192.168.41.1", "peer_as": "201", "peer_group": "eBGP"}
+      ]
+    },
+    "ACCESS-LEAF1": {
+      "description": "Workshop hunt — HQ leaf1 client access (not a WAN parent)",
+      "node": "leaf1",
+      "iface": "ethernet-1/1",
+      "site": "hq",
+      "peer_site": "hq",
+      "bgp_peers": []
+    }
+  }
+}

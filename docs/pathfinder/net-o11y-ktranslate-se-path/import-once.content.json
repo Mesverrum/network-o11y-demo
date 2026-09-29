@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-ktranslate-se-preview",
+  "title": "Network in Grafana Cloud",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "This is the ktranslate customer demo as one Pathfinder guide. About 15 minutes.\n\nYou will see device health, interface traffic, routing, syslog, and conversations in the same Grafana Cloud stack you already use for apps. Then you will ask Assistant whether the network is involved **before** anyone pages a network SME.\n\nNetwork engineers like to call that **mean time to innocence**.\n\nIf a customer wants a full SolarWinds replacement plan, NCM, IPAM, or custom MIB work, pause and post in **#sme-network**."
+    },
+    {
+      "type": "section",
+      "title": "One platform, not two consoles",
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "Most companies still keep application monitoring and network monitoring in separate tools. When checkout gets slow, the app team and the network team each open their own console and it turns into a debate about whose problem it is.\n\nThis demo puts the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant.\n\nAn app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. SolarWinds cannot do that, because the network data is still stuck in a second product."
+        },
+        {
+          "type": "quiz",
+          "question": "What is the main reason to put SNMP, flow, and syslog in Grafana Cloud instead of leaving them in SolarWinds?",
+          "completionMode": "correct-only",
+          "choices": [
+            {
+              "id": "a",
+              "text": "Grafana has prettier graphs for interface errors.",
+              "hint": "Pretty graphs are not the point. The point is one platform."
+            },
+            {
+              "id": "b",
+              "text": "App and syseng teams can see if the network is involved without paging a network SME.",
+              "correct": true
+            },
+            {
+              "id": "c",
+              "text": "ktranslate replaces NCM and IPAM.",
+              "hint": "Those are a different project. Post in #sme-network."
+            },
+            {
+              "id": "d",
+              "text": "You must turn NPM off in the first week.",
+              "hint": "Run this next to SolarWinds first."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "How the data gets here",
+      "blocks": [
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/d/ktranslate-architecture",
+          "content": "Open the Architecture dashboard. Set the time range to **Last 3 hours** if the panels look empty.",
+          "verify": "on-page:/d/ktranslate-architecture"
+        },
+        {
+          "type": "markdown",
+          "content": "Network devices already speak a few standard protocols: SNMP for hardware counters, NetFlow or sFlow for who is talking to whom, and syslog or traps when something happens on the box.\n\n**ktranslate** sits in front of that. It discovers devices, figures out what each one is from its SNMP identity, polls the right MIBs, and also receives flows and traps. It sends all of that out as OTLP. Grafana Cloud stores it.\n\nAlloy can still be the component that forwards OTLP. It does not have to be the thing that knows a Cisco from a Fortinet.\n\nThey are not buying a second network-management product, and they are not paying per interface the way SolarWinds does. The value is one platform: the people who already live in Grafana can see the network without switching tools."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "The fleet view",
+      "blocks": [
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/d/ktranslate-device-summary",
+          "content": "Open Device Summary. This is the fleet view.",
+          "verify": "on-page:/d/ktranslate-device-summary"
+        },
+        {
+          "type": "markdown",
+          "content": "Walk the tabs in this order.\n\n| Tab | What to notice |\n|-----|----------------|\n| **Overview** | How many devices we have, whether we are still collecting from them, and whether anything is already in a bad state. |\n| **Traffic** | Which devices are moving the most traffic right now. |\n| **Resources** | CPU and memory on the switches, the same kind of resource picture they are used to on servers. |\n| **Interfaces** | The usual network ticket: a port is down, or error counters are going up. |\n| **Routing** | BGP is how routers tell each other they can still reach a neighbor. If that session drops, it is a path problem, not an application bug. |\n| **Events** | Syslog and traps from the devices. The graphs tell you the trend; the events tell you when something actually happened. |\n\nClick a device name if you want. The next section opens Device Details either way."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "One device, one ticket",
+      "blocks": [
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/d/ktranslate-device-details",
+          "content": "Open Device Details. Stay on Overview, then open **Interfaces**. If **Connections** has data, look at one BGP neighbor.",
+          "verify": "on-page:/d/ktranslate-device-details"
+        },
+        {
+          "type": "markdown",
+          "content": "If someone opened a ticket on this device, this is the board they would land on: CPU, ports, errors, and the recent events for that one box.\n\nIt is also the board an app or syseng person can open when they want to see if this box is why their service looks sick, without waiting for a network SME.\n\nIt is a normal Grafana dashboard, so alerts, Explore, and drill-downs work the way they already expect. A switch can page the same way a service does."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Who is talking to whom",
+      "blocks": [
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/d/ktranslate-flow-summary",
+          "content": "Open Flow Summary. Look at Conversations, then the Sankey.",
+          "verify": "on-page:/d/ktranslate-flow-summary"
+        },
+        {
+          "type": "markdown",
+          "content": "SNMP provides metrics about the network hardware. Flow tells you which devices are talking to each other over that network. Together they let someone decide if the network is actually in the path of the problem, without opening a second tool.\n\nIf the world map is empty, that is fine. Private or internal addresses do not have a country.\n\nIf someone asks for NetPath, that is a traceroute, not this board."
+        },
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/a/grafana-synthetic-monitoring-app/checks/7294",
+          "content": "Optional: open the traceroute check if you want to show the NetPath equivalent.",
+          "skippable": true
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Ask before you page",
+      "blocks": [
+        {
+          "type": "interactive",
+          "action": "navigate",
+          "reftarget": "/d/ktranslate-device-details",
+          "content": "Come back to Device Details. This is a good place to open Assistant.",
+          "verify": "on-page:/d/ktranslate-device-details"
+        },
+        {
+          "type": "interactive",
+          "action": "popout",
+          "targetvalue": "floating",
+          "content": "Undock this guide so the right sidebar is free for Grafana Assistant."
+        },
+        {
+          "type": "markdown",
+          "content": "Open Assistant and ask something concrete:\n\n- Are any interfaces on this device unhealthy?\n- What is using bandwidth?\n- Does the network look involved in this time range?\n\nThe point is not a prettier network console. It is one platform. App and syseng teams can ask whether a down port, a BGP drop, or a noisy conversation is sitting under their service, and get an answer before they page the network SME.\n\nThat is how you shrink **mean time to innocence**. Network people get fewer 2am “is it the network?” tickets. Everyone else stops waiting on a second login.\n\nAssistant can also help draft a rule from a panel they are looking at, or tighten a noisy one. SolarWinds is years behind on that workflow."
+        },
+        {
+          "type": "quiz",
+          "question": "An app engineer thinks checkout is slow. What should they do first in this model?",
+          "completionMode": "correct-only",
+          "choices": [
+            {
+              "id": "a",
+              "text": "Page the network SME and wait for a SolarWinds screenshot.",
+              "hint": "That is the old mean time to innocence. We are trying to shrink it."
+            },
+            {
+              "id": "b",
+              "text": "Ask Assistant, on the same stack, whether a port, session, or conversation looks involved.",
+              "correct": true
+            },
+            {
+              "id": "c",
+              "text": "Export a CSV from NTA and paste it into Slack.",
+              "hint": "Flow is already on Flow Summary in this stack."
+            }
+          ]
+        },
+        {
+          "type": "interactive",
+          "action": "popout",
+          "targetvalue": "sidebar",
+          "content": "Dock the guide again when you are done with Assistant."
+        }
+      ]
+    }
+  ]
+}

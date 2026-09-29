@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-one-platform",
+  "title": "One platform, not two consoles",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "**Say this.**\n\nMost companies still keep application monitoring and network monitoring in separate tools. When something like checkout gets slow, the app team and the network team each open their own console and it turns into a debate about whose problem it is.\n\nThis demo puts the network in the same Grafana Cloud stack they already use for apps, logs, and traces. Same time range. Same dashboards. Same Assistant.\n\nAn app or syseng person can ask whether they are actually hitting a network problem before they page a network SME. Network engineers are often engaged because the rest of the org doesnt know how to prove that there is not a network problem happening. So network engineers spend a lot of cycles on **mean time to innocence** instead of focusing on their work. SolarWinds cannot help with that, because the network data is stuck in a second product and lacks a way for the rest of the company to ask natural language questions about the network state."
+    },
+    {
+      "type": "quiz",
+      "question": "What is the main reason to put SNMP, flow, and syslog in Grafana Cloud instead of leaving them in SolarWinds?",
+      "completionMode": "correct-only",
+      "choices": [
+        {
+          "id": "a",
+          "text": "Grafana has prettier graphs for interface errors.",
+          "hint": "Pretty graphs are not the point. The point is one platform."
+        },
+        {
+          "id": "b",
+          "text": "App and syseng teams can see if the network is involved without paging a network SME.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "text": "ktranslate replaces NCM and IPAM.",
+          "hint": "Those are a different project. Post in #sme-network."
+        },
+        {
+          "id": "d",
+          "text": "You must turn NPM off in the first week.",
+          "hint": "Run this next to SolarWinds first."
+        }
+      ]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — words they will use",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "| They say | What that means |\n|----------|-----------------|\n| SNMP | Periodic asks to each device for counters — CPU, ports, BGP, and so on. |\n| Trap / syslog | The device sends an event when something happens: a link goes down, a neighbor drops, someone changes config. |\n| NetFlow / NTA | Records of conversations: who talked to whom, and how much data moved. |\n| Interface | A port on the device. |\n| BGP | The protocol routers use to stay in sync about reachability. |\n| NetPath | A traceroute that runs over and over from a probe you control. In Grafana that is Synthetic Monitoring. |\n| NPM | SolarWinds’ device and interface monitoring. Summary + Details here. |\n| NMS | Their current network monitor, usually SolarWinds. |\n| Mean time to innocence | How much time network engineers spend proving it is not the network, because the rest of the org cannot ask that in their own tools. |"
+        }
+      ]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — we cannot turn NPM off / dashboards are already green",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**We cannot turn NPM off.** They should not, at first. Run this next to SolarWinds. Start with a small set of devices they know well, compare the numbers, then widen. Move flows and logs first if they want a low-risk cutover. The easier internal story is “we are adding observability,” not “we are ripping out NPM this quarter.”\n\n**Our dashboards are already green. Why switch?** They get one platform instead of two consoles and a Slack argument. App and syseng can check the network themselves, which is what people mean when they talk about mean time to innocence. Assistant can take that data into RCA and alert work, which SolarWinds is years behind on. Pricing is based on what they ingest, not on how many interfaces they added this year. The Grafana skills transfer to the rest of the estate.\n\n**Cost?** Network devices vary significantly, but across a whole estate an average of 1000 series per network device usually gets you in the right range. One major exception is wireless access points, each AP does NOT create 1000 series, usually just a couple hundred if you bother to collect SNMP from them at all. This is a place where we usually want to look at a big tent data source strategy rather than polling each AP. Almost all wireless solutions are sold with a native monitoring built in, so connecting to the Meraki API via our marketplace partner's plugin https://grafana.com/grafana/plugins/crestdata-ciscomeraki-datasource/ or via Infinity, for very price sensitive teams, can be a better strategy than trying to duplicate all the data they already paid Meraki to collect.\n\nAnother facet to consider around cost is that Grafana is a fully managed SaaS with SLAs. Compared to self hosted tools like SolarWinds or Nagios you don't have to run large database servers with expensive SQL Server licenses and you arent responsible for keeping those servers up to date. You can often uncover a lot of pain asking how much effort goes into executing their upgrade cycles, or how long have they just avoided doing upgrades. Complaints about poor performance and unstable servers that nobody wants to touch are extremely common in the self hosted network world."
+        }
+      ]
+    }
+  ]
+}

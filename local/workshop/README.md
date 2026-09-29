@@ -1,10 +1,10 @@
 # Workshop live SNMP
 
-Live SNMP for the [Grafana Network Observability webinar](https://github.com/Mesverrum/grafana-network-observability-workshop). Students query this fleet as datasource `workshop-ktranslate` on their Brokkr stacks.
+Live SNMP for the [Grafana Network Observability webinar](https://github.com/Mesverrum/grafana-network-observability-workshop). Students query this fleet on **one shared Grafana Cloud stack** (that stack’s Prometheus/Loki — not a remote `workshop-ktranslate` source on per-person Brokkr sandboxes).
 
 **Student story is the 3-site Clos** (HQ + two branches). Do **not** start the laptop Clos. Do **not** redeploy campus-core (`clab deploy --reconfigure`).
 
-Student order on that repo: login → data sources → synthetics → import dashboards → explore (healthy) → you inject a Clos fault → they hunt → Infinity. Finish `make discover GROUP=…` **before** the session so polling is already live.
+Student order on that repo: login → explore (healthy) → shared synthetics → you inject a Clos fault → they hunt → Infinity. Facilitator imports dashboards and creates `workshop-tcp` / `workshop-tr` **before** join. Finish `make discover GROUP=…` **before** the session so polling is already live.
 
 ## What students should see
 
@@ -35,6 +35,8 @@ python local/scripts/ssm-workshop-inject-fault.py stop
 ```
 
 On the colocated host: `make -C local workshop-fault` / `workshop-fault-stop`. Stop `events-loop` before the healthy explore so background flaps are not the incident.
+
+**Design-partner / inhibit demo (not Lab 5):** WAN parent is `spine1 ethernet-1/3` (`WAN-HQ-BR1`) or `ethernet-1/4` (`WAN-HQ-BR2`). Toggle from Grafana UID `lab-circuit-fault` after `python local/scripts/provision-lab-circuit-fault.py`. Do not use that board during the student hunt.
 
 Building 4 / Check Point / EdgeConnect names (`bld4-*`, `wan-edge-01`) stay on the Infinity mock API (Lab 6), not this poller.
 

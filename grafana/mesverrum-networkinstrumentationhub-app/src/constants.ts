@@ -11,17 +11,17 @@ export const STEPS = [
   {
     id: 'group',
     title: 'Add a group',
-    body: 'Name, note, address ranges, and a login nickname the collector reported from its credential file.',
+    body: 'Name, note, ranges, and login nicknames. Start discovery writes the scan to the collector.',
   },
   {
     id: 'found',
     title: 'What we found',
-    body: 'Devices that answered. Tick the ones to watch.',
+    body: 'Devices that answered, from discovery_snmp_device_info.',
   },
   {
     id: 'collect',
     title: 'What to collect',
-    body: 'Health and names stay on. Neighbors, alarms, device logs, and traffic details are choices.',
+    body: 'Health and port names are always on. Pick neighbor topology, alarms, logs, and flow.',
   },
   {
     id: 'apply',
@@ -31,11 +31,6 @@ export const STEPS = [
   {
     id: 'receiving',
     title: 'Receiving',
-    body: 'Polling goes ready after Apply. Alarms, logs, and traffic stay listening until the device sends them.',
-  },
-  {
-    id: 'devices',
-    title: 'Devices',
-    body: 'The device list: open one device, or change several together.',
+    body: 'Polling goes ready after Apply. Alarms, logs, and traffic stay listening until the device sends them. Devices are a separate app.',
   },
 ] as const;

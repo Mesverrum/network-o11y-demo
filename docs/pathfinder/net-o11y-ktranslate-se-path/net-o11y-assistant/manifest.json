@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-assistant",
+  "type": "guide",
+  "repository": "network-o11y-demo",
+  "description": "Ask Assistant if the network is involved before paging an SME.",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/d/ktranslate-device-details",
+  "recommends": ["net-o11y-flow"]
+}

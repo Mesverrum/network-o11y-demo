@@ -57,7 +57,8 @@ These are fixes the operator applies via Grafana Assistant / UI. **Do not overwr
 | **BGP state** | `tBgpPeerNgConnState="established"` / `!="established"` | Magic `== 6` (acceptable in legacy panels; prefer strings in new work) |
 | **SNMP tables** | `labelsToFields` → `merge` → `organize`; hide `deployment_host`, `src_addr`, … | Raw instant tables; missing `merge` (shows 1 row only) |
 | **Device drill-down** | `/d/ktranslate-device-details?var-instance=${__data.fields.device_name}` | Legacy `magz6qw1` UID |
-| **New Device Details UI** | Follow `local/docs/grafana-network-dashboard-design-patterns.md` | Ad-hoc layout/naming/table transforms |
+| **New Device Details UI (ktranslate)** | Follow `docs/grafana-network-dashboard-design-patterns.md` | Ad-hoc layout/naming/table transforms |
+| **New Device Details UI (Alloy A0–A4)** | Follow `docs/grafana-alloy-network-dashboard-design-patterns.md` | ktranslate PromQL (`kentik_snmp_*`, `* 8 / 60`, raw `tBgp*`) |
 
 **SNMP inventory:** `count by (device_name) (kentik_snmp_CPU)` — **not** `kentik_snmp_DeviceMetrics` (AWS path only).
 
@@ -65,8 +66,8 @@ These are fixes the operator applies via Grafana Assistant / UI. **Do not overwr
 
 ## References
 
-- **Design patterns (new panels/tabs):** `docs/grafana-network-dashboard-design-patterns.md` — layout, `has_*` gates, table transforms, naming
-- **New device/vendor coverage:** `docs/grafana-network-dashboard-expand-hardware.md` — discover metrics → map rows → fill gaps
+- **Design patterns (new panels/tabs):** ktranslate `docs/grafana-network-dashboard-design-patterns.md`; Alloy `docs/grafana-alloy-network-dashboard-design-patterns.md`
+- **New device/vendor coverage:** ktranslate `docs/grafana-network-dashboard-expand-hardware.md`; Alloy `docs/grafana-alloy-network-dashboard-expand-hardware.md`
 - **Import / recommend to others:** `docs/grafana-network-dashboard-skills-README.md`
 - Full playbook: `docs/grafana-dashboard-playbook.md`
 - Query lessons + diff tool: `local/docs/dashboard-query-lessons.md` · `local/docs/ktranslate-dashboard-live-snapshot.md` · `local/scripts/_compare-dashboard-live.py`

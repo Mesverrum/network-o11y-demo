@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-device-details",
+  "title": "One device, one ticket",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "You should have arrived from **Network Dashboards** or a device-name drill-down.\n\n**Say this.** If someone opened a ticket on this device, this is the board they would land on. It is also the board an app or syseng person can open when they want to see if this box is why their service looks sick, without waiting for a network SME. A switch can page the same way a service does.\n\nClick the highlighted tabs. BGP is **Connections** here, not Routing."
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Overview",
+      "content": "Overview — CPU and the first picture of this one box.",
+      "requirements": ["exists-reftarget", "on-page:/d/ktranslate-device-details"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Interfaces",
+      "content": "Interfaces — ports, errors, and the usual network ticket.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Hardware Sensors",
+      "content": "Hardware Sensors — fans, power, temperature, when that vendor’s profile includes them.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Connections",
+      "content": "Connections — look at one BGP neighbor if this tab has data. This is Routing on the fleet view.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Network Flow",
+      "content": "Network Flow — conversations for this device. Empty here is normal in this lab. The estate-wide NTA view is Flow Summary.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.Tab.title:Events",
+      "content": "Events — syslog and traps for this box, same time range as the metrics.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.DashboardLinks.dropDown",
+      "content": "Open **Network Dashboards**, then choose **02. Network Flow Summary**.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — fans, BGP at 14:32, PerfStack",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**What about fans, power supplies, temperature?** **Hardware Sensors**, when that vendor’s profile includes those sensors. If a device does not show them, that MIB is not on the box — the dashboard is not missing a panel by accident.\n\n**A BGP neighbor dropped at 14:32.** **Connections** for session state. **Events** for the syslog in that same window. Device Summary still has a **Routing** tab if you are on the fleet view.\n\n**PerfStack?** Explore or dashboard variables. They can overlay the series they care about. Same time range as the apps."
+        }
+      ]
+    }
+  ]
+}

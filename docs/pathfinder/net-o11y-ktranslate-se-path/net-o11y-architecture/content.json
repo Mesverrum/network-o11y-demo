@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-architecture",
+  "title": "How the data gets here",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "You should be on **00. Ktranslate Architecture**. Open it from the ktranslate folder if you are not. Set **Last 3 hours** if the panels look empty.\n\n**Say this.** Start with the diagram.\n\nNetwork devices already speak a few standard protocols: SNMP for hardware counters, NetFlow or sFlow for who is talking to whom, and syslog or traps when something happens on the box. **ktranslate** sits in front of that. It discovers devices on the network, figures out what each one is from its SNMP identity, polls the right MIBs, and also receives flows and traps. It sends all of that out as OTLP. Grafana Cloud stores it. Alloy can still be the component that forwards OTLP — it does not have to be the thing that knows a Cisco from a Fortinet.\n\nThey are not buying a second network-management product, and they are not paying per interface or node the way SolarWinds does. The value is one platform: the people who already live in Grafana can see the network without switching tools. When Grafana ships a first-party Network product, this still makes sense because the data is already OTLP."
+    },
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.DashboardLinks.dropDown",
+      "content": "Open **Network Dashboards** in the header. These boards stay in this window and keep the time range. Then choose **03. Network Device Summary**.",
+      "requirements": ["exists-reftarget", "on-page:/d/ktranslate-architecture"]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — is this Kentik? When is Grafana’s own network product?",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**Is this Kentik?** ktranslate started at Kentik and is open source. Grafana Cloud is what you are showing. This is not a Kentik licence.\n\n**When is Grafana’s own network product?** It is on the roadmap. This is what we recommend until then, and it is not throwaway work — the devices still speak SNMP, flow, and syslog, and Grafana still stores OTLP."
+        }
+      ]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — why not just Alloy snmp_exporter?",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "Alloy’s SNMP exporter is a poller. You give it a target list and module names, and you already have to know every box and which MIBs to walk.\n\nThat is not usually where a SolarWinds shop is starting. They need to find devices, tell a Cisco from a Fortinet without maintaining a spreadsheet, poll the right counters, and also get traps and flow. ktranslate does that in one strategy:\n\n| Need | Alloy SNMP exporter | ktranslate |\n|------|---------------------|------------|\n| Finding devices | You keep the list | It can scan a range or a credential group |\n| Identifying the vendor / OS | You choose the module | It reads `sysObjectID` and applies a vendor profile |\n| SNMP polling | Yes | Yes, driven by that profile |\n| Traps | Separate work | The same collector that polls can listen for traps |\n| Flow and syslog | Separate work | Included in the same approach |\n\nIf the fleet is small and already well documented, Alloy SNMP is enough. If they are trying to replace NPM and NTA, ktranslate is the shorter path. Alloy can still forward the OTLP either way. Those are different jobs."
+        }
+      ]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — Cisco / Arista / Fortinet / Palo / UnDPs",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**Will this work on Cisco / Arista / Fortinet / Palo?** Yes. Each platform has an SNMP profile. What you are looking at is live hardware, not screenshots. Unusual or very old gear might need a profile added, which is implementation work, not a new product.\n\n**We have UnDPs.** Those custom OIDs become part of a profile and a normal Grafana panel. You do it once for that device type, not once per box."
+        }
+      ]
+    }
+  ]
+}

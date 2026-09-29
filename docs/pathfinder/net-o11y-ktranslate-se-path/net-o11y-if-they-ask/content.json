@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-if-they-ask",
+  "title": "If they name a SolarWinds module",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "Stay on this milestone when Q&A starts. You do not need the markdown talk track for this table.\n\n| They have | Show | What to tell them |\n|-----------|------|-------------------|\n| **NPM** | Summary + Details | Device and port health, in Grafana. |\n| **NTA** | Flow Summary | Traffic conversations in the same UI. They do not need a second product licence. |\n| **Log Analyzer / Kiwi / traps** | **Events** tab | Device logs sit next to the metrics, with the same time range. |\n| **NetPath / IP SLA ping** | The traceroute check in the Flow milestone | Hops from Ohio and North Virginia to `grafana.com`. |\n| **Advanced Alerts** | Grafana Alerting | Rules run on the same queries as the dashboards. Assistant can help write or tune them. IRM if they also want on-call. |\n| **PerfStack** | Explore or dashboard variables | They can overlay the series they care about. |\n| **IPAM / NCM / SAM / wireless** | Skip it | Different project. Post in **#sme-network**. |"
+    },
+    {
+      "type": "markdown",
+      "content": "**When to post in #sme-network**\n\nAnything past this walkthrough: a full replacement plan, NCM or IPAM, wireless / SD-WAN / voice, a large custom MIB library, collector sizing, or importing a huge SolarWinds alert pack. Write it down and post in **#sme-network**.\n\n**Cost?** Network devices vary significantly, but across a whole estate an average of 1000 series per network device usually gets you in the right range. Wireless APs are the exception — a couple hundred series if you poll them at all. Prefer a big-tent source (Meraki plugin or Infinity) over duplicating data they already paid the vendor to collect. Grafana is managed SaaS. Ask how painful their SolarWinds or Nagios upgrade cycle is."
+    }
+  ]
+}

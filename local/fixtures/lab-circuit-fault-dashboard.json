@@ -1,0 +1,552 @@
+{
+  "uid": "lab-circuit-fault",
+  "title": "Lab: WAN circuit fault + inhibit",
+  "tags": [
+    "lab",
+    "circuit",
+    "inhibit",
+    "alloy"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How this board works",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**WAN circuit fault + notification inhibit**\n\nUse the **Toggle** links (they open the webhook, then bounce back here). Infinity polls admin-state. All SNMP panels and circuit-demo alerts are Alloy `snmp_*` (`job=\"alloy-snmp\"`) \u2014 parent iface-down inhibits child BGP (`role=circuit_child`, same `circuit_id`). Webhook `https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com`."
+      }
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "Toggle circuits",
+      "description": "GET to the token-gated webhook (HTTPS). Disable = admin-down on the catalogued WAN port.",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "mode": "html",
+        "content": "<p><b>Click a link to toggle the WAN port</b> (new tab, then redirect back).</p>\n<p><b>WAN-HQ-BR1</b> \u2014 spine1 ethernet-1/3 \u2192 leaf-br1 ethernet-1/49 &nbsp; <a href=\"https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1\">Disable</a> &nbsp;\u00b7&nbsp; <a href=\"https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1\">Enable</a></p>\n<p><b>WAN-HQ-BR2</b> \u2014 spine1 ethernet-1/4 \u2192 leaf-br2 ethernet-1/49 &nbsp; <a href=\"https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1\">Disable</a> &nbsp;\u00b7&nbsp; <a href=\"https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1\">Enable</a></p>"
+      },
+      "links": [
+        {
+          "title": "Disable WAN-HQ-BR1",
+          "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1",
+          "targetBlank": true
+        },
+        {
+          "title": "Disable WAN-HQ-BR2",
+          "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1",
+          "targetBlank": true
+        },
+        {
+          "title": "Enable WAN-HQ-BR1",
+          "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1",
+          "targetBlank": true
+        },
+        {
+          "title": "Enable WAN-HQ-BR2",
+          "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1",
+          "targetBlank": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Circuit admin-state (webhook)",
+      "description": "Infinity GET /v1/circuits via Grafana Cloud proxy",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "lab-fault-webhook"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "lab-fault-webhook"
+          },
+          "type": "json",
+          "source": "url",
+          "url": "/v1/circuits",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "circuits",
+          "columns": [
+            {
+              "selector": "circuit_id",
+              "text": "circuit_id",
+              "type": "string"
+            },
+            {
+              "selector": "admin_state",
+              "text": "admin_state",
+              "type": "string"
+            },
+            {
+              "selector": "node",
+              "text": "node",
+              "type": "string"
+            },
+            {
+              "selector": "iface",
+              "text": "iface",
+              "type": "string"
+            },
+            {
+              "selector": "description",
+              "text": "description",
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "alertlist",
+      "title": "Circuit-demo alerts",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "alertName": "",
+        "alertInstanceLabelFilter": "demo=circuit-inhibit",
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true
+        },
+        "maxItems": 20,
+        "sortOrder": 1,
+        "dashboardAlerts": false
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "WAN-HQ-BR1 oper-state",
+      "description": "1=up, 2=down. Links also in the Toggle circuits panel above.",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 0
+                },
+                "2": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Disable WAN-HQ-BR1",
+              "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1",
+              "targetBlank": true
+            },
+            {
+              "title": "Enable WAN-HQ-BR1",
+              "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1",
+              "targetBlank": true
+            }
+          ],
+          "actions": [
+            {
+              "type": "http-request",
+              "title": "Disable WAN-HQ-BR1",
+              "options": {
+                "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1",
+                "method": "POST",
+                "body": "{\"admin_state\":\"disable\"}",
+                "headers": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer __LAB_FAULT_TOKEN__"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "http-request",
+              "title": "Enable WAN-HQ-BR1",
+              "options": {
+                "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR1",
+                "method": "POST",
+                "body": "{\"admin_state\":\"enable\"}",
+                "headers": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer __LAB_FAULT_TOKEN__"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "expr": "snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/3\"} or snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/3.0\"}",
+          "legendFormat": "{{if_interface_name}}",
+          "instant": false,
+          "range": true,
+          "editorMode": "code"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "WAN-HQ-BR1 BGP ConnState (6=established)",
+      "description": "Alloy snmp_tBgpPeerNgConnState (topology scrape). WAN eBGP via exact tBgpPeerNgAddress and peer_as.",
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "lineWidth": 2
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "expr": "(snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",tBgpPeerNgAddress=\"192.168.31.0\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",peer_as=\"103\"}) or (snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br1\",tBgpPeerNgAddress=\"192.168.31.1\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br1\",peer_as=\"201\"})",
+          "legendFormat": "{{device_name}} {{tBgpPeerNgAddress}} AS{{peer_as}}",
+          "instant": false,
+          "range": true,
+          "editorMode": "code"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "WAN-HQ-BR2 oper-state",
+      "description": "1=up, 2=down. Links also in the Toggle circuits panel above.",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 0
+                },
+                "2": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Disable WAN-HQ-BR2",
+              "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=disable&token=__LAB_FAULT_TOKEN__&redirect=1",
+              "targetBlank": true
+            },
+            {
+              "title": "Enable WAN-HQ-BR2",
+              "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2?admin_state=enable&token=__LAB_FAULT_TOKEN__&redirect=1",
+              "targetBlank": true
+            }
+          ],
+          "actions": [
+            {
+              "type": "http-request",
+              "title": "Disable WAN-HQ-BR2",
+              "options": {
+                "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2",
+                "method": "POST",
+                "body": "{\"admin_state\":\"disable\"}",
+                "headers": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer __LAB_FAULT_TOKEN__"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "http-request",
+              "title": "Enable WAN-HQ-BR2",
+              "options": {
+                "url": "https://2fpzuws2aa.execute-api.us-east-1.amazonaws.com/v1/circuits/WAN-HQ-BR2",
+                "method": "POST",
+                "body": "{\"admin_state\":\"enable\"}",
+                "headers": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer __LAB_FAULT_TOKEN__"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "expr": "snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/4\"} or snmp_ifOperStatus{job=\"alloy-snmp\",device_name=\"spine1\",if_interface_name=\"ethernet-1/4.0\"}",
+          "legendFormat": "{{if_interface_name}}",
+          "instant": false,
+          "range": true,
+          "editorMode": "code"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "WAN-HQ-BR2 BGP ConnState (6=established)",
+      "description": "Alloy snmp_tBgpPeerNgConnState (topology scrape). WAN eBGP via exact tBgpPeerNgAddress and peer_as.",
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 19
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "lineWidth": 2
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "expr": "(snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",tBgpPeerNgAddress=\"192.168.41.0\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"spine1\",peer_as=\"104\"}) or (snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br2\",tBgpPeerNgAddress=\"192.168.41.1\"} or snmp_tBgpPeerNgConnState{job=\"alloy-snmp\",device_name=\"leaf-br2\",peer_as=\"201\"})",
+          "legendFormat": "{{device_name}} {{tBgpPeerNgAddress}} AS{{peer_as}}",
+          "instant": false,
+          "range": true,
+          "editorMode": "code"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "flash",
+        "type": "custom",
+        "hide": 2,
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "text": "",
+            "value": ""
+          }
+        ],
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Alloy Device Details",
+      "type": "link",
+      "url": "https://marcnetterfield1.grafana.net/d/alloy-device-details",
+      "targetBlank": true
+    }
+  ]
+}

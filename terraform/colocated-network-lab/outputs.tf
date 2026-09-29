@@ -15,6 +15,11 @@ output "netbox_ui_url" {
   value       = try("http://${aws_lb.netbox_ui[0].dns_name}:8000/", null)
 }
 
+output "lab_fault_webhook_url" {
+  description = "Public circuit-fault webhook (HTTP on the NetBox NLB). Grafana Cloud Infinity uses this; dashboard button POSTs should go through the HTTPS API Gateway created by provision-lab-circuit-fault.py."
+  value       = try("http://${aws_lb.netbox_ui[0].dns_name}:8788/", null)
+}
+
 output "ssm_connect_command" {
   value = try(
     "aws ssm start-session --target ${aws_instance.lab_host[0].id} --region ${var.aws_region}",

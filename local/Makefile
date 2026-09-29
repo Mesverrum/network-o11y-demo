@@ -231,8 +231,12 @@ alloy-network-image: ## Build srl-local/alloy:network-dev (set ALLOY_NETWORK_FRO
 	bash $(ROOT)scripts/build-alloy-network-image.sh
 
 .PHONY: alloy-snmp-discover
-alloy-snmp-discover: ## Probe fabric IPs → snmp-targets.yml (named auth + sysObjectID→module)
+alloy-snmp-discover: ## Sweep the fabric management subnet → targets (sysName identity + sysObjectID modules)
 	bash $(ROOT)scripts/alloy-snmp-discover.sh
+
+.PHONY: alloy-snmp-discovery-test
+alloy-snmp-discovery-test: ## Check dynamic discovery identity/module/state contracts
+	python3 $(ROOT)scripts/test-alloy-snmp-discovery-contract.py
 
 .PHONY: alloy-snmp-up
 alloy-snmp-up: compose-host-env ## Enable Alloy-native SNMP scrape (LAB_ALLOY_SNMP=1; ktranslate stays)
@@ -557,6 +561,19 @@ workshop-fault-stop: ## Clear webinar hunt fault on leaf1 ethernet-1/1
 workshop-fault-status: ## Show webinar hunt interface admin-state
 	bash $(ROOT)scripts/workshop-inject-fault.sh status
 
+.PHONY: circuit-fault circuit-fault-stop circuit-fault-status circuit-fault-up
+circuit-fault: ## Disable catalogued WAN circuit (CIRCUIT=WAN-HQ-BR1)
+	bash $(ROOT)scripts/lab-circuit-fault.sh disable $${CIRCUIT:-WAN-HQ-BR1}
+
+circuit-fault-stop: ## Re-enable catalogued WAN circuit
+	bash $(ROOT)scripts/lab-circuit-fault.sh enable $${CIRCUIT:-WAN-HQ-BR1}
+
+circuit-fault-status: ## Show catalogued circuit admin-state
+	bash $(ROOT)scripts/lab-circuit-fault.sh status $${CIRCUIT:-WAN-HQ-BR1}
+
+circuit-fault-up: ## Deploy webhook + NLB/API GW + Grafana toggle dashboard (AWS colocated)
+	python3 $(ROOT)scripts/provision-lab-circuit-fault.py
+
 .PHONY: join-fault
 join-fault: ## Inject netem delay/loss on client eth1 (join demo talk track)
 	bash $(ROOT)scripts/join-fault.sh start
@@ -604,6 +621,16 @@ aws-lab-up: ## NLB + traffic hosts for Cloud Network dashboards (set AWS_PROFILE
 
 aws-lab-down: ## Destroy AWS dashboard lab (run between sessions)
 	bash $(ROOT)scripts/aws-lab-down.sh
+
+.PHONY: kafka-plugin-lab-discover kafka-plugin-lab-up kafka-plugin-lab-down
+kafka-plugin-lab-discover: ## Write terraform/kafka-plugin-lab/terraform.tfvars
+	bash $(ROOT)scripts/kafka-plugin-lab-discover.sh
+
+kafka-plugin-lab-up: ## Dedicated EC2: self-hosted Grafana + Kafka for unsigned plugin alerting
+	bash $(ROOT)scripts/kafka-plugin-lab-up.sh
+
+kafka-plugin-lab-down: ## Destroy kafka plugin validation EC2
+	bash $(ROOT)scripts/kafka-plugin-lab-down.sh
 
 .PHONY: generate-k8s deploy-ktranslate-golden verify-ktranslate-names
 generate-k8s: generate ## Render k8s/ktranslate-golden from local/ golden path

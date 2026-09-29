@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-device-summary",
+  "type": "guide",
+  "repository": "network-o11y-demo",
+  "description": "Fleet view: devices, traffic, CPU, ports, BGP, and events.",
+  "category": "network-observability",
+  "author": { "team": "sme-network" },
+  "startingLocation": "/d/ktranslate-device-summary",
+  "recommends": ["net-o11y-architecture"]
+}

@@ -21,6 +21,8 @@ fabric_profile_init() {
     # shellcheck disable=SC1091
     source <(sed 's/\r$//' "${LAB_REPO_ROOT}/.env")
     set +a
+    # shellcheck source=grafana-env.sh
+    source "${LAB_REPO_ROOT}/scripts/grafana-env.sh"
   fi
 
   if [[ -n "${profile_override}" ]]; then

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-assistant",
+  "title": "Ask before you page",
+  "blocks": [
+    {
+      "type": "interactive",
+      "action": "highlight",
+      "reftarget": "grafana:components.DashboardLinks.dropDown",
+      "content": "Open **Network Dashboards**, then choose **04. Network Device Details**. Assistant is easier to show on a single box.",
+      "requirements": ["exists-reftarget"]
+    },
+    {
+      "type": "interactive",
+      "action": "popout",
+      "targetvalue": "floating",
+      "content": "Undock this guide so the right sidebar is free for Grafana Assistant."
+    },
+    {
+      "type": "markdown",
+      "content": "**Say this.**\n\nThe point is not a prettier network console. It is one platform. App and syseng teams can ask Assistant whether a down port, a BGP drop, or a noisy conversation is sitting under their service, and get an answer before they page the network SME. That is how you shrink **mean time to innocence**. Network people get fewer 2am “is it the network?” tickets. Everyone else stops waiting on a second login.\n\nAssistant can also help draft a rule from a panel they are looking at, or tighten a noisy one. SolarWinds is years behind on that kind of investigation and alert-tuning workflow.\n\nA switch can page the same way a service does. Alerts and Explore are the same tools they already use.\n\nIf they want to see Assistant live, ask something concrete: what is using bandwidth, or whether any interfaces on this device look unhealthy."
+    },
+    {
+      "type": "quiz",
+      "question": "An app engineer thinks checkout is slow. What should they do first in this model?",
+      "completionMode": "correct-only",
+      "choices": [
+        {
+          "id": "a",
+          "text": "Page the network SME and wait for a SolarWinds screenshot.",
+          "hint": "That is the old mean time to innocence. We are trying to shrink it."
+        },
+        {
+          "id": "b",
+          "text": "Ask Assistant, on the same stack, whether a port, session, or conversation looks involved.",
+          "correct": true
+        },
+        {
+          "id": "c",
+          "text": "Export a CSV from NTA and paste it into Slack.",
+          "hint": "Flow is already on Flow Summary in this stack."
+        }
+      ]
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — can Assistant actually use this / Advanced Alerts",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**Can Grafana Assistant actually use this?** Yes. That is the point of putting the network on the same platform. App and syseng teams can ask Assistant if they are hitting a network problem before they page the person who owns the routers. Network SMEs get fewer drive-by tickets. People also use it to draft or adjust alerts from the panel in front of them. SolarWinds does not have an equivalent.\n\n**Advanced Alerts.** Grafana Alerting. Rules run on the same queries as the dashboards. Assistant can help write or tune them. IRM if they also want on-call."
+        }
+      ]
+    },
+    {
+      "type": "interactive",
+      "action": "popout",
+      "targetvalue": "sidebar",
+      "content": "Dock the guide again when you are done with Assistant."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-flow",
+  "title": "Who is talking to whom",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "You should have arrived from **Network Dashboards** onto **02. Network Flow Summary**. If someone says NTA, this is that story.\n\n**Say this.**\n\nSNMP provides metrics about the network hardware. Flow tells you which devices are talking to each other over that network. Together they let someone decide if the network is actually in the path of the problem, without opening a second tool.\n\nIf the world map is empty, that is fine. Private or internal addresses do not have a country.\n\nThey do not need a second product licence for conversations. Top talkers are Conversations or the Sankey.\n\nIf someone asks for NetPath, that is a traceroute, not this board."
+    },
+    {
+      "type": "interactive",
+      "action": "navigate",
+      "reftarget": "/a/grafana-synthetic-monitoring-app/checks/7294",
+      "content": "Open the traceroute check if they mention NetPath or IP SLA ping. Ohio and North Virginia to grafana.com.",
+      "skippable": true
+    },
+    {
+      "type": "collapsible",
+      "title": "If they ask — where is NetPath / top talkers",
+      "collapsed": true,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "**Where is NetPath?** This traceroute is the same idea: a probe you place, a hop list, and latency along the path. They can put private probes in their own sites the way they placed NetPath agents. The Flow Sankey is the NTA view (who talked to whom), not traceroute.\n\n**Can I see top talkers?** Flow Summary → Conversations or Sankey."
+        }
+      ]
+    }
+  ]
+}

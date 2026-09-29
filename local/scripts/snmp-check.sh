@@ -121,6 +121,8 @@ for line in Path(".env").read_text().splitlines():
     if line and not line.startswith("#") and "=" in line:
         k, v = line.split("=", 1)
         env[k] = v
+env["GRAFANA_URL"] = env.get("GRAFANA_URL") or env.get("NETTERFIELD_GRAFANA_URL") or ""
+env["GRAFANA_TOKEN"] = env.get("GRAFANA_TOKEN") or env.get("NETTERFIELD_GRAFANA_TOKEN") or ""
 if not env.get("GRAFANA_URL") or not env.get("GRAFANA_TOKEN"):
     print("  (skip: GRAFANA_URL / GRAFANA_TOKEN not set in .env)")
     raise SystemExit(0)

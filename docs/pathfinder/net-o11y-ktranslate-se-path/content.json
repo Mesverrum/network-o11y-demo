@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.1.0",
+  "id": "net-o11y-ktranslate-se-path",
+  "title": "Network in Grafana Cloud",
+  "blocks": [
+    {
+      "type": "markdown",
+      "content": "This path **is** the customer demo. You do not need a second script. Say the text that is already open. Open a collapsed section only if they ask that question.\n\nAbout 15 minutes. After the pitch, open **00. Ktranslate Architecture** from the folder once. From then on, move with **Network Dashboards** at the top of each board — Pathfinder highlights the dropdown; you pick the next board. Those links stay in this window. Set the time range to **Last 3 hours**. Do not open Alloy Network Fork.\n\nIf they want a full SolarWinds replacement plan, NCM, IPAM, wireless, or a huge custom MIB library, pause and post in **#sme-network**. The last milestone is the SolarWinds cheat sheet."
+    }
+  ]
+}

@@ -20,7 +20,7 @@
   "includes": [
     {
       "type": "page",
-      "name": "Collector",
+      "name": "Instrumentation Hub",
       "path": "/a/%PLUGIN_ID%/collector",
       "addToNav": true,
       "defaultNav": true
@@ -29,37 +29,31 @@
       "type": "page",
       "name": "Add a group",
       "path": "/a/%PLUGIN_ID%/group",
-      "addToNav": true
+      "addToNav": false
     },
     {
       "type": "page",
       "name": "What we found",
       "path": "/a/%PLUGIN_ID%/found",
-      "addToNav": true
+      "addToNav": false
     },
     {
       "type": "page",
       "name": "What to collect",
       "path": "/a/%PLUGIN_ID%/collect",
-      "addToNav": true
+      "addToNav": false
     },
     {
       "type": "page",
       "name": "Apply",
       "path": "/a/%PLUGIN_ID%/apply",
-      "addToNav": true
+      "addToNav": false
     },
     {
       "type": "page",
       "name": "Receiving",
       "path": "/a/%PLUGIN_ID%/receiving",
-      "addToNav": true
-    },
-    {
-      "type": "page",
-      "name": "Devices",
-      "path": "/a/%PLUGIN_ID%/devices",
-      "addToNav": true
+      "addToNav": false
     },
     {
       "type": "page",
@@ -68,6 +62,28 @@
       "path": "/plugins/%PLUGIN_ID%",
       "role": "Admin",
       "addToNav": true
+    }
+  ],
+  "routes": [
+    {
+      "path": "stack/*",
+      "url": "https://marcnetterfield1.grafana.net",
+      "headers": [
+        {
+          "name": "Authorization",
+          "content": "Bearer {{.SecureJsonData.grafanaToken}}"
+        }
+      ]
+    },
+    {
+      "path": "fleet/*",
+      "url": "https://fleet-management-prod-008.grafana.net",
+      "headers": [
+        {
+          "name": "Authorization",
+          "content": "Bearer {{.JsonData.stackId}}:{{.SecureJsonData.fmToken}}"
+        }
+      ]
     }
   ],
   "dependencies": {
